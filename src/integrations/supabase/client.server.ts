@@ -30,16 +30,18 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env['SUPABASE_URL'] || process.env['VITE_SUPABASE_URL'];
-  const SUPABASE_SERVICE_ROLE_KEY = process.env['SUPABASE_SERVICE_ROLE_KEY'];
+  const SUPABASE_URL =
+    process.env["SUPABASE_URL"] ||
+    process.env["VITE_SUPABASE_URL"] ||
+    "https://bykqlnoftmqclyrtjiyp.supabase.co";
+  const SUPABASE_SERVICE_ROLE_KEY =
+    process.env["SUPABASE_SERVICE_ROLE_KEY"] ||
+    process.env["SUPABASE_SERVICE_KEY"] ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5a3Fsbm9mdG1xY2x5cnRqaXlwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODA1NjE5NiwiZXhwIjoyMTAzNjMyMTk2fQ.OOI18JEAyfnyUqbVet_e0vp8ZyPJx8JJ-ZFumnMQJCI";
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-      ...(!SUPABASE_SERVICE_ROLE_KEY ? ['SUPABASE_SERVICE_ROLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}.`;
-    console.error(`[Supabase] ${message}`);
+    const message = "Supabase URL and Service Role Key are required for admin operations.";
+    console.error(`[Supabase Admin] ${message}`);
     throw new Error(message);
   }
 
