@@ -13,6 +13,45 @@ type Props = {
   onActiveChange?: (active: boolean) => void;
 };
 
+function SpeedPicker({
+  rate,
+  onChange,
+}: {
+  rate: number;
+  onChange: (r: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
+        <Gauge className="size-3.5" /> Speed
+      </span>
+      {PLAYBACK_RATES.map((r) => (
+        <button
+          key={r}
+          type="button"
+          onClick={() => onChange(r)}
+          className={cn(
+            "rounded-full border border-border px-2.5 py-1 text-xs font-bold transition-colors",
+            rate === r
+              ? "border-primary bg-primary text-primary-foreground"
+              : "bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+          )}
+        >
+          {r}×
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ActiveReporter({ onActiveChange }: { onActiveChange?: (active: boolean) => void }) {
+  useEffect(() => {
+    onActiveChange?.(true);
+    return () => onActiveChange?.(false);
+  }, [onActiveChange]);
+  return null;
+}
+
 function formatTime(seconds: number): string {
   if (isNaN(seconds) || seconds < 0) return "00:00";
   const mins = Math.floor(seconds / 60);
