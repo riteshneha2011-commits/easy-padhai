@@ -39,7 +39,7 @@ export function SiteHeader() {
   }, []);
 
   const { data: wallet } = useQuery({
-    queryKey: ["wallet-pill", user?.id],
+    queryKey: ["wallet", user?.id],
     queryFn: () => fetchWallet(),
     enabled: Boolean(user),
     refetchOnWindowFocus: true,
@@ -170,7 +170,7 @@ export function SiteHeader() {
                   title="My Credits Balance"
                 >
                   <Coins className="size-3.5 text-amber-500" />
-                  <span>{wallet?.balance ?? profile?.credits_balance ?? 100} Credits</span>
+                  <span>{wallet?.balance ?? profile?.credits ?? 0} Credits</span>
                 </Link>
 
                 <div
@@ -178,7 +178,7 @@ export function SiteHeader() {
                   title="My XP Progress"
                 >
                   <Flame className="size-3.5 text-orange-500 fill-orange-500" />
-                  <span>{profile?.xp_points ?? 0} XP</span>
+                  <span>{wallet?.totalXp ?? profile?.total_xp ?? 0} XP</span>
                 </div>
 
                 <ThemeToggle />

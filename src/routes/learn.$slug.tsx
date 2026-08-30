@@ -176,6 +176,7 @@ function ChapterPage() {
   const unlock = useMutation({
     mutationFn: (lessonId: string) => unlockLesson({ data: { lessonId } }),
     onSuccess: (access) => {
+      void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["lesson-access"] });
       void refresh();
       soundFx.playSuccess();
