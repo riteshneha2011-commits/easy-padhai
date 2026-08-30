@@ -84,6 +84,27 @@ export const addQuestions = createServerFn({ method: "POST" })
     return admin.insertQuestions(data.testId, data.questions);
   });
 
+export const saveQuestion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      id?: string;
+      test_id: string;
+      prompt: string;
+      options: string[];
+      correct_index: number;
+      explanation?: string | null;
+      topic?: string | null;
+      difficulty?: string;
+      order_index?: number;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const admin = await import("./admin.server");
+    await admin.assertStaff(context.supabase, context.userId);
+    return admin.upsertQuestion(data);
+  });
+
 export const getTestQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { testId: string }) => data)
@@ -92,6 +113,7 @@ export const getTestQuestions = createServerFn({ method: "POST" })
     await admin.assertStaff(context.supabase, context.userId);
     return admin.listTestQuestions(data.testId);
   });
+
 
 export const generateQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -9,7 +9,9 @@ import {
   saveSubject,
   saveLesson,
   saveTest,
+  saveQuestion,
   addQuestions,
+  getTestQuestions,
   generateQuestions,
   deleteRow,
 } from "@/lib/admin.functions";
@@ -50,6 +52,12 @@ import {
   Check,
   RefreshCw,
   HelpCircle,
+  Edit3,
+  ChevronDown,
+  ChevronUp,
+  FileQuestion,
+  Eye,
+  Save,
 } from "lucide-react";
 
 
@@ -84,6 +92,8 @@ function TeachPage() {
   const upsertSubject = useServerFn(saveSubject);
   const upsertLesson = useServerFn(saveLesson);
   const upsertTest = useServerFn(saveTest);
+  const upsertQuestion = useServerFn(saveQuestion);
+  const fetchTestQuestions = useServerFn(getTestQuestions);
   const insertQuestions = useServerFn(addQuestions);
   const aiGenerate = useServerFn(generateQuestions);
   const removeRow = useServerFn(deleteRow);
@@ -115,6 +125,116 @@ function TeachPage() {
   const [editChapter, setEditChapter] = useState<string | null>(null);
   const [editLesson, setEditLesson] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState<string | null>(null);
+
+  // Manage Quizzes Tab State
+  const [selectedManageTestId, setSelectedManageTestId] = useState<string | null>(null);
+  const [manageQuestions, setManageQuestions] = useState<any[]>([]);
+  const [loadingManageQuestions, setLoadingManageQuestions] = useState(false);
+  const [filterQuizType, setFilterQuizType] = useState<"all" | "lesson" | "chapter">("all");
+  const [manageSubjectFilter, setManageSubjectFilter] = useState<string>("all");
+  const [editingQuestionState, setEditingQuestionState] = useState<Record<string, any>>({});
+  const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null);
+
+  const handleOpenTestQuestions = async (testId: string) => {
+    if (selectedManageTestId === testId) {
+      setSelectedManageTestId(null);
+      setManageQuestions([]);
+      return;
+    }
+    setSelectedManageTestId(testId);
+    setLoadingManageQuestions(true);
+    try {
+      const qs = await fetchTestQuestions({ data: { testId } });
+      setManageQuestions(qs || []);
+      const stateMap: Record<string, any> = {};
+      (qs || []).forEach((q: any) => {
+        stateMap[q.id] = {
+          prompt: q.prompt,
+          options: [...q.options],
+          correct_index: q.correct_index,
+          explanation: q.explanation ?? "",
+          topic: q.topic ?? "",
+          difficulty: q.difficulty ?? "medium",
+        };
+      });
+      setEditingQuestionState(stateMap);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load questions");
+    } finally {
+      setLoadingManageQuestions(false);
+    }
+  };
+
+  const handleSaveSingleQuestion = async (qId: string, testId: string) => {
+    const qData = editingQuestionState[qId];
+    if (!qData) return;
+    setSavingQuestionId(qId);
+    try {
+      await upsertQuestion({
+        data: {
+          id: qId,
+          test_id: testId,
+          prompt: qData.prompt,
+          options: qData.options,
+          correct_index: qData.correct_index,
+          explanation: qData.explanation || null,
+          topic: qData.topic || null,
+          difficulty: qData.difficulty || "medium",
+        },
+      });
+      toast.success("Question updated successfully! ✅");
+      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+    } catch (e: any) {
+      toast.error(e.message || "Could not save question");
+    } finally {
+      setSavingQuestionId(null);
+    }
+  };
+
+  const handleDeleteSingleQuestion = async (qId: string) => {
+    if (!confirm("Are you sure you want to delete this question?")) return;
+    try {
+      await removeRow({ data: { table: "questions", id: qId } });
+      toast.success("Question deleted.");
+      setManageQuestions((prev) => prev.filter((q) => q.id !== qId));
+      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+    } catch (e: any) {
+      toast.error(e.message || "Could not delete question");
+    }
+  };
+
+  const handleAddNewQuestionToExistingTest = async (testId: string) => {
+    try {
+      const created = await upsertQuestion({
+        data: {
+          test_id: testId,
+          prompt: "New question prompt...",
+          options: ["Option A", "Option B", "Option C", "Option D"],
+          correct_index: 0,
+          difficulty: "medium",
+          explanation: "",
+          topic: "",
+        },
+      });
+      toast.success("New question added! You can now edit its content below.");
+      const updatedQs = await fetchTestQuestions({ data: { testId } });
+      setManageQuestions(updatedQs || []);
+      setEditingQuestionState((prev) => ({
+        ...prev,
+        [created.id]: {
+          prompt: created.prompt,
+          options: [...created.options],
+          correct_index: created.correct_index,
+          explanation: created.explanation ?? "",
+          topic: created.topic ?? "",
+          difficulty: created.difficulty ?? "medium",
+        },
+      }));
+      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+    } catch (e: any) {
+      toast.error(e.message || "Could not add question");
+    }
+  };
 
   const [newLessonSubjectId, setNewLessonSubjectId] = useState("");
   const [newLessonChapterId, setNewLessonChapterId] = useState("");
@@ -244,12 +364,15 @@ function TeachPage() {
       <p className="mt-1 text-muted-foreground">Publish content and build tests for {ACTIVE_CLASS_LABEL}.</p>
 
       <Tabs defaultValue="content" className="mt-6">
-        <TabsList className="rounded-full">
-          <TabsTrigger value="content" className="rounded-full">
-            Content
+        <TabsList className="rounded-full flex-wrap h-auto gap-1 p-1 bg-secondary/80">
+          <TabsTrigger value="content" className="rounded-full text-xs sm:text-sm font-semibold">
+            1. Content Hierarchy
           </TabsTrigger>
-          <TabsTrigger value="questions" className="rounded-full">
-            Questions & Quizzes
+          <TabsTrigger value="questions" className="rounded-full text-xs sm:text-sm font-semibold">
+            2. AI Quiz Builder ✨
+          </TabsTrigger>
+          <TabsTrigger value="manage_tests" className="rounded-full text-xs sm:text-sm font-semibold">
+            3. All Quizzes & Tests ({data?.tests?.length ?? 0})
           </TabsTrigger>
         </TabsList>
 
@@ -1533,6 +1656,407 @@ function TeachPage() {
               </div>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="manage_tests" className="space-y-6">
+          <Card className="rounded-3xl border-border/80 shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="font-display text-xl flex items-center gap-2">
+                    <FileQuestion className="size-5 text-primary" />
+                    <span>All Quizzes & Tests Bank</span>
+                  </CardTitle>
+                  <CardDescription className="mt-0.5">
+                    View, inspect, edit individual questions, add new questions, or delete any quiz.
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs font-semibold px-3 py-1 self-start sm:self-auto">
+                  Total Quizzes: {data?.tests?.length ?? 0}
+                </Badge>
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/40 mt-3">
+                <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setFilterQuizType("all")}
+                    className={cn(
+                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                      filterQuizType === "all" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    All ({data?.tests?.length ?? 0})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterQuizType("lesson")}
+                    className={cn(
+                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                      filterQuizType === "lesson" ? "bg-card shadow-sm text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    ⚡ Lesson Quizzes ({data?.tests?.filter((t: any) => t.is_lesson_test).length ?? 0})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterQuizType("chapter")}
+                    className={cn(
+                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                      filterQuizType === "chapter" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    📖 Chapter Tests ({data?.tests?.filter((t: any) => !t.is_lesson_test).length ?? 0})
+                  </button>
+                </div>
+
+                <div className="ml-auto flex items-center gap-2">
+                  <select
+                    value={manageSubjectFilter}
+                    onChange={(e) => setManageSubjectFilter(e.target.value)}
+                    className="h-8 rounded-xl border border-input bg-card px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="all">All Subjects</option>
+                    {data?.subjects?.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({classLabel(s.class_level)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {(() => {
+                let filteredTests = data?.tests ?? [];
+                if (filterQuizType === "lesson") {
+                  filteredTests = filteredTests.filter((t: any) => t.is_lesson_test);
+                } else if (filterQuizType === "chapter") {
+                  filteredTests = filteredTests.filter((t: any) => !t.is_lesson_test);
+                }
+                if (manageSubjectFilter !== "all") {
+                  const subjectChapters = new Set((data?.chapters ?? []).filter((c) => c.subject_id === manageSubjectFilter).map((c) => c.id));
+                  filteredTests = filteredTests.filter((t: any) => subjectChapters.has(t.chapter_id));
+                }
+
+                if (filteredTests.length === 0) {
+                  return (
+                    <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">No quizzes match your filter.</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-full text-xs font-semibold"
+                        onClick={() => {
+                          setFilterQuizType("all");
+                          setManageSubjectFilter("all");
+                        }}
+                      >
+                        Reset filters
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return filteredTests.map((t: any) => {
+                  const isExpanded = selectedManageTestId === t.id;
+                  return (
+                    <div
+                      key={t.id}
+                      className={cn(
+                        "rounded-2xl border transition-all overflow-hidden",
+                        isExpanded ? "border-primary/60 bg-card shadow-md" : "border-border/70 bg-card/60 hover:border-border"
+                      )}
+                    >
+                      {/* Test Summary Row */}
+                      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1.5 min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {t.is_lesson_test ? (
+                              <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30 text-[11px] font-bold">
+                                ⚡ Lesson Quiz
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-primary/15 text-primary border-primary/30 text-[11px] font-bold">
+                                📖 Chapter Test
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-[11px]">
+                              {t.subject_name}
+                            </Badge>
+                            <Badge variant="secondary" className="text-[11px] font-semibold">
+                              {t.questionCount} Questions
+                            </Badge>
+                            <Badge variant="secondary" className="text-[11px]">
+                              ~{t.duration_minutes ?? 10} min
+                            </Badge>
+                          </div>
+
+                          <h3 className="font-display text-base font-bold text-foreground">
+                            {t.title}
+                          </h3>
+
+                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
+                            <span>Chapter: <strong>{t.chapter_title}</strong></span>
+                            {t.lesson_title && (
+                              <span>• Lecture: <strong>{t.lesson_title}</strong></span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
+                          <Button
+                            size="sm"
+                            variant={isExpanded ? "default" : "outline"}
+                            onClick={() => handleOpenTestQuestions(t.id)}
+                            className="rounded-full text-xs font-semibold gap-1.5 h-8"
+                          >
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="size-3.5" />
+                                <span>Hide Questions</span>
+                              </>
+                            ) : (
+                              <>
+                                <Eye className="size-3.5" />
+                                <span>Inspect & Edit ({t.questionCount})</span>
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm(`Delete entire quiz "${t.title}" and all its questions?`)) {
+                                void run(async () => {
+                                  await removeRow({ data: { table: "tests", id: t.id } });
+                                  if (selectedManageTestId === t.id) {
+                                    setSelectedManageTestId(null);
+                                    setManageQuestions([]);
+                                  }
+                                  toast.success("Quiz deleted successfully.");
+                                });
+                              }
+                            }}
+                            className="rounded-full text-xs text-destructive hover:bg-destructive/10 h-8 px-2.5"
+                            title="Delete Quiz"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Expanded Question Bank Editor */}
+                      {isExpanded && (
+                        <div className="border-t border-border/60 bg-secondary/20 p-4 sm:p-5 space-y-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/40 pb-3">
+                            <div>
+                              <h4 className="font-display text-sm font-bold text-foreground flex items-center gap-2">
+                                <Sparkles className="size-4 text-primary" />
+                                <span>Questions in this Quiz ({manageQuestions.length})</span>
+                              </h4>
+                              <p className="text-xs text-muted-foreground">
+                                Edit prompt, options, correct answers, and explanations.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleAddNewQuestionToExistingTest(t.id)}
+                              className="rounded-full text-xs font-bold gap-1.5 h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
+                            >
+                              <Plus className="size-3.5" />
+                              <span>Add New Question</span>
+                            </Button>
+                          </div>
+
+                          {loadingManageQuestions ? (
+                            <div className="py-8 text-center text-xs text-muted-foreground">
+                              <RefreshCw className="size-4 animate-spin mx-auto mb-2 text-primary" />
+                              Loading questions...
+                            </div>
+                          ) : manageQuestions.length === 0 ? (
+                            <div className="py-6 text-center text-xs text-muted-foreground">
+                              No questions in this test yet. Click "Add New Question" above.
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              {manageQuestions.map((q, qIndex) => {
+                                const qState = editingQuestionState[q.id] || {
+                                  prompt: q.prompt,
+                                  options: [...q.options],
+                                  correct_index: q.correct_index,
+                                  explanation: q.explanation ?? "",
+                                  topic: q.topic ?? "",
+                                  difficulty: q.difficulty ?? "medium",
+                                };
+                                const isSaving = savingQuestionId === q.id;
+
+                                return (
+                                  <Card key={q.id} className="rounded-2xl border-border/70 p-4 space-y-3 bg-card shadow-sm">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs font-bold">
+                                          Q{qIndex + 1}
+                                        </Badge>
+                                        <select
+                                          value={qState.difficulty}
+                                          onChange={(e) => {
+                                            const diff = e.target.value;
+                                            setEditingQuestionState((prev) => ({
+                                              ...prev,
+                                              [q.id]: { ...prev[q.id], difficulty: diff },
+                                            }));
+                                          }}
+                                          className="h-6 rounded-md border border-input bg-background px-2 text-[11px] font-semibold text-muted-foreground"
+                                        >
+                                          <option value="easy">Easy</option>
+                                          <option value="medium">Medium</option>
+                                          <option value="hard">Hard</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5">
+                                        <Button
+                                          size="sm"
+                                          disabled={isSaving}
+                                          onClick={() => handleSaveSingleQuestion(q.id, t.id)}
+                                          className="h-7 rounded-full text-xs font-semibold gap-1 bg-primary text-primary-foreground"
+                                        >
+                                          <Save className="size-3" />
+                                          <span>{isSaving ? "Saving..." : "Save"}</span>
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleDeleteSingleQuestion(q.id)}
+                                          className="h-7 w-7 p-0 rounded-full text-destructive hover:bg-destructive/10"
+                                          title="Delete Question"
+                                        >
+                                          <Trash2 className="size-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    {/* Prompt */}
+                                    <div className="space-y-1">
+                                      <Label className="text-xs font-semibold text-muted-foreground">Question Statement</Label>
+                                      <Textarea
+                                        rows={2}
+                                        value={qState.prompt}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setEditingQuestionState((prev) => ({
+                                            ...prev,
+                                            [q.id]: { ...prev[q.id], prompt: val },
+                                          }));
+                                        }}
+                                        className="text-xs sm:text-sm rounded-xl font-medium"
+                                      />
+                                    </div>
+
+                                    {/* 4 Options Grid */}
+                                    <div className="space-y-1.5">
+                                      <Label className="text-xs font-semibold text-muted-foreground">Options (Select radio for correct answer)</Label>
+                                      <div className="grid gap-2 sm:grid-cols-2">
+                                        {qState.options.map((opt: string, optIdx: number) => {
+                                          const isCorrect = qState.correct_index === optIdx;
+                                          return (
+                                            <div
+                                              key={optIdx}
+                                              className={cn(
+                                                "flex items-center gap-2 rounded-xl border p-2 text-xs transition-all",
+                                                isCorrect
+                                                  ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-950/30"
+                                                  : "border-border/60 bg-secondary/30"
+                                              )}
+                                            >
+                                              <input
+                                                type="radio"
+                                                name={`correct_manage_${q.id}`}
+                                                checked={isCorrect}
+                                                onChange={() => {
+                                                  setEditingQuestionState((prev) => ({
+                                                    ...prev,
+                                                    [q.id]: { ...prev[q.id], correct_index: optIdx },
+                                                  }));
+                                                }}
+                                                className="size-4 accent-emerald-600 shrink-0"
+                                              />
+                                              <span className="font-bold text-xs shrink-0 text-muted-foreground">
+                                                {String.fromCharCode(65 + optIdx)}.
+                                              </span>
+                                              <Input
+                                                value={opt}
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  setEditingQuestionState((prev) => {
+                                                    const currentOpts = [...(prev[q.id]?.options || [])];
+                                                    currentOpts[optIdx] = val;
+                                                    return {
+                                                      ...prev,
+                                                      [q.id]: { ...prev[q.id], options: currentOpts },
+                                                    };
+                                                  });
+                                                }}
+                                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                                className="h-7 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
+                                              />
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+
+                                    {/* Topic & Explanation */}
+                                    <div className="grid gap-2 sm:grid-cols-2 pt-1">
+                                      <div className="space-y-1">
+                                        <Label className="text-[11px] font-semibold text-muted-foreground">Topic Tag</Label>
+                                        <Input
+                                          value={qState.topic}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setEditingQuestionState((prev) => ({
+                                              ...prev,
+                                              [q.id]: { ...prev[q.id], topic: val },
+                                            }));
+                                          }}
+                                          placeholder="Topic..."
+                                          className="h-7 text-xs rounded-xl"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-[11px] font-semibold text-muted-foreground">Explanation</Label>
+                                        <Input
+                                          value={qState.explanation}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setEditingQuestionState((prev) => ({
+                                              ...prev,
+                                              [q.id]: { ...prev[q.id], explanation: val },
+                                            }));
+                                          }}
+                                          placeholder="Explanation for student..."
+                                          className="h-7 text-xs rounded-xl"
+                                        />
+                                      </div>
+                                    </div>
+                                  </Card>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

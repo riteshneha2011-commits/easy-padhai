@@ -45,7 +45,7 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
         description: chapter.description,
         order_index: chapter.order_index,
         lessonCount: (lessons ?? []).filter((l) => l.chapter_id === chapter.id).length,
-        testId: (tests ?? []).find((t) => t.chapter_id === chapter.id)?.id ?? null,
+        testId: (tests ?? []).find((t) => t.chapter_id === chapter.id && !t.description?.startsWith("lesson:"))?.id ?? null,
       })),
   }));
 }
@@ -62,7 +62,7 @@ export async function fetchChapterBySlug(slug: string) {
 
   if (!chapter) return null;
 
-  const [{ data: lessons }, { data: test }] = await Promise.all([
+  const [{ data: lessons }, { data: allTests }] = await Promise.all([
     supabase
       .from("lessons")
       .select("*")
@@ -73,24 +73,31 @@ export async function fetchChapterBySlug(slug: string) {
       .from("tests")
       .select("id, title, description, duration_minutes")
       .eq("chapter_id", chapter.id)
-      .eq("published", true)
-      .maybeSingle(),
+      .eq("published", true),
   ]);
 
   const list = lessons ?? [];
+  const testsList = allTests ?? [];
   const firstId = list[0]?.id ?? null;
+
+  // Chapter-level test is the test NOT tagged with a specific lesson:
+  const chapterTest = testsList.find((t) => !t.description?.startsWith("lesson:")) ?? null;
 
   // Media URLs are never sent to the browser here — they are released per lesson
   // by getLessonAccess once the lesson is free or unlocked with credits.
-  const safeLessons = list.map(({ audio_url, video_url, pdf_url, ...rest }) => ({
-    ...rest,
-    hasAudio: Boolean(audio_url),
-    hasVideo: Boolean(video_url),
-    hasPdf: Boolean(pdf_url),
-    isFree: rest.id === firstId || (!audio_url && !video_url && !pdf_url),
-  }));
+  const safeLessons = list.map(({ audio_url, video_url, pdf_url, ...rest }) => {
+    const lessonTest = testsList.find((t) => t.description?.startsWith(`lesson:${rest.id}`)) ?? null;
+    return {
+      ...rest,
+      hasAudio: Boolean(audio_url),
+      hasVideo: Boolean(video_url),
+      hasPdf: Boolean(pdf_url),
+      isFree: rest.id === firstId || (!audio_url && !video_url && !pdf_url),
+      test: lessonTest ? { id: lessonTest.id, title: lessonTest.title, duration_minutes: lessonTest.duration_minutes } : null,
+    };
+  });
 
-  return { chapter, lessons: safeLessons, test: test ?? null };
+  return { chapter, lessons: safeLessons, test: chapterTest };
 }
 
 export async function fetchLeaderboard() {

@@ -16,9 +16,13 @@ export async function fetchAdminCatalog() {
       supabaseAdmin.from("subjects").select("*").order("order_index"),
       supabaseAdmin.from("chapters").select("*").order("order_index"),
       supabaseAdmin.from("lessons").select("*").order("order_index"),
-      supabaseAdmin.from("tests").select("*"),
+      supabaseAdmin.from("tests").select("*").order("created_at", { ascending: false }),
       supabaseAdmin.from("questions").select("id, test_id"),
     ]);
+
+  const subMap = new Map((subjects ?? []).map((s) => [s.id, s]));
+  const chapMap = new Map((chapters ?? []).map((c) => [c.id, c]));
+  const lessonMap = new Map((lessons ?? []).map((l) => [l.id, l]));
 
   return {
     subjects: subjects ?? [],
@@ -27,10 +31,17 @@ export async function fetchAdminCatalog() {
     tests: (tests ?? []).map((t) => {
       const isLesson = t.description?.startsWith("lesson:") ?? false;
       const lessonId = isLesson ? t.description?.slice(7).split("|")[0]?.trim() ?? null : null;
+      const chapter = chapMap.get(t.chapter_id);
+      const subject = chapter ? subMap.get(chapter.subject_id) : null;
+      const lesson = lessonId ? lessonMap.get(lessonId) : null;
+
       return {
         ...t,
         lesson_id: lessonId,
         is_lesson_test: Boolean(lessonId),
+        chapter_title: chapter?.title ?? "Unknown Chapter",
+        subject_name: subject?.name ?? "General",
+        lesson_title: lesson?.title ?? null,
         questionCount: (questions ?? []).filter((q) => q.test_id === t.id).length,
       };
     }),
@@ -149,6 +160,35 @@ export async function upsertTest(input: {
   return data;
 }
 
+export async function upsertQuestion(input: {
+  id?: string;
+  test_id: string;
+  prompt: string;
+  options: string[];
+  correct_index: number;
+  explanation?: string | null;
+  topic?: string | null;
+  difficulty?: string;
+  order_index?: number;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from("questions")
+    .upsert({
+      id: input.id ?? undefined,
+      test_id: input.test_id,
+      prompt: input.prompt,
+      options: input.options,
+      correct_index: input.correct_index,
+      explanation: input.explanation ?? null,
+      topic: input.topic ?? null,
+      difficulty: input.difficulty ?? "medium",
+      order_index: input.order_index ?? 1,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
 
 export async function insertQuestions(testId: string, questions: DraftQuestion[]) {
   const { count } = await supabaseAdmin
@@ -181,6 +221,7 @@ export async function listTestQuestions(testId: string) {
     .order("order_index");
   return data ?? [];
 }
+
 
 async function requestAiChatCompletion(prompt: string, jsonMode = true): Promise<string> {
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;

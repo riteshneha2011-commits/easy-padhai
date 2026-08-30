@@ -53,7 +53,9 @@ type Lesson = {
   hasVideo: boolean;
   hasPdf: boolean;
   isFree: boolean;
+  test?: { id: string; title: string; duration_minutes: number | null } | null;
 };
+
 
 export const Route = createFileRoute("/learn/$slug")({
   loader: async ({ params }) => {
@@ -265,9 +267,16 @@ function ChapterPage() {
                     Step {index + 1} · {meta.label}
                   </span>
                   <span className="block truncate text-sm font-semibold text-foreground">{lesson.title}</span>
-                  <span className="mt-0.5 block text-[11px] font-semibold text-accent">
-                    {lesson.isFree ? "Free" : "Costs credits"}
-                  </span>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-accent">
+                      {lesson.isFree ? "Free" : "Costs credits"}
+                    </span>
+                    {lesson.test && (
+                      <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                        <Sparkles className="size-2.5" /> Quiz
+                      </span>
+                    )}
+                  </div>
                 </span>
                 {isDone ? (
                   <CheckCircle2 className="size-5 shrink-0 text-accent" />
@@ -406,6 +415,8 @@ function LessonPanel({
 
   const tabs: ResourceTab[] = [];
 
+  const navigate = useNavigate();
+
   if (media?.audio || isOfflineReady) {
     tabs.push({
       key: "audio",
@@ -453,7 +464,7 @@ function LessonPanel({
       ),
     });
   }
-  if (media?.pdf || isOfflineReady) {
+  if (Boolean(media?.pdf)) {
     tabs.push({
       key: "pdf",
       label: "Notes",
@@ -466,6 +477,40 @@ function LessonPanel({
           kind="pdf"
           lessonId={lesson.id}
         />
+      ),
+    });
+  }
+  if (lesson.test) {
+    tabs.push({
+      key: "quiz",
+      label: "Quick Quiz",
+      icon: Sparkles,
+      hint: "Test this lecture's concepts with 3-5 MCQs",
+      render: () => (
+        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-4 shadow-sm">
+          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+            <Sparkles className="size-6" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-display text-lg sm:text-xl font-bold text-foreground">
+              {lesson.test?.title || "Lesson Quick Quiz"}
+            </h4>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+              Test your understanding of this lecture immediately with interactive MCQs.
+            </p>
+          </div>
+          <Button
+            size="lg"
+            className="rounded-full shadow-glow font-bold gap-2 px-8"
+            onClick={() =>
+              userId
+                ? navigate({ to: "/test/$testId", params: { testId: lesson.test!.id } })
+                : navigate({ to: "/auth" })
+            }
+          >
+            <Sparkles className="size-4" /> Start Lesson Quiz
+          </Button>
+        </div>
       ),
     });
   }
@@ -485,6 +530,22 @@ function LessonPanel({
           </h2>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {lesson.test && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                userId
+                  ? navigate({ to: "/test/$testId", params: { testId: lesson.test!.id } })
+                  : navigate({ to: "/auth" })
+              }
+              className="rounded-full text-xs font-bold h-8 gap-1.5 border-primary/50 text-primary hover:bg-primary/10"
+            >
+              <Sparkles className="size-3.5" />
+              <span>Take Quiz</span>
+            </Button>
+          )}
+
           {isOfflineReady ? (
             <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-emerald-600 text-xs font-bold">
               <Check className="size-3.5" />
@@ -522,6 +583,7 @@ function LessonPanel({
           </span>
         </div>
       </div>
+
 
       {tabs.length > 1 && (
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
