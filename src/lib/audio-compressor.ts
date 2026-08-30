@@ -1,5 +1,3 @@
-import { Mp3Encoder } from "@breezystack/lamejs";
-
 export type CompressionResult = {
   file: File;
   originalSizeMb: number;
@@ -21,6 +19,10 @@ export async function compressAudioForSpeech(
 
   // If already <= 4MB, no need to compress further
   if (file.size <= 4 * 1024 * 1024) {
+    return { file, originalSizeMb: origMb, compressedSizeMb: origMb, savedPercent: 0 };
+  }
+
+  if (typeof window === "undefined") {
     return { file, originalSizeMb: origMb, compressedSizeMb: origMb, savedPercent: 0 };
   }
 
@@ -64,9 +66,12 @@ export async function compressAudioForSpeech(
       int16Samples[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
     }
 
+    const { Mp3Encoder } = await import("@breezystack/lamejs");
+
     // 48kbps mono MP3 at 32kHz (highest vocal clarity to file size ratio)
     const mp3encoder = new Mp3Encoder(1, targetSampleRate, 48);
     const mp3Data: Uint8Array[] = [];
+
 
     // Process in standard chunks of 1152 samples
     const blockSize = 1152;

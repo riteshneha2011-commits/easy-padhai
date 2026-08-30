@@ -1,1 +1,0 @@
-import{B as e,S as t,V as n,W as r}from"./index-BSIDLgWz.js";function i(t,i){return e({...t,enabled:!0,suspense:!0,throwOnError:n,placeholderData:void 0},r,i)}var a=t(`arrow-right`,[[`path`,{d:`M5 12h14`,key:`1ays0h`}],[`path`,{d:`m12 5 7 7-7 7`,key:`xquz4c`}]]);export{i as n,a as t};

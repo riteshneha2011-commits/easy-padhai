@@ -1,1 +1,0 @@
-function e(e){return Math.floor(Math.sqrt(Math.max(e,0)/50))+1}function t(e){return(e-1)**2*50}function n(n){let r=e(n),i=t(r),a=t(r+1);return{level:r,start:i,next:a,percent:Math.min(100,Math.round((n-i)/Math.max(a-i,1)*100)),toNext:Math.max(a-n,0)}}export{n,e as t};
