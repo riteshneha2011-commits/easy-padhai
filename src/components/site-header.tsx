@@ -53,15 +53,15 @@ export function SiteHeader() {
   return (
     <>
       {isOffline && (
-        <div className="bg-amber-600 text-white px-4 py-2 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-md">
-          <WifiOff className="size-4 animate-pulse" />
-          <span>You are in 100% Offline Mode (No Internet).</span>
+        <div className="w-full bg-amber-600 text-white px-3 py-1.5 text-center text-xs font-semibold flex flex-wrap items-center justify-center gap-1.5 shadow-md min-w-0 max-w-full overflow-hidden">
+          <WifiOff className="size-3.5 shrink-0 animate-pulse" />
+          <span>Offline Mode ·</span>
           <Link
             to="/offline"
-            className="underline font-bold bg-black/20 px-2.5 py-0.5 rounded-full ml-1 hover:bg-black/30 transition-colors inline-flex items-center gap-1"
+            className="underline font-bold bg-black/20 px-2 py-0.5 rounded-full hover:bg-black/30 transition-colors inline-flex items-center gap-1 shrink-0"
           >
-            <Download className="size-3.5" />
-            <span>Open Downloaded Lectures</span>
+            <Download className="size-3" />
+            <span>Open Downloads</span>
           </Link>
         </div>
       )}

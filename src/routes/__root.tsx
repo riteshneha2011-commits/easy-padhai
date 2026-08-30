@@ -172,11 +172,11 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-screen flex-col w-full max-w-[100vw] overflow-x-hidden">
           <OnboardingGate />
           <SiteHeader />
           <InstallPwaBanner />
-          <main className="flex-1 pb-20 md:pb-0">
+          <main className="flex-1 pb-20 md:pb-0 w-full max-w-full min-w-0 overflow-x-hidden">
             {/* Required: nested routes render here. */}
             <Outlet />
           </main>
