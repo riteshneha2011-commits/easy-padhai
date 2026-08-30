@@ -194,7 +194,7 @@ CREATE TABLE IF NOT EXISTS public.credit_events (
   ref_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
-CREATE UNIQUE INDEX IF NOT EXISTS credit_events_user_ref_key ON public.credit_events (user_id, ref_id) WHERE ref_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS credit_events_user_ref_key ON public.credit_events (user_id, ref_id);
 
 -- 17. XP Events Table
 CREATE TABLE IF NOT EXISTS public.xp_events (
