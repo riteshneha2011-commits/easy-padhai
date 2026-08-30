@@ -100,17 +100,8 @@ function TeachPage() {
   const [newChapterOrder, setNewChapterOrder] = useState<number>(1);
   const [newChapterKey, setNewChapterKey] = useState(0);
 
-
-  if (loading) return <Shell>Loading…</Shell>;
-  if (user && !isStaff) return <Shell>You need a teacher or admin role to open Studio.</Shell>;
-  if (isLoading || !data) return <Shell>Loading studio…</Shell>;
-
-  const chapters = data.chapters;
-  const activeChapter = chapters.find((c) => c.id === chapterId) ?? chapters[0] ?? null;
-  const activeTest = activeChapter ? data.tests.find((t) => t.chapter_id === activeChapter.id) : null;
-
-  const effectiveChapterId = newLessonChapterId || chapters[0]?.id || "";
-  const effectiveSubjectId = newChapterSubjectId || data.subjects[0]?.id || "";
+  const effectiveChapterId = newLessonChapterId || data?.chapters?.[0]?.id || "";
+  const effectiveSubjectId = newChapterSubjectId || data?.subjects?.[0]?.id || "";
 
   useEffect(() => {
     if (data?.lessons && effectiveChapterId) {
@@ -131,6 +122,15 @@ function TeachPage() {
       setNewChapterOrder(nextOrder);
     }
   }, [data?.chapters, effectiveSubjectId]);
+
+  if (loading) return <Shell>Loading…</Shell>;
+  if (user && !isStaff) return <Shell>You need a teacher or admin role to open Studio.</Shell>;
+  if (isLoading || !data) return <Shell>Loading studio…</Shell>;
+
+  const chapters = data.chapters;
+  const activeChapter = chapters.find((c) => c.id === chapterId) ?? chapters[0] ?? null;
+  const activeTest = activeChapter ? data.tests.find((t) => t.chapter_id === activeChapter.id) : null;
+
 
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-catalog"] });
