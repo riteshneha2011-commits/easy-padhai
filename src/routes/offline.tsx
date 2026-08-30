@@ -87,19 +87,41 @@ function OfflinePage() {
           Loading offline downloads…
         </div>
       ) : lessons.length === 0 ? (
-        <Card className="rounded-3xl border-dashed p-6 sm:p-10 text-center space-y-4 min-w-0">
-          <div className="mx-auto grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground">
-            <Headphones className="size-7" />
+        <Card className="rounded-3xl border border-dashed border-border/80 p-6 sm:p-10 text-center space-y-6 min-w-0 bg-card/60 shadow-sm">
+          <div className="mx-auto grid size-16 place-items-center rounded-full bg-primary/10 text-primary ring-8 ring-primary/5">
+            <Headphones className="size-8" />
           </div>
-          <div className="max-w-md mx-auto space-y-1">
-            <h2 className="font-display text-base sm:text-lg font-bold">No downloaded lectures yet</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              When connected to Wi-Fi or mobile data, tap <strong>"Download Offline"</strong> on any lesson. They will appear here for 100% zero-data playback!
+          
+          <div className="max-w-md mx-auto space-y-2">
+            <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">
+              Zero-Data Offline Learning
+            </h2>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Download audio lectures and summary notes while connected to Wi-Fi or mobile data. Listen anytime on your commute or during travel without using internet!
             </p>
           </div>
-          <Button asChild className="rounded-full shadow-md text-xs sm:text-sm">
-            <Link to="/learn">Explore Chapters & Download</Link>
-          </Button>
+
+          {/* 3 Step Explainer */}
+          <div className="grid gap-3 sm:grid-cols-3 max-w-xl mx-auto text-left pt-2">
+            <div className="rounded-2xl border border-border/60 bg-secondary/30 p-3 space-y-1">
+              <span className="text-xs font-bold text-primary">1. Choose Lesson</span>
+              <p className="text-[11px] text-muted-foreground">Pick any lecture from Science or Maths chapters.</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-secondary/30 p-3 space-y-1">
+              <span className="text-xs font-bold text-primary">2. Tap Download</span>
+              <p className="text-[11px] text-muted-foreground">Saves securely in your private offline app vault.</p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-secondary/30 p-3 space-y-1">
+              <span className="text-xs font-bold text-primary">3. 100% Offline</span>
+              <p className="text-[11px] text-muted-foreground">Play anytime, anywhere with zero mobile data.</p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-xs sm:text-sm px-6 h-11">
+              <Link to="/learn">Explore Free Chapters &amp; Download</Link>
+            </Button>
+          </div>
         </Card>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] min-w-0">

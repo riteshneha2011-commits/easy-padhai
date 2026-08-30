@@ -280,20 +280,23 @@ function Home() {
         </div>
       </section>
 
-      {/* 2. FOUNDER CREDIBILITY STRIP */}
+      {/* 2. FOUNDER CREDIBILITY STRIP (Academic Authority) */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="relative overflow-hidden rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-orange-500/5 p-6 sm:p-8 shadow-sm">
+        <div className="relative overflow-hidden rounded-3xl border border-border/90 bg-card p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8">
             {/* Educator Photo & Verified Badge */}
             <div className="relative shrink-0">
-              <div className="size-24 sm:size-28 rounded-full border-4 border-primary/40 p-0.5 bg-gradient-to-br from-primary to-orange-500 shadow-xl overflow-hidden">
+              <div className="size-24 sm:size-28 rounded-full border-4 border-primary/50 p-0.5 bg-gradient-to-br from-primary to-amber-500 shadow-xl overflow-hidden">
                 <img
                   src="/ritesh-sir.jpg"
                   alt="Ritesh Sir - Physics Educator & Founder"
                   className="size-full object-cover object-top rounded-full"
                 />
               </div>
-              <span className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-emerald-600 text-white shadow-md ring-4 ring-card" title="Verified Master Educator">
+              <span
+                className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-emerald-600 text-white shadow-md ring-4 ring-card"
+                title="Verified Master Educator"
+              >
                 <ShieldCheck className="size-4" />
               </span>
             </div>
@@ -308,7 +311,7 @@ function Home() {
                 <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   Ritesh Sir
                 </h2>
-                <p className="text-sm font-semibold text-primary/90">
+                <p className="text-sm font-semibold text-primary">
                   Physics Educator · IIT-Trained · Former Faculty at Resonance Kota
                 </p>
               </div>
@@ -321,17 +324,17 @@ function Home() {
 
               {/* Credibility Chips */}
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80">
+                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
                   🎓 21+ years teaching
                 </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80">
+                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
                   🏛️ Resonance Kota faculty alumnus
                 </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80">
-                  ⚡ 50,000+ students mentored
+                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
+                  ⚡ Mentor to thousands of CBSE &amp; JEE students
                 </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80">
-                  🇮🇳 CBSE, JEE &amp; NEET Specialist
+                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
+                  🇮🇳 Founder, Physics by Ritesh
                 </Badge>
               </div>
             </div>
@@ -339,12 +342,12 @@ function Home() {
         </div>
       </section>
 
-      {/* 2.5. DAILY CREDITS & FREE FOREVER PROMISE */}
+      {/* 2.5. DAILY CREDITS & FREE FOREVER PROMISE (Gamified Economy) */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-card to-primary/10 p-6 sm:p-8 shadow-sm">
+        <div className="rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
                 <Gift className="size-3.5" /> Keep Your Learning 100% Free Forever
               </div>
               <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground">
@@ -356,17 +359,17 @@ function Home() {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-border/70 shadow-sm text-center min-w-[110px]">
+              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
                 <Coins className="size-5 text-amber-500 mb-1" />
                 <span className="text-xs font-bold text-foreground">Daily Credits</span>
                 <span className="text-[10px] text-muted-foreground">Every Session</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-border/70 shadow-sm text-center min-w-[110px]">
+              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
                 <Flame className="size-5 text-orange-500 mb-1" />
                 <span className="text-xs font-bold text-foreground">Streak Bonus</span>
                 <span className="text-[10px] text-muted-foreground">+50 XP / Coins</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-border/70 shadow-sm text-center min-w-[110px]">
+              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
                 <Sparkles className="size-5 text-primary mb-1" />
                 <span className="text-xs font-bold text-foreground">Ch-1 Free</span>
                 <span className="text-[10px] text-muted-foreground">Every Subject</span>
