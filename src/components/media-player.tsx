@@ -21,9 +21,9 @@ function SpeedPicker({
   onChange: (r: number) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-        <Gauge className="size-3.5" /> Speed
+    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1 sm:gap-1.5 min-w-0">
+      <span className="mr-0.5 inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-muted-foreground">
+        <Gauge className="size-3 sm:size-3.5" /> Speed
       </span>
       {PLAYBACK_RATES.map((r) => (
         <button
@@ -31,7 +31,7 @@ function SpeedPicker({
           type="button"
           onClick={() => onChange(r)}
           className={cn(
-            "rounded-full border border-border px-2.5 py-1 text-xs font-bold transition-colors",
+            "rounded-full border border-border px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold transition-colors",
             rate === r
               ? "border-primary bg-primary text-primary-foreground"
               : "bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
@@ -138,7 +138,7 @@ function CustomAudioPlayer({
   };
 
   return (
-    <div className="rounded-3xl border border-border/80 bg-linear-to-b from-card to-secondary/30 p-5 sm:p-6 shadow-sm space-y-4">
+    <div className="rounded-2xl sm:rounded-3xl border border-border/80 bg-linear-to-b from-card to-secondary/30 p-4 sm:p-6 shadow-sm space-y-4 min-w-0 w-full overflow-hidden">
       <audio
         ref={audioRef}
         src={src}
@@ -162,18 +162,18 @@ function CustomAudioPlayer({
         }}
       />
 
-      <div className="flex items-center gap-3">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Headphones className="size-6" />
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div className="flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Headphones className="size-5 sm:size-6" />
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Audio Lecture · M4A / AAC</p>
-          <h4 className="truncate text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">Audio Lecture · M4A / AAC</p>
+          <h4 className="truncate text-sm sm:text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
         </div>
       </div>
 
       {/* Scrubber Progress Bar */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 w-full">
         <input
           type="range"
           min={0}
@@ -190,13 +190,13 @@ function CustomAudioPlayer({
       </div>
 
       {/* Playback Controls & Speed */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-        <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pt-1 w-full">
+        <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
           <button
             type="button"
             onClick={() => skip(-10)}
             title="Rewind 10 seconds"
-            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold"
+            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold shrink-0"
           >
             -10s
           </button>
@@ -205,7 +205,7 @@ function CustomAudioPlayer({
             type="button"
             onClick={togglePlay}
             title={isPlaying ? "Pause" : "Play"}
-            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95"
+            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95 shrink-0"
           >
             {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 ml-0.5 fill-current" />}
           </button>
@@ -214,13 +214,15 @@ function CustomAudioPlayer({
             type="button"
             onClick={() => skip(10)}
             title="Forward 10 seconds"
-            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold"
+            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold shrink-0"
           >
             +10s
           </button>
         </div>
 
-        <SpeedPicker rate={rate} onChange={onRateChange} />
+        <div className="flex justify-center sm:justify-end">
+          <SpeedPicker rate={rate} onChange={onRateChange} />
+        </div>
       </div>
     </div>
   );

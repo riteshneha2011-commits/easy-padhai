@@ -122,20 +122,20 @@ function ChapterPage() {
   const active = lessons.find((l) => l.id === activeId) ?? lessons[0] ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10">
-      <Link to="/learn" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
+    <div className="mx-auto w-full max-w-6xl px-3 sm:px-6 py-6 sm:py-10 min-w-0">
+      <Link to="/learn" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
         ← All chapters
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold md:text-4xl">{chapter.title}</h1>
-          <p className="mt-2 max-w-2xl text-muted-foreground">{chapter.description}</p>
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold break-words leading-tight">{chapter.title}</h1>
+          <p className="mt-2 text-sm sm:text-base text-muted-foreground break-words max-w-2xl">{chapter.description}</p>
         </div>
         {test && (
           <Button
             size="lg"
-            className="rounded-full shadow-glow"
+            className="w-full sm:w-auto rounded-full shadow-glow shrink-0"
             onClick={() =>
               user
                 ? navigate({ to: "/test/$testId", params: { testId: test.id } })
@@ -157,29 +157,30 @@ function ChapterPage() {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[320px_1fr]">
-        <div className="flex flex-col gap-2">
+      <div className="mt-6 sm:mt-8 grid gap-5 sm:gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] min-w-0 w-full">
+        <div className="flex flex-col gap-2 min-w-0 w-full">
           {lessons.map((lesson, index) => {
             const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
             const isDone = done.has(lesson.id);
+            const isActive = active?.id === lesson.id;
             return (
               <button
                 key={lesson.id}
                 onClick={() => setActiveId(lesson.id)}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 text-left transition-colors hover:border-primary/50",
-                  active?.id === lesson.id && "border-primary bg-primary/8",
+                  "flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:p-4 text-left transition-all hover:border-primary/50 w-full min-w-0 overflow-hidden",
+                  isActive && "border-primary bg-primary/8 ring-1 ring-primary/30",
                 )}
               >
-                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground">
-                  <meta.icon className="size-5" />
+                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground">
+                  <meta.icon className="size-4 sm:size-5" />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="min-w-0 flex-1 overflow-hidden">
+                  <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
                     Step {index + 1} · {meta.label}
                   </span>
-                  <span className="block truncate font-semibold">{lesson.title}</span>
-                  <span className="mt-0.5 block text-xs font-semibold text-accent">
+                  <span className="block truncate text-sm sm:text-base font-semibold text-foreground">{lesson.title}</span>
+                  <span className="mt-0.5 block text-[11px] font-semibold text-accent">
                     {lesson.isFree ? "Free" : "Costs credits"}
                   </span>
                 </span>
@@ -199,7 +200,7 @@ function ChapterPage() {
         </div>
 
         {active && (
-          <Card className="shadow-card gap-5 rounded-3xl border-border/70 p-6">
+          <Card className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
             <LessonPanel
               key={active.id}
               lesson={active}
@@ -317,56 +318,58 @@ function LessonPanel({
   const activeTab = tabs.find((t) => t.key === tabKey) ?? tabs[0] ?? null;
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+    <div className="space-y-4 sm:space-y-5 min-w-0 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 min-w-0">
+        <div className="min-w-0 flex-1">
+          <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-primary">
             {(KIND_META[lesson.kind] ?? KIND_META.summary).label}
           </span>
-          <h2 className="font-display text-2xl font-bold">{lesson.title}</h2>
+          <h2 className="font-display text-xl sm:text-2xl font-bold break-words leading-tight mt-0.5">
+            {lesson.title}
+          </h2>
         </div>
-        <span className="shrink-0 rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground">
+        <span className="self-start sm:self-center shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
           ~{lesson.duration_minutes ?? 10} min
         </span>
       </div>
 
       {tabs.length > 1 && (
-        <div className="flex flex-wrap gap-2 rounded-2xl bg-secondary/60 p-1.5">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setTabKey(tab.key)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all",
+                "flex flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all min-w-0",
                 activeTab?.key === tab.key
                   ? "bg-card text-foreground shadow-card"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <tab.icon className="size-4 shrink-0" />
-              {tab.label}
+              <tab.icon className="size-3.5 sm:size-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
             </button>
           ))}
         </div>
       )}
 
       {locked && (
-        <div className="rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-6 text-center">
-          <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/15 text-primary">
-            <Lock className="size-6" />
+        <div className="rounded-2xl sm:rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:p-6 text-center min-w-0">
+          <span className="mx-auto grid size-10 sm:size-12 place-items-center rounded-2xl bg-primary/15 text-primary">
+            <Lock className="size-5 sm:size-6" />
           </span>
-          <h3 className="mt-3 font-display text-lg font-bold">
+          <h3 className="mt-3 font-display text-base sm:text-lg font-bold">
             Unlock this lesson for {access?.cost ?? 0} credits
           </h3>
-          <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+          <p className="mx-auto mt-1 max-w-sm text-xs sm:text-sm text-muted-foreground">
             Unlock once, keep it forever. You earn {CREDIT_REWARDS.lessonComplete} credits for every lesson
             you finish, {CREDIT_REWARDS.dailyLogin} for visiting daily and {CREDIT_REWARDS.referral} for each
             friend you invite.
           </p>
           {signedIn ? (
-            <div className="mt-4 flex flex-col items-center gap-2">
-              <Button className="rounded-full" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
+            <div className="mt-4 flex flex-col items-center gap-2 w-full">
+              <Button className="w-full sm:w-auto rounded-full" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
                 <Unlock className="size-4" /> Unlock for {access?.cost ?? 0} credits
               </Button>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -377,7 +380,7 @@ function LessonPanel({
               </span>
             </div>
           ) : (
-            <Button asChild className="mt-4 rounded-full">
+            <Button asChild className="mt-4 w-full sm:w-auto rounded-full">
               <Link to="/auth">Sign in — get {CREDIT_REWARDS.welcome} free credits</Link>
             </Button>
           )}
@@ -385,25 +388,25 @@ function LessonPanel({
       )}
 
       {activeTab ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">{activeTab.hint}</p>
+        <div className="space-y-3 min-w-0 w-full">
+          <p className="text-xs sm:text-sm text-muted-foreground">{activeTab.hint}</p>
           {activeTab.render()}
         </div>
       ) : (
         !locked && (
-          <p className="rounded-2xl bg-secondary/50 p-5 text-sm text-muted-foreground">
+          <p className="rounded-2xl bg-secondary/50 p-4 sm:p-5 text-sm text-muted-foreground">
             No media has been added to this lesson yet.
           </p>
         )
       )}
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-t border-border/70 pt-4 w-full">
         {signedIn ? (
-          <Button className="rounded-full" disabled={pending || done} onClick={onComplete}>
+          <Button className="w-full sm:w-auto rounded-full" disabled={pending || done} onClick={onComplete}>
             {done ? "Completed ✓" : `Mark complete · +10 XP · +${CREDIT_REWARDS.lessonComplete} credits`}
           </Button>
         ) : (
-          <Button asChild className="rounded-full">
+          <Button asChild className="w-full sm:w-auto rounded-full">
             <Link to="/auth">Sign in to track progress</Link>
           </Button>
         )}
@@ -411,7 +414,7 @@ function LessonPanel({
           <VisitAgainButton lessonId={lesson.id} resource={(activeTab?.key ?? "lesson") as string} />
         )}
         {watching && (
-          <span className="text-xs font-semibold text-accent">
+          <span className="text-xs font-semibold text-accent text-center sm:text-left">
             Counting study time · +{CREDIT_REWARDS.studyBlock} credits every 10 min
           </span>
         )}

@@ -15,18 +15,35 @@ type Props = {
   label: string;
   accept: string;
   defaultValue?: string;
+  value?: string;
+  onValueChange?: (val: string) => void;
   folder: string;
 };
 
 /** URL field with automatic audio compression and high-speed direct signed upload into Easy Padhai storage. */
-export function MediaInput({ name, label, accept, defaultValue = "", folder }: Props) {
-  const [value, setValue] = useState(defaultValue);
+export function MediaInput({ name, label, accept, defaultValue = "", value: controlledValue, onValueChange, folder }: Props) {
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? controlledValue : internalValue;
+
+  const setValue = (val: string) => {
+    setInternalValue(val);
+    onValueChange?.(val);
+  };
+
+  useEffect(() => {
+    if (!isControlled) {
+      setInternalValue(defaultValue);
+    }
+  }, [defaultValue, isControlled]);
+
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const getUploadUrl = useServerFn(getSignedUploadUrlAction);
 
   const isAudio = folder === "audio" || accept.includes("audio");
+
 
   return (
     <div className="space-y-1.5">

@@ -92,6 +92,15 @@ function TeachPage() {
   const [editLesson, setEditLesson] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState<string | null>(null);
 
+  const [newLessonChapterId, setNewLessonChapterId] = useState("");
+  const [newLessonOrder, setNewLessonOrder] = useState<number>(1);
+  const [newLessonKey, setNewLessonKey] = useState(0);
+
+  const [newChapterSubjectId, setNewChapterSubjectId] = useState("");
+  const [newChapterOrder, setNewChapterOrder] = useState<number>(1);
+  const [newChapterKey, setNewChapterKey] = useState(0);
+
+
   if (loading) return <Shell>Loading…</Shell>;
   if (user && !isStaff) return <Shell>You need a teacher or admin role to open Studio.</Shell>;
   if (isLoading || !data) return <Shell>Loading studio…</Shell>;
@@ -99,6 +108,30 @@ function TeachPage() {
   const chapters = data.chapters;
   const activeChapter = chapters.find((c) => c.id === chapterId) ?? chapters[0] ?? null;
   const activeTest = activeChapter ? data.tests.find((t) => t.chapter_id === activeChapter.id) : null;
+
+  const effectiveChapterId = newLessonChapterId || chapters[0]?.id || "";
+  const effectiveSubjectId = newChapterSubjectId || data.subjects[0]?.id || "";
+
+  useEffect(() => {
+    if (data?.lessons && effectiveChapterId) {
+      const chapLessons = data.lessons.filter((l) => l.chapter_id === effectiveChapterId);
+      const nextOrder = chapLessons.length > 0
+        ? Math.max(...chapLessons.map((l) => l.order_index ?? 0)) + 1
+        : 1;
+      setNewLessonOrder(nextOrder);
+    }
+  }, [data?.lessons, effectiveChapterId]);
+
+  useEffect(() => {
+    if (data?.chapters && effectiveSubjectId) {
+      const subChapters = data.chapters.filter((c) => c.subject_id === effectiveSubjectId);
+      const nextOrder = subChapters.length > 0
+        ? Math.max(...subChapters.map((c) => c.order_index ?? 0)) + 1
+        : 1;
+      setNewChapterOrder(nextOrder);
+    }
+  }, [data?.chapters, effectiveSubjectId]);
+
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-catalog"] });
 
@@ -329,10 +362,12 @@ function TeachPage() {
             </CardHeader>
             <CardContent>
               <form
+                key={newChapterKey}
                 className="grid gap-3 sm:grid-cols-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  const f = new FormData(e.currentTarget as HTMLFormElement);
+                  const formEl = e.currentTarget as HTMLFormElement;
+                  const f = new FormData(formEl);
                   void run(
                     () =>
                       upsertChapter({
@@ -341,13 +376,16 @@ function TeachPage() {
                           title: String(f.get("title")),
                           slug: String(f.get("slug")),
                           description: String(f.get("description") ?? ""),
-                          order_index: Number(f.get("order_index") ?? 0),
+                          order_index: Number(f.get("order_index") ?? newChapterOrder),
                           published: true,
                         },
                       }),
                     "Chapter saved",
-                  );
-                  (e.target as HTMLFormElement).reset();
+                  ).then(() => {
+                    formEl.reset();
+                    setNewChapterKey((k) => k + 1);
+                    setNewChapterOrder((prev) => prev + 1);
+                  });
                 }}
               >
                 <div className="space-y-1.5">
@@ -355,6 +393,15 @@ function TeachPage() {
                   <select
                     name="subject_id"
                     required
+                    value={effectiveSubjectId}
+                    onChange={(e) => {
+                      setNewChapterSubjectId(e.target.value);
+                      const subChapters = data.chapters.filter((c) => c.subject_id === e.target.value);
+                      const nextOrder = subChapters.length > 0
+                        ? Math.max(...subChapters.map((c) => c.order_index ?? 0)) + 1
+                        : 1;
+                      setNewChapterOrder(nextOrder);
+                    }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                   >
                     {data.subjects.map((s) => (
@@ -366,7 +413,12 @@ function TeachPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Order</Label>
-                  <Input name="order_index" type="number" defaultValue={chapters.length + 1} />
+                  <Input
+                    name="order_index"
+                    type="number"
+                    value={newChapterOrder}
+                    onChange={(e) => setNewChapterOrder(Number(e.target.value) || 1)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Title</Label>
@@ -406,10 +458,12 @@ function TeachPage() {
             </CardHeader>
             <CardContent>
               <form
+                key={newLessonKey}
                 className="grid gap-3 sm:grid-cols-2"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  const f = new FormData(e.currentTarget as HTMLFormElement);
+                  const formEl = e.currentTarget as HTMLFormElement;
+                  const f = new FormData(formEl);
                   void run(
                     () =>
                       upsertLesson({
@@ -422,13 +476,16 @@ function TeachPage() {
                           pdf_url: String(f.get("pdf_url") ?? "") || null,
                           summary: String(f.get("summary") ?? "") || null,
                           duration_minutes: Number(f.get("duration_minutes") ?? 10),
-                          order_index: Number(f.get("order_index") ?? 1),
+                          order_index: Number(f.get("order_index") ?? newLessonOrder),
                           published: true,
                         },
                       }),
                     "Lesson saved",
-                  );
-                  (e.target as HTMLFormElement).reset();
+                  ).then(() => {
+                    formEl.reset();
+                    setNewLessonKey((k) => k + 1);
+                    setNewLessonOrder((prev) => prev + 1);
+                  });
                 }}
               >
                 <div className="space-y-1.5">
@@ -436,6 +493,15 @@ function TeachPage() {
                   <select
                     name="chapter_id"
                     required
+                    value={effectiveChapterId}
+                    onChange={(e) => {
+                      setNewLessonChapterId(e.target.value);
+                      const chapLessons = data.lessons.filter((l) => l.chapter_id === e.target.value);
+                      const nextOrder = chapLessons.length > 0
+                        ? Math.max(...chapLessons.map((l) => l.order_index ?? 0)) + 1
+                        : 1;
+                      setNewLessonOrder(nextOrder);
+                    }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
                   >
                     {chapters.map((c) => (
@@ -463,11 +529,17 @@ function TeachPage() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Order</Label>
-                  <Input name="order_index" type="number" defaultValue={1} />
+                  <Input
+                    name="order_index"
+                    type="number"
+                    value={newLessonOrder}
+                    onChange={(e) => setNewLessonOrder(Number(e.target.value) || 1)}
+                  />
                 </div>
                 <MediaInput name="audio_url" label="Audio (link or upload)" accept="audio/*" folder="audio" />
                 <MediaInput name="video_url" label="Video (link or upload)" accept="video/*" folder="video" />
                 <MediaInput name="pdf_url" label="PDF notes (link or upload)" accept="application/pdf" folder="pdf" />
+
 
                 <div className="space-y-1.5">
                   <Label>Duration (min)</Label>
