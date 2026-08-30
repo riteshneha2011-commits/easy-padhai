@@ -251,20 +251,9 @@ function Home() {
 
             <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
               Learn Class 9–12 Science on your commute, while walking, or before bed. 
-              Audio lectures generated using AI and verified under the expert pedagogical guidance of Ritesh Sir (21+ Yrs Kota Experience). 
+              Story-driven audio lectures prepared under the guidance of Ritesh Sir (21+ Yrs Kota Experience). 
               Complete with one-screen summaries and instant-feedback tests in one daily loop.
             </p>
-
-            {/* AI Pedagogy & Quality Notice */}
-            <div className="rounded-2xl border border-primary/25 bg-primary/5 p-3 sm:p-3.5 text-xs text-muted-foreground flex items-start gap-2.5 shadow-sm max-w-xl">
-              <Sparkles className="size-4 shrink-0 text-primary mt-0.5" />
-              <div className="space-y-0.5">
-                <span className="font-bold text-foreground">AI-Generated &amp; Educator-Verified:</span>{" "}
-                <span>
-                  Lessons are created with AI under the direct guidance of Ritesh Sir. While thoroughly reviewed, AI can occasionally make mistakes — please let us know on WhatsApp if you spot anything!
-                </span>
-              </div>
-            </div>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
@@ -388,7 +377,7 @@ function Home() {
 
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
                 Creator of <strong>Physics by Ritesh</strong>, mentor to thousands of CBSE, JEE, and NEET
-                students across India. Easy Padhai's AI audio lectures are designed using Ritesh Sir's 21+ years of classroom teaching
+                students across India. Easy Padhai's audio lectures are prepared under the guidance of Ritesh Sir with 21+ years of classroom teaching
                 intuition — breaking dense science topics into clear, audio-first stories that stick forever.
               </p>
 
@@ -761,20 +750,38 @@ function Home() {
 
       {/* 5. CALL TO ACTION FOOTER */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-8 sm:p-12 text-center space-y-5 shadow-sm">
+        <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-8 sm:p-12 text-center space-y-6 shadow-sm">
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto">
             Ready to make Class 9–12 Science &amp; Maths easy?
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-            Join students learning everyday with AI-generated audio lectures verified under the guidance of Ritesh Sir.
+            Join students learning everyday with audio lectures prepared under the guidance of Ritesh Sir.
           </p>
-          <div className="pt-2">
+          <div>
             <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12">
               <Link to={user ? "/dashboard" : "/auth"}>
                 {user ? "Go to My Dashboard" : "Start Learning Free Now"}
                 <ArrowRight className="size-4 ml-1.5" />
               </Link>
             </Button>
+          </div>
+
+          {/* Bottom Transparency & Feedback Notice */}
+          <div className="pt-4 border-t border-border/40 max-w-2xl mx-auto text-center space-y-1.5">
+            <p className="text-xs text-muted-foreground font-medium">
+              ⚡ <strong>AI-Generated Lectures:</strong> Audio lectures are prepared using AI under the guidance of Ritesh Sir.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              While reviewed for quality, AI can occasionally make mistakes. If you find anything, please{" "}
+              <a
+                href="https://chat.whatsapp.com/EoYLQlgFRTnAQila8ajGE7"
+                target="_blank"
+                rel="noreferrer"
+                className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+              >
+                report to us on WhatsApp 👉
+              </a>
+            </p>
           </div>
         </div>
       </section>
@@ -853,7 +860,7 @@ function SampleAudioPlayer() {
             Exploration: Entering Science
           </h4>
           <p className="text-xs text-muted-foreground mt-0.5">
-            AI Audio · Verified under Ritesh Sir's Guidance (21+ Yrs Kota Exp)
+            Prepared under the guidance of Ritesh Sir · 21+ Yrs Kota Experience
           </p>
         </div>
 
