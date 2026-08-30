@@ -14,6 +14,11 @@ import {
   PlayCircle,
   Sparkles,
   Unlock,
+  ArrowDownToLine,
+  Check,
+  Download,
+  Trash2,
+  WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChapter } from "@/lib/content.functions";
@@ -27,11 +32,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MediaPlayer } from "@/components/media-player";
+import { downloadLessonForOffline, isLessonOffline, removeOfflineLesson } from "@/lib/offline-storage";
 
 import { VictoryModal } from "@/components/victory-modal";
 import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import { classLabel, DEFAULT_CLASS_LEVEL } from "@/lib/classes";
+
 
 
 type Lesson = {
@@ -311,7 +318,49 @@ function LessonPanel({
   onComplete: () => void;
 }) {
   const [watching, setWatching] = useState(false);
+  const [isOfflineReady, setIsOfflineReady] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
   const onActiveChange = useCallback((value: boolean) => setWatching(value), []);
+
+  useEffect(() => {
+    let alive = true;
+    isLessonOffline(lesson.id).then((ready) => {
+      if (alive) setIsOfflineReady(ready);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [lesson.id]);
+
+  const handleDownloadOffline = async () => {
+    soundFx.playClick();
+    setIsDownloading(true);
+    setDownloadProgress(15);
+    try {
+      await downloadLessonForOffline(
+        lesson,
+        media?.audio ?? null,
+        media?.pdf ?? null,
+        (pct) => setDownloadProgress(pct),
+      );
+      setIsOfflineReady(true);
+      soundFx.playSuccess();
+      toast.success("Lesson saved in-app for 100% offline access! 📥");
+    } catch {
+      toast.error("Could not download for offline.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleRemoveOffline = async () => {
+    soundFx.playClick();
+    await removeOfflineLesson(lesson.id);
+    setIsOfflineReady(false);
+    toast.info("Offline copy removed.");
+  };
 
   const accessQuery = useQuery({
     queryKey: ["lesson-access", lesson.id, userId],
@@ -333,14 +382,20 @@ function LessonPanel({
 
   const tabs: ResourceTab[] = [];
 
-  if (media?.audio) {
+  if (media?.audio || isOfflineReady) {
     tabs.push({
       key: "audio",
       label: "Audio",
       icon: Headphones,
       hint: "Listen to the lecture",
       render: () => (
-        <MediaPlayer value={media.audio!} title={lesson.title} kind="audio" onActiveChange={onActiveChange} />
+        <MediaPlayer
+          value={media?.audio || ""}
+          title={lesson.title}
+          kind="audio"
+          lessonId={lesson.id}
+          onActiveChange={onActiveChange}
+        />
       ),
     });
   }
@@ -351,7 +406,13 @@ function LessonPanel({
       icon: PlayCircle,
       hint: "Watch the explanation",
       render: () => (
-        <MediaPlayer value={media.video!} title={lesson.title} kind="video" onActiveChange={onActiveChange} />
+        <MediaPlayer
+          value={media.video!}
+          title={lesson.title}
+          kind="video"
+          lessonId={lesson.id}
+          onActiveChange={onActiveChange}
+        />
       ),
     });
   }
@@ -368,13 +429,20 @@ function LessonPanel({
       ),
     });
   }
-  if (media?.pdf) {
+  if (media?.pdf || isOfflineReady) {
     tabs.push({
       key: "pdf",
       label: "Notes",
       icon: FileText,
       hint: "Open the PDF notes",
-      render: () => <MediaPlayer value={media.pdf!} title={lesson.title} kind="pdf" />,
+      render: () => (
+        <MediaPlayer
+          value={media?.pdf || ""}
+          title={lesson.title}
+          kind="pdf"
+          lessonId={lesson.id}
+        />
+      ),
     });
   }
 
@@ -392,9 +460,43 @@ function LessonPanel({
             {lesson.title}
           </h2>
         </div>
-        <span className="self-start sm:self-center shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
-          ~{lesson.duration_minutes ?? 10} min
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {isOfflineReady ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-emerald-600 text-xs font-bold">
+              <Check className="size-3.5" />
+              <span>Offline Ready</span>
+              <button
+                type="button"
+                onClick={handleRemoveOffline}
+                className="ml-1 text-muted-foreground hover:text-destructive"
+                title="Remove offline copy"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleDownloadOffline}
+              disabled={isDownloading}
+              className="rounded-full text-xs font-semibold h-8 gap-1.5 border-primary/40 hover:bg-primary/10"
+            >
+              {isDownloading ? (
+                <span>Downloading {downloadProgress}%</span>
+              ) : (
+                <>
+                  <Download className="size-3.5 text-primary" />
+                  <span>Download Offline</span>
+                </>
+              )}
+            </Button>
+          )}
+
+          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
+            ~{lesson.duration_minutes ?? 10} min
+          </span>
+        </div>
       </div>
 
       {tabs.length > 1 && (
@@ -417,6 +519,7 @@ function LessonPanel({
           ))}
         </div>
       )}
+
 
       {locked && (
         <div className="rounded-2xl sm:rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:p-6 text-center min-w-0">

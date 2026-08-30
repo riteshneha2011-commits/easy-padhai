@@ -16,6 +16,8 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { SiteHeader } from "@/components/site-header";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { Toaster } from "@/components/ui/sonner";
+import { InstallPwaBanner } from "@/components/install-pwa-button";
+
 
 function NotFoundComponent() {
   return (
@@ -88,8 +90,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "theme-color", content: "#ea580c" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
     ],
     links: [
+      { rel: "manifest", href: "/manifest.json" },
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
@@ -124,6 +130,16 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/sw.js").catch((err) => {
+          console.warn("ServiceWorker registration failed:", err);
+        });
+      });
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -131,6 +147,7 @@ function RootComponent() {
         <div className="flex min-h-screen flex-col">
           <OnboardingGate />
           <SiteHeader />
+          <InstallPwaBanner />
           <main className="flex-1 pb-20 md:pb-0">
             {/* Required: nested routes render here. */}
             <Outlet />
@@ -143,5 +160,6 @@ function RootComponent() {
       </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
+
   );
 }

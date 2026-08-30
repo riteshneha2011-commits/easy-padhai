@@ -3,15 +3,18 @@ import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play } from 
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
 import { classifyMedia, PLAYBACK_RATES } from "@/lib/media";
+import { getOfflineMediaUrl } from "@/lib/offline-storage";
 import { cn } from "@/lib/utils";
 
 type Props = {
   value: string;
   title: string;
   kind: "audio" | "video" | "pdf";
+  lessonId?: string;
   /** Reports whether the student is actively watching/listening (drives study credits). */
   onActiveChange?: (active: boolean) => void;
 };
+
 
 function SpeedPicker({
   rate,
@@ -228,39 +231,81 @@ function CustomAudioPlayer({
   );
 }
 
-/** Plays external links (YouTube/Vimeo/Drive/direct files) or uploaded storage files. */
-export function MediaPlayer({ value, title, kind, onActiveChange }: Props) {
+/** Plays external links (YouTube/Vimeo/Drive/direct files) or uploaded storage files, with offline IndexedDB sandbox support. */
+export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Props) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
   const [failed, setFailed] = useState(false);
+  const [isOfflineSource, setIsOfflineSource] = useState(false);
   const [rate, setRate] = useState(1);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!stored) {
-      setUrl(value);
-      setFailed(false);
-      return;
-    }
     let alive = true;
-    setUrl(null);
-    setFailed(false);
-    resolveMediaUrl(value).then((resolved) => {
-      if (!alive) return;
-      if (resolved) setUrl(resolved);
-      else setFailed(true);
+
+    const checkOfflineFirst = async () => {
+      if (lessonId && (kind === "audio" || kind === "pdf")) {
+        const offlineUrl = await getOfflineMediaUrl(lessonId, kind);
+        if (offlineUrl && alive) {
+          setUrl(offlineUrl);
+          setIsOfflineSource(true);
+          setFailed(false);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    void checkOfflineFirst().then((hasOffline) => {
+      if (hasOffline || !alive) return;
+
+      if (!stored) {
+        setUrl(value);
+        setIsOfflineSource(false);
+        setFailed(false);
+        return;
+      }
+
+      setUrl(null);
+      setFailed(false);
+      resolveMediaUrl(value).then(async (resolved) => {
+        if (!alive) return;
+        if (resolved) {
+          setUrl(resolved);
+          setIsOfflineSource(false);
+        } else {
+          // If network failed, attempt to find offline blob
+          if (lessonId) {
+            const fallbackOffline = await getOfflineMediaUrl(lessonId, kind === "pdf" ? "pdf" : "audio");
+            if (fallbackOffline && alive) {
+              setUrl(fallbackOffline);
+              setIsOfflineSource(true);
+              return;
+            }
+          }
+          setFailed(true);
+        }
+      });
     });
+
     return () => {
       alive = false;
     };
-  }, [value, stored]);
+  }, [value, stored, lessonId, kind]);
 
   useEffect(() => {
     if (mediaRef.current) mediaRef.current.playbackRate = rate;
   }, [rate, url]);
 
   if (failed) {
-    return <p className="text-sm text-muted-foreground">Sign in to open this uploaded file.</p>;
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-center">
+        <p className="text-sm font-semibold text-destructive">Could not load media</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sign in or download this lesson when connected to internet for offline playback.
+        </p>
+      </div>
+    );
   }
 
   if (!url) {
@@ -271,11 +316,16 @@ export function MediaPlayer({ value, title, kind, onActiveChange }: Props) {
     );
   }
 
-  const source = stored
+  const source = isOfflineSource
     ? kind === "pdf"
       ? ({ mode: "pdf-embed", src: url, directUrl: url } as const)
       : ({ mode: "native", src: url } as const)
-    : classifyMedia(url, kind);
+    : stored
+      ? kind === "pdf"
+        ? ({ mode: "pdf-embed", src: url, directUrl: url } as const)
+        : ({ mode: "native", src: url } as const)
+      : classifyMedia(url, kind);
+
 
   if (source.mode === "pdf-embed" || kind === "pdf") {
     const pdfSrc = source.mode === "pdf-embed" ? source.src : url;

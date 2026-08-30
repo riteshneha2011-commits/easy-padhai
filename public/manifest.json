@@ -1,0 +1,36 @@
+{
+  "name": "Easy Padhai — Class 9-12 Learning App",
+  "short_name": "Easy Padhai",
+  "description": "Audio lectures, quick summaries, PDF notes and instant objective tests for Class 9 to 12 students.",
+  "start_url": "/learn",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/easy-padhai-mark.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/easy-padhai-mark.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["education", "books"],
+  "lang": "hi-IN"
+}

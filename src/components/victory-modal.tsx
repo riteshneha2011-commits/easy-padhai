@@ -1,6 +1,6 @@
 import { soundFx } from "@/lib/sound-effects";
 import confetti from "canvas-confetti";
-import { Trophy, Flame, Sparkles, ArrowRight } from "lucide-react";
+import { Trophy, Flame, Sparkles, ArrowRight, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -35,7 +35,14 @@ export function VictoryModal({
     });
   };
 
-
+  const handleWhatsAppShare = () => {
+    soundFx.playClick();
+    const shareText = isTest
+      ? `🎉 मैंने Easy Padhai पर क्लास 9 का ऑनलाइन टेस्ट पास किया! 🏆\n\nक्या आप मुझसे बेहतर स्कोर कर सकते हैं? अभी फ्री में प्रैक्टिस करें:\n👉 https://ep.studytube.co.in/learn`
+      : `🔥 मैंने Easy Padhai पर नया लेक्चर पूरा किया और +${xpEarned} XP कमाए! 🚀\n\nक्लास 9 से 12 की ऑडियो व वीडियो पढ़ाई फ्री में शुरू करें:\n👉 https://ep.studytube.co.in/learn`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(url, "_blank");
+  };
 
   return (
     <Dialog
@@ -61,11 +68,11 @@ export function VictoryModal({
         <p className="text-sm text-muted-foreground">{message}</p>
 
         <div className="grid grid-cols-2 gap-2.5 py-1.5">
-          <div className="flex items-center justify-center gap-1.5 rounded-21l bg-primary/10 px-3 py-2 text-primary">
+          <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-primary/10 px-3 py-2 text-primary">
             <Sparkles className="size-4 animate-spin" />
             <span className="font-display text-sm font-bold">+{xpEarned} XP</span>
           </div>
-          <div className="flex items-center justify-center gap-1.5 rounded-21l bg-orange-500/10 px-3 py-2 text-orange-600">
+          <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-orange-500/10 px-3 py-2 text-orange-600">
             <Flame className="size-4" />
             <span className="font-display text-sm font-bold">Streak Kept!</span>
           </div>
@@ -88,9 +95,20 @@ export function VictoryModal({
               Continue
             </Button>
           )}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-full gap-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold text-xs h-10"
+            onClick={handleWhatsAppShare}
+          >
+            <Share2 className="size-3.5" />
+            <span>Share on WhatsApp 📲</span>
+          </Button>
+
           <Button
             variant="ghost"
-            className="w-full rounded-full text-sm text-muted-foreground"
+            className="w-full rounded-full text-xs text-muted-foreground"
             onClick={onDirectClose}
           >
             {isTest ? "Review Answers" : "Stay on this page"}
