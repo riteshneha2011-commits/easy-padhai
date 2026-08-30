@@ -56,7 +56,7 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -66,8 +66,14 @@ function AuthPage() {
     });
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Account created. Check your inbox if confirmation is required.");
+    if (data?.session) {
+      toast.success("Account created! Welcome to Easy Padhai.");
+      navigate({ to: "/dashboard" });
+    } else {
+      toast.success("Account created. Check your email for confirmation or try signing in.");
+    }
   }
+
 
   async function google() {
     const { error } = await supabase.auth.signInWithOAuth({
