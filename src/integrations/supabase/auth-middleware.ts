@@ -30,21 +30,23 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server(
-  async ({ next }) => {
-    
-    const SUPABASE_URL = process.env['SUPABASE_URL'];
-    const SUPABASE_PUBLISHABLE_KEY = process.env['SUPABASE_PUBLISHABLE_KEY'];
+const DEFAULT_SUPABASE_URL = "https://bykqlnoftmqclyrtjiyp.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5a3Fsbm9mdG1xY2x5cnRqaXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNTYxOTYsImV4cCI6MjEwMzYzMjE5Nn0.pDpQhIe9Vl80DSIjSXTH_8gwGlG47ge9SPFKQJwzbR0";
 
-    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-      const missing = [
-        ...(!SUPABASE_URL ? ['SUPABASE_URL'] : []),
-        ...(!SUPABASE_PUBLISHABLE_KEY ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-      ];
-      const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-      console.error(`[Supabase] ${message}`);
-      throw new Error(message);
-    }
+export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
+  async ({ next }) => {
+    const SUPABASE_URL =
+      process.env.SUPABASE_URL ||
+      process.env.VITE_SUPABASE_URL ||
+      DEFAULT_SUPABASE_URL;
+
+    const SUPABASE_PUBLISHABLE_KEY =
+      process.env.SUPABASE_PUBLISHABLE_KEY ||
+      process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      DEFAULT_SUPABASE_ANON_KEY;
     
     const request = getRequest();
 
