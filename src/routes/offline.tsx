@@ -54,30 +54,30 @@ function OfflinePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-6 sm:py-10 space-y-6">
+    <div className="mx-auto w-full max-w-4xl px-3.5 sm:px-6 py-6 sm:py-10 space-y-6 min-w-0 overflow-x-hidden">
       {/* Offline Status Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-5 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
-            <WifiOff className="size-6" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-4 sm:p-5 shadow-sm min-w-0">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="grid size-11 sm:size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+            <WifiOff className="size-5 sm:size-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-lg sm:text-2xl font-bold text-foreground truncate">
                 My Offline Downloads
               </h1>
-              <Badge variant="secondary" className="rounded-full text-xs font-bold text-primary">
+              <Badge variant="secondary" className="rounded-full text-[11px] font-bold text-primary shrink-0">
                 100% Offline
               </Badge>
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 break-words line-clamp-2">
               Listen to audio lectures and revise notes without using mobile data.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground bg-background/80 px-3.5 py-2 rounded-2xl border border-border/70">
-          <HardDrive className="size-4 text-primary" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground bg-background/80 px-3 py-1.5 rounded-2xl border border-border/70 shrink-0 self-start sm:self-center">
+          <HardDrive className="size-3.5 text-primary shrink-0" />
           <span>{usage.formatted} used ({usage.count} {usage.count === 1 ? "lecture" : "lectures"})</span>
         </div>
       </div>
@@ -87,34 +87,34 @@ function OfflinePage() {
           Loading offline downloads…
         </div>
       ) : lessons.length === 0 ? (
-        <Card className="rounded-3xl border-dashed p-10 text-center space-y-4">
+        <Card className="rounded-3xl border-dashed p-6 sm:p-10 text-center space-y-4 min-w-0">
           <div className="mx-auto grid size-14 place-items-center rounded-full bg-secondary text-muted-foreground">
             <Headphones className="size-7" />
           </div>
           <div className="max-w-md mx-auto space-y-1">
-            <h2 className="font-display text-lg font-bold">No downloaded lectures yet</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="font-display text-base sm:text-lg font-bold">No downloaded lectures yet</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               When connected to Wi-Fi or mobile data, tap <strong>"Download Offline"</strong> on any lesson. They will appear here for 100% zero-data playback!
             </p>
           </div>
-          <Button asChild className="rounded-full shadow-md">
+          <Button asChild className="rounded-full shadow-md text-xs sm:text-sm">
             <Link to="/learn">Explore Chapters & Download</Link>
           </Button>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)] min-w-0">
           {/* Downloaded Lectures List */}
-          <div className="space-y-2.5">
+          <div className="space-y-2.5 min-w-0">
             <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
               Downloaded Lectures ({lessons.length})
             </h2>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               {lessons.map((l) => {
                 const isActive = activeLesson?.id === l.id;
                 return (
                   <div
                     key={l.id}
-                    className={`flex items-center justify-between gap-2 rounded-2xl border p-3.5 transition-all text-left ${
+                    className={`flex items-center justify-between gap-2 rounded-2xl border p-3 sm:p-3.5 transition-all text-left min-w-0 ${
                       isActive
                         ? "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-sm"
                         : "border-border/70 bg-card hover:border-primary/40"
@@ -126,14 +126,14 @@ function OfflinePage() {
                         soundFx.playClick();
                         setActiveLesson(l);
                       }}
-                      className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                      className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 text-left"
                     >
-                      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground">
+                      <div className="grid size-8 sm:size-9 shrink-0 place-items-center rounded-xl bg-secondary text-foreground">
                         {l.kind === "pdf" ? <FileText className="size-4" /> : <Headphones className="size-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm truncate text-foreground">{l.title}</p>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="font-semibold text-xs sm:text-sm truncate text-foreground">{l.title}</p>
+                        <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">
                           {l.chapter_title || "Offline Lecture"} · ~{l.duration_minutes ?? 10}m
                         </p>
                       </div>
@@ -141,10 +141,10 @@ function OfflinePage() {
                     <button
                       type="button"
                       onClick={() => handleDelete(l.id, l.title)}
-                      className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      className="grid size-7 sm:size-8 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                       title="Delete offline copy"
                     >
-                      <Trash2 className="size-4" />
+                      <Trash2 className="size-3.5 sm:size-4" />
                     </button>
                   </div>
                 );
@@ -154,23 +154,23 @@ function OfflinePage() {
 
           {/* Offline Player & Notes Block */}
           {activeLesson && (
-            <Card className="rounded-3xl border-border/80 p-5 sm:p-6 space-y-5 shadow-sm">
-              <div className="space-y-1">
-                <Badge variant="outline" className="rounded-full text-[11px] font-bold uppercase text-primary">
+            <Card className="rounded-3xl border-border/80 p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-sm min-w-0 overflow-hidden">
+              <div className="space-y-1 min-w-0">
+                <Badge variant="outline" className="rounded-full text-[10px] sm:text-[11px] font-bold uppercase text-primary">
                   {activeLesson.kind} · Offline Mode
                 </Badge>
-                <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+                <h2 className="font-display text-lg sm:text-2xl font-bold text-foreground break-words leading-tight">
                   {activeLesson.title}
                 </h2>
                 {activeLesson.chapter_title && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted-foreground break-words">
                     Chapter: {activeLesson.chapter_title}
                   </p>
                 )}
               </div>
 
               {/* Offline Media Player */}
-              <div className="rounded-2xl bg-secondary/40 p-4 border border-border/60">
+              <div className="rounded-2xl bg-secondary/40 p-3 sm:p-4 border border-border/60 min-w-0 overflow-hidden">
                 <MediaPlayer
                   value=""
                   title={activeLesson.title}
@@ -181,12 +181,12 @@ function OfflinePage() {
 
               {/* Summary / Notes */}
               {activeLesson.summary && (
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    <BookOpen className="size-4 text-primary" />
+                    <BookOpen className="size-3.5 sm:size-4 text-primary" />
                     <span>Summary & Notes</span>
                   </div>
-                  <div className="whitespace-pre-wrap rounded-2xl bg-secondary/50 p-4 text-sm leading-relaxed text-foreground/90 border border-border/50">
+                  <div className="whitespace-pre-wrap rounded-2xl bg-secondary/50 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground/90 border border-border/50 break-words max-h-96 overflow-y-auto">
                     {activeLesson.summary}
                   </div>
                 </div>
