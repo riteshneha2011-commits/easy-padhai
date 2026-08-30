@@ -425,6 +425,22 @@ CREATE POLICY "Public read tests" ON public.tests FOR SELECT USING (true);
 CREATE POLICY "Public read questions" ON public.questions FOR SELECT USING (true);
 CREATE POLICY "Public read badges" ON public.badges FOR SELECT USING (true);
 
+-- Staff (Admin/Teacher) Management Policies
+DROP POLICY IF EXISTS "Staff can manage subjects" ON public.subjects;
+CREATE POLICY "Staff can manage subjects" ON public.subjects FOR ALL TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS "Staff can manage chapters" ON public.chapters;
+CREATE POLICY "Staff can manage chapters" ON public.chapters FOR ALL TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS "Staff can manage lessons" ON public.lessons;
+CREATE POLICY "Staff can manage lessons" ON public.lessons FOR ALL TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS "Staff can manage tests" ON public.tests;
+CREATE POLICY "Staff can manage tests" ON public.tests FOR ALL TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS "Staff can manage questions" ON public.questions;
+CREATE POLICY "Staff can manage questions" ON public.questions FOR ALL TO authenticated USING (public.is_staff(auth.uid())) WITH CHECK (public.is_staff(auth.uid()));
+
 -- User-Specific Policies
 CREATE POLICY "Users can read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = id);
@@ -442,3 +458,4 @@ CREATE POLICY "Users can read own credits" ON public.credit_events FOR SELECT US
 CREATE POLICY "Users can read own xp" ON public.xp_events FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can read own badges" ON public.user_badges FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can read own roles" ON public.user_roles FOR SELECT USING (auth.uid() = user_id);
+
