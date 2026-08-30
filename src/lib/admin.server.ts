@@ -177,7 +177,7 @@ async function requestAiChatCompletion(prompt: string, jsonMode = true): Promise
   if (geminiKey) {
     endpoint = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
     apiKey = geminiKey;
-    model = "gemini-2.0-flash";
+    model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
   } else if (groqKey) {
     endpoint = "https://api.groq.com/openai/v1/chat/completions";
     apiKey = groqKey;
@@ -185,7 +185,7 @@ async function requestAiChatCompletion(prompt: string, jsonMode = true): Promise
   } else if (openRouterKey) {
     endpoint = "https://openrouter.ai/api/v1/chat/completions";
     apiKey = openRouterKey;
-    model = "google/gemini-2.0-flash-001";
+    model = "google/gemini-flash-1.5";
   } else if (openAiKey) {
     endpoint = "https://api.openai.com/v1/chat/completions";
     apiKey = openAiKey;
@@ -193,8 +193,9 @@ async function requestAiChatCompletion(prompt: string, jsonMode = true): Promise
   } else if (lovableKey) {
     endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
     apiKey = lovableKey;
-    model = "google/gemini-2.0-flash";
+    model = "google/gemini-2.5-flash";
   } else {
+
     throw new Error(
       "AI is not configured. Please add GEMINI_API_KEY (from Google AI Studio - Free) to your environment variables.",
     );
