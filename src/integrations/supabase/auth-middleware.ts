@@ -20,12 +20,9 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
       new Headers(init.headers).forEach((value, key) => headers.set(key, value));
     }
 
-    // New Supabase API keys are opaque strings, not bearer JWTs.
-    if (isNewSupabaseApiKey(supabaseKey) && headers.get('Authorization') === `Bearer ${supabaseKey}`) {
-      headers.delete('Authorization');
+    if (!headers.has('apikey')) {
+      headers.set('apikey', supabaseKey);
     }
-
-    headers.set('apikey', supabaseKey);
     return fetch(input, { ...init, headers });
   };
 }
