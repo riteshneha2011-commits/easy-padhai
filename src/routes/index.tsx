@@ -208,9 +208,19 @@ function Home() {
   return (
     <div className="space-y-16 sm:space-y-24 pb-20">
       {/* 1. HERO SECTION */}
-      <section className="grain-bg relative overflow-hidden pt-8 pb-12 md:py-20 border-b border-border/40">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-2 md:items-center">
-          <div className="space-y-6">
+      <section className="relative overflow-hidden pt-8 pb-12 md:py-20 border-b border-border/40 bg-card/30">
+        {/* Background Visual Graphic with Responsive Screen Adjustment */}
+        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
+          <img
+            src="/hero-audio-illustration.jpg"
+            alt="Students learning on commute, walking, and bedtime"
+            className="w-full h-full object-cover object-center opacity-15 dark:opacity-10 scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/90 to-background" />
+        </div>
+
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-12 md:items-center">
+          <div className="space-y-6 md:col-span-7">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
               <Sparkles className="size-3.5" /> Class 9th Live Now · Class 10th, 11th &amp; 12th Coming Soon
             </span>
@@ -222,14 +232,25 @@ function Home() {
               </span>
             </h1>
 
-            <p className="max-w-lg text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Learn Class 9–12 Science on your commute, while walking, or before bed. Audio lectures,
-              videos, one-screen summaries, and instant-feedback tests, all in one daily loop. Build a
-              streak and watch your XP climb.
+            <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+              Learn Class 9–12 Science on your commute, while walking, or before bed. 
+              Audio lectures generated using AI and verified under the expert pedagogical guidance of Ritesh Sir (21+ Yrs Kota Experience). 
+              Complete with one-screen summaries and instant-feedback tests in one daily loop.
             </p>
 
+            {/* AI Pedagogy & Quality Notice */}
+            <div className="rounded-2xl border border-primary/25 bg-primary/5 p-3 sm:p-3.5 text-xs text-muted-foreground flex items-start gap-2.5 shadow-sm max-w-xl">
+              <Sparkles className="size-4 shrink-0 text-primary mt-0.5" />
+              <div className="space-y-0.5">
+                <span className="font-bold text-foreground">AI-Generated &amp; Educator-Verified:</span>{" "}
+                <span>
+                  Lessons are created with AI under the direct guidance of Ritesh Sir. While thoroughly reviewed, AI can occasionally make mistakes — please let us know on WhatsApp if you spot anything!
+                </span>
+              </div>
+            </div>
+
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-sm sm:text-base px-8 h-12">
                 <Link to={user ? "/dashboard" : "/auth"}>
                   {user ? "Continue learning" : "Start learning free"}
@@ -248,7 +269,7 @@ function Home() {
             </div>
 
             {/* Confidence Metrics */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-2 text-xs sm:text-sm font-medium text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-1 text-xs sm:text-sm font-medium text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Flame className="size-4 text-orange-500" /> Daily streaks
               </span>
@@ -261,21 +282,38 @@ function Home() {
             </div>
           </div>
 
-          {/* 4 Steps Grid */}
-          <div className="grid gap-3.5 sm:grid-cols-2">
-            {steps.map((step, i) => (
-              <Card
-                key={step.title}
-                className="card-hover shadow-card gap-3 rounded-3xl border-border/70 p-5 bg-card/90"
-                style={{ transform: i % 2 ? "translateY(12px)" : undefined }}
-              >
-                <span className="grid size-11 place-items-center rounded-2xl bg-primary/15 text-primary">
-                  <step.icon className="size-5" />
-                </span>
-                <h3 className="font-display text-lg font-bold">{step.title}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-normal">{step.body}</p>
-              </Card>
-            ))}
+          {/* Hero Visual Card (Responsive for Mobile, Tablet, Laptop) */}
+          <div className="md:col-span-5 flex flex-col gap-4">
+            <div className="relative overflow-hidden rounded-3xl border-2 border-primary/30 shadow-2xl bg-card">
+              <img
+                src="/hero-audio-illustration.jpg"
+                alt="Learn anytime, anywhere on phone - commute, walking, bedtime, lunch"
+                className="w-full h-auto max-h-[380px] sm:max-h-[440px] md:max-h-none object-cover"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 sm:p-5 text-white">
+                <p className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
+                  <Headphones className="size-4 text-amber-400" /> Listen anytime, anywhere
+                </p>
+                <p className="text-[11px] sm:text-xs text-slate-200 mt-0.5">
+                  Commute · Walking · Bedtime · Daily 15-min audio sessions
+                </p>
+              </div>
+            </div>
+
+            {/* Quick 4 Steps Ribbon */}
+            <div className="grid grid-cols-2 gap-2">
+              {steps.slice(0, 2).map((step) => (
+                <Card key={step.title} className="rounded-2xl border-border/70 p-3 bg-card/90 shadow-sm flex items-center gap-2.5">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                    <step.icon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold truncate">{step.title}</h4>
+                    <p className="text-[10px] text-muted-foreground truncate">{step.body}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -304,7 +342,7 @@ function Home() {
             {/* Educator Credentials */}
             <div className="space-y-3 text-center md:text-left flex-1 min-w-0">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-                <GraduationCap className="size-4" /> Taught by someone who's done this for 21 years
+                <GraduationCap className="size-4" /> Guided by 21+ Years of Kota Teaching Experience
               </span>
 
               <div className="space-y-1">
@@ -318,7 +356,7 @@ function Home() {
 
               <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
                 Creator of <strong>Physics by Ritesh</strong>, mentor to thousands of CBSE, JEE, and NEET
-                students across India. Easy Padhai is built directly on 21+ years of classroom teaching
+                students across India. Easy Padhai's AI audio lectures are designed using Ritesh Sir's 21+ years of classroom teaching
                 intuition — breaking dense science topics into clear, audio-first stories that stick forever.
               </p>
 
@@ -696,7 +734,7 @@ function Home() {
             Ready to make Class 9–12 Science &amp; Maths easy?
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-            Join students learning everyday with Ritesh Sir's audio lectures and instant feedback tests.
+            Join students learning everyday with AI-generated audio lectures verified under the guidance of Ritesh Sir.
           </p>
           <div className="pt-2">
             <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12">
@@ -783,7 +821,7 @@ function SampleAudioPlayer() {
             Exploration: Entering Science
           </h4>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Voice of Ritesh Sir · 21+ Yrs Kota Experience
+            AI Audio · Verified under Ritesh Sir's Guidance (21+ Yrs Kota Exp)
           </p>
         </div>
 

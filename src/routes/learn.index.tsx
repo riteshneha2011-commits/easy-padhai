@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { ArrowRight, FileText, Headphones, PlayCircle, BookOpen } from "lucide-react";
+import { ArrowRight, FileText, Headphones, PlayCircle, BookOpen, Sparkles } from "lucide-react";
 import { getCatalog } from "@/lib/content.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
