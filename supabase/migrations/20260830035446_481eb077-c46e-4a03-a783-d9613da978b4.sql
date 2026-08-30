@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.award_credits_once(uuid, integer, text, text) FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.ensure_profile(uuid, text, integer) FROM anon, authenticated;
