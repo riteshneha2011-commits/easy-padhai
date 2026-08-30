@@ -1,147 +1,112 @@
-// Easy Padhai Advanced Service Worker for 100% Offline App Boot & Asset Caching
-const CACHE_NAME = "easy-padhai-app-v2";
-const RUNTIME_CACHE = "easy-padhai-runtime-v2";
-
-const APP_SHELL_ASSETS = [
-  "/",
-  "/learn",
-  "/offline",
+// Easy Padhai Bulletproof Offline Service Worker v3
+const CACHE_NAME = "easy-padhai-v3";
+const STATIC_ASSETS = [
+  "/offline.html",
   "/favicon.png",
   "/apple-touch-icon.png",
   "/easy-padhai-mark.png",
   "/manifest.json",
 ];
 
-// Install: Cache critical app shell assets
+// Install: Pre-cache standalone offline player
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(APP_SHELL_ASSETS).catch((err) => {
-        console.warn("App shell partial cache:", err);
-      });
+      return cache.addAll(STATIC_ASSETS);
     })
   );
-  self.skipWaiting();
 });
 
-// Activate: Clean up old caches and claim all clients immediately
+// Activate: Take immediate control of all open tabs/PWA windows
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME && key !== RUNTIME_CACHE) {
+          if (key !== CACHE_NAME) {
             return caches.delete(key);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch: Smart network-first / cache-fallback for navigation & static assets
+// Fetch: Handle navigation and assets with offline fallback
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // Skip Supabase API / auth calls from service worker caching
+  // Exclude Supabase / auth / external analytics from SW intercept
   if (url.pathname.startsWith("/api") || url.hostname.includes("supabase.co")) {
     return;
   }
 
-  // 1. Navigation requests (HTML page loads when opening the app)
+  // 1. Navigation requests (Opening the app, clicking links, or refreshing)
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const copy = networkResponse.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
+        .then((response) => {
+          // Cache successful page visits for offline re-use
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, copy);
-              cache.put("/learn", copy.clone());
-              cache.put("/", copy.clone());
+            });
+          }
+          return response;
+        })
+        .catch(async () => {
+          // OFFLINE: First try cached page, then fallback to standalone offline.html
+          const cachedPage = await caches.match(request);
+          if (cachedPage) return cachedPage;
+
+          const offlineShell = await caches.match("/offline.html");
+          if (offlineShell) return offlineShell;
+
+          return new Response("Offline Mode Active", {
+            headers: { "Content-Type": "text/plain" },
+          });
+        })
+    );
+    return;
+  }
+
+  // 2. Static Assets (JS, CSS, images, fonts)
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        // Return cached and update in background (Stale-While-Revalidate)
+        fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, networkResponse);
+              });
+            }
+          })
+          .catch(() => {});
+        return cachedResponse;
+      }
+
+      // Not in cache, fetch from network and cache
+      return fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, copy);
             });
           }
           return networkResponse;
         })
-        .catch(async () => {
-          // OFFLINE FALLBACK: Return the cached page, or cached /learn, or cached /
-          const cached =
-            (await caches.match(request)) ||
-            (await caches.match("/learn")) ||
-            (await caches.match("/"));
-          if (cached) return cached;
-          return new Response(
-            `<!DOCTYPE html>
-            <html lang="hi">
-              <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <title>Easy Padhai — Offline Mode</title>
-                <style>
-                  body { background: #090d16; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
-                  .btn { background: #ea580c; color: #fff; padding: 12px 24px; border-radius: 9999px; text-decoration: none; font-weight: bold; margin-top: 20px; display: inline-block; border: none; cursor: pointer; }
-                </style>
-              </head>
-              <body>
-                <h2>⚡ Easy Padhai Offline Mode</h2>
-                <p>आप अभी ऑफलाइन हैं। अपने डाउनलोड किए गए लेक्चर्स देखने के लिए नीचे क्लिक करें।</p>
-                <button class="btn" onclick="window.location.reload()">Reload App</button>
-              </body>
-            </html>`,
-            { headers: { "Content-Type": "text/html; charset=utf-8" } }
-          );
-        })
-    );
-    return;
-  }
-
-  // 2. Static JS/CSS/Fonts/Images — Cache First with Stale-While-Revalidate
-  if (
-    request.destination === "script" ||
-    request.destination === "style" ||
-    request.destination === "font" ||
-    request.destination === "image" ||
-    url.pathname.endsWith(".js") ||
-    url.pathname.endsWith(".css") ||
-    url.pathname.endsWith(".png") ||
-    url.pathname.endsWith(".svg")
-  ) {
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const copy = networkResponse.clone();
-              caches.open(RUNTIME_CACHE).then((cache) => {
-                cache.put(request, copy);
-              });
-            }
-            return networkResponse;
-          })
-          .catch(() => cachedResponse);
-
-        return cachedResponse || fetchPromise;
-      })
-    );
-    return;
-  }
-
-  // Default network fetch with runtime cache fallback
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response && response.status === 200 && response.type === "basic") {
-          const copy = response.clone();
-          caches.open(RUNTIME_CACHE).then((cache) => {
-            cache.put(request, copy);
-          });
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
+        .catch(() => {
+          // Return empty or fallback if asset fetch fails offline
+          return new Response("", { status: 408, statusText: "Offline" });
+        });
+    })
   );
 });
