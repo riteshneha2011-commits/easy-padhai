@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { Loader2, Link2, Upload } from "lucide-react";
+import { Loader2, Link2, Upload, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isStorageRef, storagePath, uploadLessonFile } from "@/lib/storage";
+import { compressAudioForSpeech } from "@/lib/audio-compressor";
 
 type Props = {
   name: string;
@@ -14,21 +15,32 @@ type Props = {
   folder: string;
 };
 
-/** URL field with an optional direct file upload into Easy Padhai storage. */
+/** URL field with optional automatic audio compression and direct file upload into Easy Padhai storage. */
 export function MediaInput({ name, label, accept, defaultValue = "", folder }: Props) {
   const [value, setValue] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const isAudio = folder === "audio" || accept.includes("audio");
 
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <div className="flex items-center justify-between">
+        <Label>{label}</Label>
+        {isAudio && (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
+            <Sparkles className="size-3" /> Auto voice compression enabled
+          </span>
+        )}
+      </div>
+
       <div className="flex gap-2">
         <Input
           name={name}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Paste a YouTube / Drive / any link"
+          placeholder="Paste Cloudflare R2 / Drive / Dropbox / direct link"
         />
         <Button
           type="button"
@@ -38,7 +50,7 @@ export function MediaInput({ name, label, accept, defaultValue = "", folder }: P
           onClick={() => fileRef.current?.click()}
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-          Upload
+          {busy ? "Processing…" : "Upload"}
         </Button>
       </div>
       <input
@@ -47,29 +59,49 @@ export function MediaInput({ name, label, accept, defaultValue = "", folder }: P
         accept={accept}
         hidden
         onChange={async (e) => {
-          const file = e.target.files?.[0];
+          let file = e.target.files?.[0];
           if (!file) return;
           setBusy(true);
+          setStatusMsg("Preparing file...");
           try {
+            if (isAudio && file.size > 4 * 1024 * 1024) {
+              const res = await compressAudioForSpeech(file, (msg) => {
+                setStatusMsg(msg);
+                toast.loading(msg, { id: "compress-toast" });
+              });
+              file = res.file;
+              if (res.savedPercent > 0) {
+                toast.success(
+                  `Audio optimized: ${res.originalSizeMb} MB → ${res.compressedSizeMb} MB (saved ${res.savedPercent}%)`,
+                  { id: "compress-toast" }
+                );
+              } else {
+                toast.dismiss("compress-toast");
+              }
+            }
+
+            setStatusMsg("Uploading to storage...");
             const ref = await uploadLessonFile(file, folder);
             setValue(ref);
-            toast.success("File uploaded");
+            toast.success("File uploaded successfully!");
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Upload failed");
+            toast.error(err instanceof Error ? err.message : "Upload failed", { id: "compress-toast" });
           } finally {
             setBusy(false);
+            setStatusMsg("");
             if (fileRef.current) fileRef.current.value = "";
           }
         }}
       />
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground flex items-center justify-between">
         {isStorageRef(value) ? (
-          <>Uploaded file: {storagePath(value)}</>
+          <span className="font-mono text-[11px] truncate">Uploaded: {storagePath(value)}</span>
         ) : (
           <span className="inline-flex items-center gap-1">
-            <Link2 className="size-3" /> External link or upload a file (max 50MB)
+            <Link2 className="size-3" /> External link (Cloudflare R2, Drive, Dropbox) or upload file
           </span>
         )}
+        {busy && <span className="text-primary font-medium">{statusMsg}</span>}
       </p>
     </div>
   );
