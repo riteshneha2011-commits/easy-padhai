@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getWallet } from "@/lib/credits.functions";
 import { cn } from "@/lib/utils";
+import { soundFx } from "@/lib/sound-effects";
 import brandMark from "@/assets/easy-padhai-mark.png";
+
 
 const links = [
   { to: "/learn", label: "Learn", icon: BookOpen },
@@ -161,9 +163,10 @@ export function SiteHeader() {
       </header>
 
       {/* Mobile Bottom Navigation Bar for modern app-like experience */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/70 bg-background/95 backdrop-blur-xl px-2 py-1 md:hidden pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/70 bg-background/95 backdrop-blur-xl px-2 py-1 md:hidden pb-safe shadow-lg">
         <Link
           to="/learn"
+          onClick={() => soundFx.playClick()}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/learn") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
@@ -174,6 +177,7 @@ export function SiteHeader() {
         </Link>
         <Link
           to={user ? "/dashboard" : "/auth"}
+          onClick={() => soundFx.playClick()}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/dashboard") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
@@ -184,6 +188,7 @@ export function SiteHeader() {
         </Link>
         <Link
           to={user ? "/revision" : "/auth"}
+          onClick={() => soundFx.playClick()}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/revision") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
@@ -194,6 +199,7 @@ export function SiteHeader() {
         </Link>
         <Link
           to={user ? "/wallet" : "/auth"}
+          onClick={() => soundFx.playClick()}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/wallet") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
@@ -205,6 +211,7 @@ export function SiteHeader() {
         {isAdmin && (
           <Link
             to="/admin"
+            onClick={() => soundFx.playClick()}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
               pathname.startsWith("/admin") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
@@ -215,6 +222,7 @@ export function SiteHeader() {
           </Link>
         )}
       </nav>
+
     </>
   );
 }

@@ -47,41 +47,45 @@ function LearnIndex() {
             </Badge>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {subject.chapters.map((chapter, index) => (
               <Card
                 key={chapter.id}
                 onClick={() => navigate({ to: "/learn/$slug", params: { slug: chapter.slug } })}
-                className="card-hover shadow-card cursor-pointer gap-3 rounded-3xl border-border/70 p-6"
+                className="card-hover shadow-card cursor-pointer gap-2.5 rounded-3xl border-border/70 p-5 transition-all hover:border-primary/40"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="font-display text-sm font-bold text-primary">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="font-display text-xs font-bold uppercase tracking-wider text-primary">
                       Chapter {index + 1}
                     </span>
-                    <h3 className="font-display text-xl font-bold leading-snug">{chapter.title}</h3>
+                    <h3 className="font-display text-lg font-bold leading-snug text-foreground line-clamp-2">
+                      {chapter.title}
+                    </h3>
                   </div>
-                  <ArrowRight className="mt-1 size-5 shrink-0 text-muted-foreground" />
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <ArrowRight className="size-4" />
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{chapter.description}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs font-semibold text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Headphones className="size-3.5" /> Audio
+
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3 text-[11px] font-medium text-muted-foreground">
+                  <span className="rounded-full bg-muted/60 px-2 py-0.5 font-semibold text-foreground">
+                    {chapter.lessonCount} {chapter.lessonCount === 1 ? "Lesson" : "Lessons"}
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <PlayCircle className="size-3.5" /> Video
+                  <span className="flex items-center gap-1">
+                    <Headphones className="size-3 text-primary" /> Audio
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="size-3.5" /> Summary
+                  <span className="flex items-center gap-1">
+                    <PlayCircle className="size-3 text-blue-500" /> Video
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="size-3.5" /> Notes
+                  <span className="flex items-center gap-1">
+                    <BookOpen className="size-3 text-emerald-500" /> Quiz
                   </span>
-                  <span>· {chapter.lessonCount} lessons</span>
                 </div>
               </Card>
             ))}
           </div>
+
 
           {subject.chapters.length === 0 && (
             <p className="mt-4 text-sm text-muted-foreground">

@@ -80,14 +80,15 @@ const KIND_META: Record<string, { icon: typeof Headphones; label: string }> = {
 };
 
 function ChapterPage() {
-  const loaderData = Route.useLoaderData();
-  const chapter = loaderData.chapter;
-  const test = loaderData.test;
-  const lessons = loaderData.lessons as unknown as Lesson[];
+
+  const { chapter, lessons, test } = Route.useLoaderData();
   const { user, refresh } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(lessons[0]?.id ?? null);
+  const [showFullDesc, setShowFullDesc] = useState(false);
+  const [victoryOpen, setVictoryOpen] = useState(false);
+  const [victoryXp, setVictoryXp] = useState(20);
 
   const progressQuery = useQuery({
     queryKey: ["chapter-progress", chapter.id, user?.id],
@@ -98,13 +99,39 @@ function ChapterPage() {
   const done = new Set(progressQuery.data ?? []);
   const percent = lessons.length ? Math.round((done.size / lessons.length) * 100) : 0;
 
+  const activeIndex = lessons.findIndex((l) => l.id === activeId);
+  const nextLesson = activeIndex >= 0 && activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
+
+  const handleSelectLesson = (lessonId: string) => {
+    setActiveId(lessonId);
+    soundFx.playClick();
+    const playerEl = document.getElementById("lesson-player");
+    if (playerEl) {
+      playerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handlePlayNext = () => {
+    setVictoryOpen(false);
+    if (nextLesson) {
+      handleSelectLesson(nextLesson.id);
+    } else if (test) {
+      void navigate({ to: "/test/$testId", params: { testId: test.id } });
+    }
+  };
+
   const complete = useMutation({
     mutationFn: (lessonId: string) => completeLesson({ data: { lessonId } }),
     onSuccess: (result) => {
       progressQuery.refetch();
       void refresh();
-      if (result.alreadyDone) toast("Already completed ✓");
-      else toast.success(`Nice! +${result.xp} XP · +${result.credits} credits`);
+      if (result.alreadyDone) {
+        toast("Already completed ✓");
+      } else {
+        soundFx.playSuccess();
+        setVictoryXp(result.xp || 20);
+        setVictoryOpen(true);
+      }
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -114,6 +141,7 @@ function ChapterPage() {
     onSuccess: (access) => {
       void queryClient.invalidateQueries({ queryKey: ["lesson-access"] });
       void refresh();
+      soundFx.playSuccess();
       toast.success(`Unlocked! −${access.cost} credits · yours forever`);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -127,38 +155,56 @@ function ChapterPage() {
         ← All chapters
       </Link>
 
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div className="mt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold break-words leading-tight">{chapter.title}</h1>
-          <p className="mt-2 text-sm sm:text-base text-muted-foreground break-words max-w-2xl">{chapter.description}</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold break-words leading-tight text-foreground">{chapter.title}</h1>
+          {chapter.description && (
+            <div className="mt-2 max-w-2xl">
+              <p className={cn("text-xs sm:text-sm text-muted-foreground break-words transition-all", !showFullDesc && "line-clamp-2")}>
+                {chapter.description}
+              </p>
+              {chapter.description.length > 120 && (
+                <button
+                  type="button"
+                  onClick={() => setShowFullDesc((prev) => !prev)}
+                  className="mt-1 text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
+                >
+                  {showFullDesc ? "Show less ▴" : "Show more ▾"}
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {test && (
           <Button
             size="lg"
-            className="w-full sm:w-auto rounded-full shadow-glow shrink-0"
+            className="w-full sm:w-auto rounded-full shadow-glow shrink-0 font-semibold"
             onClick={() =>
               user
                 ? navigate({ to: "/test/$testId", params: { testId: test.id } })
                 : navigate({ to: "/auth" })
             }
           >
-            <Sparkles className="size-4" /> Take the test · free
+            <Sparkles className="size-4" /> Take Chapter Test
           </Button>
         )}
       </div>
 
       {user && lessons.length > 0 && (
-        <div className="mt-6 max-w-md">
-          <div className="flex justify-between text-sm font-semibold">
-            <span>Chapter progress</span>
-            <span className="text-primary">{percent}%</span>
+        <div className="mt-5 max-w-md">
+          <div className="flex justify-between text-xs font-semibold">
+            <span className="text-muted-foreground">Chapter progress</span>
+            <span className="text-primary font-bold">{percent}%</span>
           </div>
-          <Progress value={percent} className="mt-2 h-2.5" />
+          <Progress value={percent} className="mt-1.5 h-2" />
         </div>
       )}
 
       <div className="mt-6 sm:mt-8 grid gap-5 sm:gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] min-w-0 w-full">
         <div className="flex flex-col gap-2 min-w-0 w-full">
+          <div className="flex items-center justify-between px-1 pb-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Lectures ({lessons.length})</span>
+          </div>
           {lessons.map((lesson, index) => {
             const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
             const isDone = done.has(lesson.id);
@@ -166,20 +212,24 @@ function ChapterPage() {
             return (
               <button
                 key={lesson.id}
-                onClick={() => setActiveId(lesson.id)}
+                type="button"
+                onClick={() => handleSelectLesson(lesson.id)}
                 className={cn(
-                  "flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:p-4 text-left transition-all hover:border-primary/50 w-full min-w-0 overflow-hidden",
-                  isActive && "border-primary bg-primary/8 ring-1 ring-primary/30",
+                  "flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:p-4 text-left transition-all hover:border-primary/50 w-full min-w-0 overflow-hidden text-card-foreground shadow-sm",
+                  isActive && "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-md",
                 )}
               >
-                <span className="grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground">
+                <span className={cn(
+                  "grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors",
+                  isActive && "bg-primary text-primary-foreground font-bold"
+                )}>
                   <meta.icon className="size-4 sm:size-5" />
                 </span>
                 <span className="min-w-0 flex-1 overflow-hidden">
                   <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
                     Step {index + 1} · {meta.label}
                   </span>
-                  <span className="block truncate text-sm sm:text-base font-semibold text-foreground">{lesson.title}</span>
+                  <span className="block truncate text-sm font-semibold text-foreground">{lesson.title}</span>
                   <span className="mt-0.5 block text-[11px] font-semibold text-accent">
                     {lesson.isFree ? "Free" : "Costs credits"}
                   </span>
@@ -200,7 +250,7 @@ function ChapterPage() {
         </div>
 
         {active && (
-          <Card className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden">
+          <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-20">
             <LessonPanel
               key={active.id}
               lesson={active}
@@ -215,6 +265,16 @@ function ChapterPage() {
           </Card>
         )}
       </div>
+
+      <VictoryModal
+        open={victoryOpen}
+        xpEarned={victoryXp}
+        title="Lesson Completed! 🎉"
+        message={`Great job on completing "${active?.title ?? "this lesson"}". Keep up the daily learning streak!`}
+        nextLabel={nextLesson ? `Next: ${nextLesson.title}` : (test ? "Start Chapter Quiz" : undefined)}
+        onPlayNext={handlePlayNext}
+        onDirectClose={() => setVictoryOpen(false)}
+      />
     </div>
   );
 }

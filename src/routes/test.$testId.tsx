@@ -2,11 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Bookmark, CheckCircle2, XCircle } from "lucide-react";
+import { Bookmark, CheckCircle2, XCircle, Sparkles, Flame, Trophy } from "lucide-react";
+import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { getTest, submitAttempt } from "@/lib/tests.functions";
 import { saveQuestion } from "@/lib/revision.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { soundFx } from "@/lib/sound-effects";
+import { VictoryModal } from "@/components/victory-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -47,6 +50,8 @@ function TestPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [victoryOpen, setVictoryOpen] = useState(false);
+
 
   async function handleSave(questionId: string, selected: number | null) {
     try {
@@ -182,6 +187,20 @@ function TestPage() {
       setResult(res);
       await refresh();
       window.scrollTo({ top: 0 });
+
+      const pct = res.total > 0 ? (res.score / res.total) * 100 : 0;
+      if (pct >= 50) {
+        soundFx.playCelebration();
+        void confetti({
+          particleCount: 100,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ["#f59e0b", "#10b981", "#6366f1", "#ec4899", "#3b82f6"],
+        });
+      } else {
+        soundFx.playSuccess();
+      }
+      setVictoryOpen(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not submit");
     } finally {
@@ -209,10 +228,13 @@ function TestPage() {
               <button
                 key={oi}
                 type="button"
-                onClick={() => setAnswers((a) => ({ ...a, [q.id]: oi }))}
+                onClick={() => {
+                  soundFx.playClick();
+                  setAnswers((a) => ({ ...a, [q.id]: oi }));
+                }}
                 className={cn(
                   "w-full rounded-2xl border border-border px-4 py-3 text-left text-sm transition-colors hover:bg-secondary",
-                  answers[q.id] === oi && "border-primary bg-primary/10 font-medium text-primary",
+                  answers[q.id] === oi && "border-primary bg-primary/10 font-medium text-primary ring-1 ring-primary/40",
                 )}
               >
                 {opt}
@@ -227,20 +249,44 @@ function TestPage() {
           variant="outline"
           className="rounded-full"
           disabled={index === 0}
-          onClick={() => setIndex((i) => i - 1)}
+          onClick={() => {
+            soundFx.playClick();
+            setIndex((i) => i - 1);
+          }}
         >
           Previous
         </Button>
         {index < questions.length - 1 ? (
-          <Button className="rounded-full" onClick={() => setIndex((i) => i + 1)}>
+          <Button
+            className="rounded-full"
+            onClick={() => {
+              soundFx.playClick();
+              setIndex((i) => i + 1);
+            }}
+          >
             Next
           </Button>
         ) : (
-          <Button className="rounded-full" onClick={finish} disabled={busy}>
+          <Button className="rounded-full shadow-glow" onClick={finish} disabled={busy}>
             {busy ? "Checking…" : "Submit test"}
           </Button>
         )}
       </div>
+
+      <VictoryModal
+        open={victoryOpen}
+        isTest={true}
+        xpEarned={result?.xp ?? 50}
+        title={result && result.score / Math.max(result.total, 1) >= 0.8 ? "Mastery Achieved! 🏆" : "Test Completed! 🎯"}
+        message={result ? `You scored ${result.score} out of ${result.total} questions correct.` : "Test submitted successfully!"}
+        nextLabel="Explore More Chapters"
+        onPlayNext={() => {
+          setVictoryOpen(false);
+          void navigate({ to: "/learn" });
+        }}
+        onDirectClose={() => setVictoryOpen(false)}
+      />
     </div>
   );
 }
+
