@@ -148,6 +148,8 @@ export async function getCachedChapterMeta(slug: string): Promise<CachedChapterM
   }
 }
 
+import { resolveMediaUrl, isStorageRef } from "@/lib/storage";
+
 /** Download a lesson's audio/notes into the private IndexedDB sandbox */
 export async function downloadLessonForOffline(
   lesson: {
@@ -173,10 +175,13 @@ export async function downloadLessonForOffline(
 
   if (audioUrl) {
     try {
-      const res = await fetch(audioUrl);
-      if (!res.ok) throw new Error("Audio download failed");
-      audioBlob = await res.blob();
-      totalBytes += audioBlob.size;
+      const finalAudioUrl = isStorageRef(audioUrl) ? await resolveMediaUrl(audioUrl) : audioUrl;
+      if (finalAudioUrl) {
+        const res = await fetch(finalAudioUrl);
+        if (!res.ok) throw new Error("Audio download failed");
+        audioBlob = await res.blob();
+        totalBytes += audioBlob.size;
+      }
     } catch (err) {
       console.warn("Could not download audio stream:", err);
     }
@@ -186,12 +191,17 @@ export async function downloadLessonForOffline(
 
   if (pdfUrl) {
     try {
-      const res = await fetch(pdfUrl);
-      if (res.ok) {
-        pdfBlob = await res.blob();
-        totalBytes += pdfBlob.size;
+      const finalPdfUrl = isStorageRef(pdfUrl) ? await resolveMediaUrl(pdfUrl) : pdfUrl;
+      if (finalPdfUrl) {
+        const res = await fetch(finalPdfUrl);
+        if (res.ok) {
+          pdfBlob = await res.blob();
+          totalBytes += pdfBlob.size;
+        }
       }
-    } catch {}
+    } catch (err) {
+      console.warn("Could not download PDF stream:", err);
+    }
   }
 
   if (onProgress) onProgress(90);

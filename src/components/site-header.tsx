@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck, Download, WifiOff } from "lucide-react";
+import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck, Download, WifiOff, Gift, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import brandMark from "@/assets/easy-padhai-mark.png";
 const links = [
   { to: "/learn", label: "Learn", icon: BookOpen },
   { to: "/offline", label: "Downloads", icon: Download },
+  { to: "/wallet", label: "🎁 Invite Friends", icon: Gift },
   { to: "/leaderboard", label: "Leaderboard" },
 ];
 

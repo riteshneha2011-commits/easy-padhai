@@ -297,7 +297,14 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
     if (mediaRef.current) mediaRef.current.playbackRate = rate;
   }, [rate, url]);
 
-  if (!value) {
+  if (!value && !url) {
+    if (lessonId) {
+      return (
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Loading offline media…
+        </p>
+      );
+    }
     return (
       <div className="rounded-2xl border border-border/80 bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
         No document or notes file attached to this lesson.
