@@ -166,14 +166,18 @@ export function SiteHeader() {
               <div className="flex items-center gap-2">
                 <Link
                   to="/wallet"
-                  className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 transition-colors hover:bg-amber-500/20"
+                  className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 sm:px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 shadow-sm transition-colors hover:bg-amber-500/25"
+                  title="My Credits Balance"
                 >
-                  <Coins className="size-3.5" />
-                  <span>{wallet?.balance ?? profile?.credits_balance ?? 0}</span>
+                  <Coins className="size-3.5 text-amber-500" />
+                  <span>{wallet?.balance ?? profile?.credits_balance ?? 100} Credits</span>
                 </Link>
 
-                <div className="flex items-center gap-1 rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-bold text-orange-600">
-                  <Flame className="size-3.5" />
+                <div
+                  className="hidden xs:flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-700 dark:text-orange-300 shadow-sm"
+                  title="My XP Progress"
+                >
+                  <Flame className="size-3.5 text-orange-500 fill-orange-500" />
                   <span>{profile?.xp_points ?? 0} XP</span>
                 </div>
 
@@ -189,8 +193,16 @@ export function SiteHeader() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
+                <Link
+                  to="/wallet"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-sm hover:bg-emerald-500/25 transition-colors"
+                  title="Claim 100 free credits on sign up"
+                >
+                  <Gift className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>100 Free Credits</span>
+                </Link>
                 <ThemeToggle />
-                <Button asChild size="sm" className="rounded-full">
+                <Button asChild size="sm" className="rounded-full shadow-glow font-bold">
                   <Link to="/auth">Sign in</Link>
                 </Button>
               </div>

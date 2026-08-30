@@ -78,9 +78,11 @@ function LearnIndex() {
                   <span className="flex items-center gap-1">
                     <PlayCircle className="size-3 text-blue-500" /> Video
                   </span>
-                  <span className="flex items-center gap-1">
-                    <BookOpen className="size-3 text-emerald-500" /> Quiz
-                  </span>
+                  {chapter.testId && (
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="size-3 text-emerald-500" /> Quiz
+                    </span>
+                  )}
                 </div>
               </Card>
             ))}

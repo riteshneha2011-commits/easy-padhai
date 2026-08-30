@@ -661,12 +661,12 @@ function Home() {
 
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
                 <a
-                  href="https://whatsapp.com/channel/0029Vb4qJbC7IUYThCcvd22L"
+                  href="https://chat.whatsapp.com/EoYLQlgFRTnAQila8ajGE7"
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-xs sm:text-sm font-bold shadow-md inline-flex items-center gap-2 transition-colors"
                 >
-                  <span>📲 Tap to Join WhatsApp Channel</span>
+                  <span>📲 Tap to Join WhatsApp Community</span>
                 </a>
                 <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
                   or scan the QR code 👉

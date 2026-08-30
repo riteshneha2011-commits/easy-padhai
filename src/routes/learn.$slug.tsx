@@ -407,6 +407,47 @@ function LessonPanel({
   const media = access?.media ?? null;
   const locked = access ? access.locked : !lesson.isFree;
 
+  const queryClient = useQueryClient();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  const bookmarkQuery = useQuery({
+    queryKey: ["lesson-bookmarks", lesson.id, userId],
+    queryFn: async () => {
+      if (!userId) return false;
+      const res = await listLessonBookmarks({ data: { lessonIds: [lesson.id] } });
+      return res.some((b) => b.startsWith(`${lesson.id}:`));
+    },
+    enabled: Boolean(userId),
+  });
+
+  useEffect(() => {
+    if (bookmarkQuery.data !== undefined) {
+      setIsBookmarked(bookmarkQuery.data);
+    }
+  }, [bookmarkQuery.data]);
+
+  const bookmarkMutation = useMutation({
+    mutationFn: () => toggleLessonBookmark({ data: { lessonId: lesson.id, resource: "lesson" } }),
+    onMutate: () => {
+      setIsBookmarked((prev) => !prev);
+    },
+    onSuccess: (res) => {
+      setIsBookmarked(res.bookmarked);
+      void queryClient.invalidateQueries({ queryKey: ["revision"] });
+      void queryClient.invalidateQueries({ queryKey: ["lesson-bookmarks"] });
+      soundFx.playClick();
+      if (res.bookmarked) {
+        toast.success("Saved to My Revision (Visit again)! ⭐");
+      } else {
+        toast.info("Removed from Revision list");
+      }
+    },
+    onError: () => {
+      setIsBookmarked((prev) => !prev);
+      toast.error("Could not update revision list");
+    },
+  });
+
   useStudyHeartbeat(lesson.id, watching, Boolean(userId) && !locked);
 
   useEffect(() => {
@@ -577,6 +618,30 @@ function LessonPanel({
               )}
             </Button>
           )}
+
+          {/* Save for Revision / Bookmark Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (!userId) {
+                navigate({ to: "/auth" });
+                return;
+              }
+              bookmarkMutation.mutate();
+            }}
+            disabled={bookmarkMutation.isPending}
+            className={cn(
+              "rounded-full text-xs font-semibold h-8 gap-1.5 transition-all",
+              isBookmarked
+                ? "border-amber-500/50 bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold"
+                : "border-border/70 hover:border-amber-500/40 text-muted-foreground hover:text-foreground"
+            )}
+            title={isBookmarked ? "Saved in Revision" : "Save for Revision"}
+          >
+            <Bookmark className={cn("size-3.5", isBookmarked && "fill-amber-500 text-amber-500")} />
+            <span>{isBookmarked ? "Saved" : "Save for Revision"}</span>
+          </Button>
 
           <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
             ~{lesson.duration_minutes ?? 10} min
