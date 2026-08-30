@@ -1,11 +1,13 @@
 import { useRef, useState } from "react";
 import { Loader2, Link2, Upload, Sparkles } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isStorageRef, storagePath, uploadLessonFile } from "@/lib/storage";
+import { isStorageRef, storagePath } from "@/lib/storage";
 import { compressAudioForSpeech } from "@/lib/audio-compressor";
+import { uploadMediaAction } from "@/lib/admin.functions";
 
 type Props = {
   name: string;
@@ -15,12 +17,26 @@ type Props = {
   folder: string;
 };
 
+function fileToBase64(file: File | Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(",")[1] || "";
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 /** URL field with optional automatic audio compression and direct file upload into Easy Padhai storage. */
 export function MediaInput({ name, label, accept, defaultValue = "", folder }: Props) {
   const [value, setValue] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const uploadToServer = useServerFn(uploadMediaAction);
 
   const isAudio = folder === "audio" || accept.includes("audio");
 
@@ -81,9 +97,17 @@ export function MediaInput({ name, label, accept, defaultValue = "", folder }: P
             }
 
             setStatusMsg("Uploading to storage...");
-            const ref = await uploadLessonFile(file, folder);
+            const base64 = await fileToBase64(file);
+            const ref = await uploadToServer({
+              data: {
+                base64,
+                name: file.name,
+                type: file.type,
+                folder,
+              },
+            });
             setValue(ref);
-            toast.success("File uploaded successfully!");
+            toast.success("File uploaded and linked successfully!");
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Upload failed", { id: "compress-toast" });
           } finally {
@@ -95,7 +119,9 @@ export function MediaInput({ name, label, accept, defaultValue = "", folder }: P
       />
       <p className="text-xs text-muted-foreground flex items-center justify-between">
         {isStorageRef(value) ? (
-          <span className="font-mono text-[11px] truncate">Uploaded: {storagePath(value)}</span>
+          <span className="font-mono text-[11px] truncate text-primary font-semibold">
+            ✓ Uploaded: {storagePath(value)}
+          </span>
         ) : (
           <span className="inline-flex items-center gap-1">
             <Link2 className="size-3" /> External link (Cloudflare R2, Drive, Dropbox) or upload file

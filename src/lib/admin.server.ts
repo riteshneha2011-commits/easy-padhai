@@ -357,3 +357,21 @@ Return strict JSON: {"summary":"crisp revision summary of this lesson in 60-110 
 
   return { summary: String(out.summary ?? "").trim() };
 }
+
+export async function uploadAdminStorageFile(input: {
+  base64: string;
+  name: string;
+  type: string;
+  folder: string;
+}) {
+  const ext = input.name.includes(".") ? input.name.split(".").pop() : "bin";
+  const safe = `${input.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const buffer = Buffer.from(input.base64, "base64");
+  const { data, error } = await supabaseAdmin.storage.from("lesson-media").upload(safe, buffer, {
+    contentType: input.type || "application/octet-stream",
+    upsert: true,
+  });
+  if (error) throw new Error(error.message);
+  return `storage://${safe}`;
+}
+

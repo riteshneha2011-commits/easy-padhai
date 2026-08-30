@@ -152,3 +152,13 @@ export const autofillLessonMeta = createServerFn({ method: "POST" })
     if (!data.title?.trim()) throw new Error("Enter a title first");
     return admin.generateLessonMeta(data);
   });
+
+export const uploadMediaAction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { base64: string; name: string; type: string; folder: string }) => data)
+  .handler(async ({ data, context }) => {
+    const admin = await import("./admin.server");
+    await admin.assertStaff(context.supabase, context.userId);
+    return admin.uploadAdminStorageFile(data);
+  });
+
