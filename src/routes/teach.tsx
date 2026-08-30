@@ -92,6 +92,7 @@ function TeachPage() {
   const [editLesson, setEditLesson] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState<string | null>(null);
 
+  const [newLessonSubjectId, setNewLessonSubjectId] = useState("");
   const [newLessonChapterId, setNewLessonChapterId] = useState("");
   const [newLessonOrder, setNewLessonOrder] = useState<number>(1);
   const [newLessonKey, setNewLessonKey] = useState(0);
@@ -100,7 +101,11 @@ function TeachPage() {
   const [newChapterOrder, setNewChapterOrder] = useState<number>(1);
   const [newChapterKey, setNewChapterKey] = useState(0);
 
-  const effectiveChapterId = newLessonChapterId || data?.chapters?.[0]?.id || "";
+  const effectiveLessonSubjectId = newLessonSubjectId || data?.subjects?.[0]?.id || "";
+  const availableChaptersForNewLesson = data?.chapters?.filter((c) => c.subject_id === effectiveLessonSubjectId) || [];
+  const effectiveChapterId = newLessonChapterId && availableChaptersForNewLesson.some((c) => c.id === newLessonChapterId)
+    ? newLessonChapterId
+    : (availableChaptersForNewLesson[0]?.id || "");
   const effectiveSubjectId = newChapterSubjectId || data?.subjects?.[0]?.id || "";
 
   useEffect(() => {
@@ -122,6 +127,7 @@ function TeachPage() {
       setNewChapterOrder(nextOrder);
     }
   }, [data?.chapters, effectiveSubjectId]);
+
 
   if (loading) return <Shell>Loading…</Shell>;
   if (user && !isStaff) return <Shell>You need a teacher or admin role to open Studio.</Shell>;
@@ -454,7 +460,7 @@ function TeachPage() {
           <Card className="rounded-3xl">
             <CardHeader className="pb-2">
               <CardTitle className="font-display text-lg">New lesson</CardTitle>
-              <CardDescription>Audio, video, summary or PDF notes.</CardDescription>
+              <CardDescription>Select a subject and chapter, then add audio, video, summary or PDF notes.</CardDescription>
             </CardHeader>
             <CardContent>
               <form
@@ -464,11 +470,16 @@ function TeachPage() {
                   e.preventDefault();
                   const formEl = e.currentTarget as HTMLFormElement;
                   const f = new FormData(formEl);
+                  const selectedChapId = String(f.get("chapter_id") || effectiveChapterId);
+                  if (!selectedChapId) {
+                    toast.error("Please select a chapter first");
+                    return;
+                  }
                   void run(
                     () =>
                       upsertLesson({
                         data: {
-                          chapter_id: String(f.get("chapter_id")),
+                          chapter_id: selectedChapId,
                           title: String(f.get("title")),
                           kind: String(f.get("kind")),
                           audio_url: String(f.get("audio_url") ?? "") || null,
@@ -489,7 +500,34 @@ function TeachPage() {
                 }}
               >
                 <div className="space-y-1.5">
-                  <Label>Chapter</Label>
+                  <Label>1. Subject</Label>
+                  <select
+                    value={effectiveLessonSubjectId}
+                    onChange={(e) => {
+                      const subId = e.target.value;
+                      setNewLessonSubjectId(subId);
+                      const subChaps = data.chapters.filter((c) => c.subject_id === subId);
+                      const firstChap = subChaps[0]?.id || "";
+                      setNewLessonChapterId(firstChap);
+                      const chapLessons = data.lessons.filter((l) => l.chapter_id === firstChap);
+                      const nextOrder =
+                        chapLessons.length > 0
+                          ? Math.max(...chapLessons.map((l) => l.order_index ?? 0)) + 1
+                          : 1;
+                      setNewLessonOrder(nextOrder);
+                    }}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
+                  >
+                    {data.subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({classLabel(s.class_level)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>2. Chapter</Label>
                   <select
                     name="chapter_id"
                     required
@@ -497,20 +535,26 @@ function TeachPage() {
                     onChange={(e) => {
                       setNewLessonChapterId(e.target.value);
                       const chapLessons = data.lessons.filter((l) => l.chapter_id === e.target.value);
-                      const nextOrder = chapLessons.length > 0
-                        ? Math.max(...chapLessons.map((l) => l.order_index ?? 0)) + 1
-                        : 1;
+                      const nextOrder =
+                        chapLessons.length > 0
+                          ? Math.max(...chapLessons.map((l) => l.order_index ?? 0)) + 1
+                          : 1;
                       setNewLessonOrder(nextOrder);
                     }}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                   >
-                    {chapters.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.title}
-                      </option>
-                    ))}
+                    {availableChaptersForNewLesson.length === 0 ? (
+                      <option value="">No chapters in this subject yet</option>
+                    ) : (
+                      availableChaptersForNewLesson.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.title}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
+
                 <div className="space-y-1.5">
                   <Label>Kind</Label>
                   <select
@@ -523,10 +567,12 @@ function TeachPage() {
                     <option value="pdf">PDF notes</option>
                   </select>
                 </div>
+
                 <div className="space-y-1.5">
-                  <Label>Title</Label>
-                  <Input name="title" required />
+                  <Label>Lesson Title</Label>
+                  <Input name="title" required placeholder="e.g. Introduction to Coordinates" />
                 </div>
+
                 <div className="space-y-1.5">
                   <Label>Order</Label>
                   <Input
@@ -536,24 +582,29 @@ function TeachPage() {
                     onChange={(e) => setNewLessonOrder(Number(e.target.value) || 1)}
                   />
                 </div>
-                <MediaInput name="audio_url" label="Audio (link or upload)" accept="audio/*" folder="audio" />
-                <MediaInput name="video_url" label="Video (link or upload)" accept="video/*" folder="video" />
-                <MediaInput name="pdf_url" label="PDF notes (link or upload)" accept="application/pdf" folder="pdf" />
-
 
                 <div className="space-y-1.5">
                   <Label>Duration (min)</Label>
                   <Input name="duration_minutes" type="number" defaultValue={10} />
                 </div>
+
+                <MediaInput name="audio_url" label="Audio (link or upload)" accept="audio/*" folder="audio" />
+                <MediaInput name="video_url" label="Video (link or upload)" accept="video/*" folder="video" />
+                <MediaInput name="pdf_url" label="PDF notes (link or upload)" accept="application/pdf" folder="pdf" />
+
                 <div className="space-y-1.5 sm:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Label>Summary</Label>
                     <AiAutofill mode="lesson" />
                   </div>
-                  <Textarea name="summary" rows={4} />
+                  <Textarea name="summary" rows={4} placeholder="Lesson summary / notes content..." />
                 </div>
 
-                <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
+                <Button
+                  type="submit"
+                  disabled={busy || !effectiveChapterId}
+                  className="rounded-full sm:col-span-2 shadow-md"
+                >
                   Save lesson
                 </Button>
               </form>
@@ -563,249 +614,409 @@ function TeachPage() {
           <Card className="rounded-3xl">
             <CardHeader className="pb-2">
               <CardTitle className="font-display text-lg">Published content</CardTitle>
-              <CardDescription>Edit or delete chapters and lessons.</CardDescription>
+              <CardDescription>Structured hierarchy: Subject → Chapter → Lessons.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {chapters.map((c) => (
-                <div key={c.id} className="rounded-2xl bg-secondary p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">{c.title}</p>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="rounded-full"
-                        onClick={() => setEditChapter(editChapter === c.id ? null : c.id)}
-                      >
-                        {editChapter === c.id ? "Close" : "Edit"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => void run(() => removeRow({ data: { table: "chapters", id: c.id } }), "Deleted")}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-
-                  {editChapter === c.id && (
-                    <form
-                      className="mt-3 grid gap-3 rounded-2xl bg-background p-4 sm:grid-cols-2"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const f = new FormData(e.currentTarget as HTMLFormElement);
-                        void run(
-                          () =>
-                            upsertChapter({
-                              data: {
-                                id: c.id,
-                                subject_id: String(f.get("subject_id")),
-                                title: String(f.get("title")),
-                                slug: String(f.get("slug")),
-                                description: String(f.get("description") ?? ""),
-                                order_index: Number(f.get("order_index") ?? 0),
-                                published: f.get("published") === "on",
-                              },
-                            }),
-                          "Chapter updated",
-                        ).then(() => setEditChapter(null));
-                      }}
-                    >
-                      <div className="space-y-1.5">
-                        <Label>Subject</Label>
-                        <select
-                          name="subject_id"
-                          defaultValue={c.subject_id}
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+            <CardContent className="space-y-6">
+              {data.subjects.map((s) => {
+                const subChapters = data.chapters.filter((c) => c.subject_id === s.id);
+                return (
+                  <div
+                    key={s.id}
+                    className="rounded-3xl border border-border/80 bg-card p-4 sm:p-5 shadow-sm space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display text-base sm:text-lg font-bold text-foreground">
+                          {s.name}
+                        </span>
+                        <Badge variant="secondary" className="rounded-full text-xs font-semibold">
+                          {classLabel(s.class_level)}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground font-medium">
+                          ({subChapters.length} {subChapters.length === 1 ? "Chapter" : "Chapters"})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-full text-xs"
+                          onClick={() => setEditSubject(editSubject === s.id ? null : s.id)}
                         >
-                          {data.subjects.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
+                          {editSubject === s.id ? "Close" : "Edit Subject"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="rounded-full text-xs text-destructive hover:bg-destructive/10"
+                          onClick={() =>
+                            void run(() => removeRow({ data: { table: "subjects", id: s.id } }), "Deleted")
+                          }
+                        >
+                          Delete
+                        </Button>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label>Order</Label>
-                        <Input name="order_index" type="number" defaultValue={c.order_index} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Title</Label>
-                        <Input name="title" required defaultValue={c.title} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label>Slug</Label>
-                        <Input name="slug" required defaultValue={c.slug} />
-                      </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <Label>Description</Label>
-                          <AiAutofill mode="chapter" label="Auto-generate" />
+                    </div>
+
+                    {editSubject === s.id && (
+                      <form
+                        className="grid gap-3 rounded-2xl bg-secondary/50 p-4 sm:grid-cols-2"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const f = new FormData(e.currentTarget as HTMLFormElement);
+                          void run(
+                            () =>
+                              upsertSubject({
+                                data: {
+                                  id: s.id,
+                                  name: String(f.get("name")),
+                                  slug: String(f.get("slug")),
+                                  class_level: Number(f.get("class_level") ?? s.class_level),
+                                  order_index: Number(f.get("order_index") ?? 0),
+                                },
+                              }),
+                            "Subject updated",
+                          ).then(() => setEditSubject(null));
+                        }}
+                      >
+                        <div className="space-y-1.5">
+                          <Label>Name</Label>
+                          <Input name="name" required defaultValue={s.name} />
                         </div>
-                        <Textarea name="description" rows={2} defaultValue={c.description ?? ""} />
-                      </div>
+                        <div className="space-y-1.5">
+                          <Label>Slug</Label>
+                          <Input name="slug" required defaultValue={s.slug} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Class</Label>
+                          <select
+                            name="class_level"
+                            defaultValue={s.class_level}
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                          >
+                            <option value={9}>Class 9</option>
+                            <option value={10}>Class 10</option>
+                            <option value={11}>Class 11</option>
+                            <option value={12}>Class 12</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Order</Label>
+                          <Input name="order_index" type="number" defaultValue={s.order_index} />
+                        </div>
+                        <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
+                          Save Subject
+                        </Button>
+                      </form>
+                    )}
 
-                      <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                        <input type="checkbox" name="published" defaultChecked={c.published} className="size-4" />
-                        Published
-                      </label>
-                      <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
-                        Save changes
-                      </Button>
-                    </form>
-                  )}
-
-                  <div className="mt-3 space-y-2">
-                    {data.lessons
-                      .filter((l) => l.chapter_id === c.id)
-                      .map((l) => (
-                        <div key={l.id} className="rounded-2xl bg-background/70 p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm">
-                              <Badge variant="outline" className="mr-2 rounded-full text-xs">
-                                {l.kind}
-                              </Badge>
-                              {l.title}
-                            </p>
-                            <div className="flex shrink-0 items-center gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-full"
-                                onClick={() => setEditLesson(editLesson === l.id ? null : l.id)}
-                              >
-                                {editLesson === l.id ? "Close" : "Edit"}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  void run(() => removeRow({ data: { table: "lessons", id: l.id } }), "Deleted")
-                                }
-                              >
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-
-                          {editLesson === l.id && (
-                            <form
-                              className="mt-3 grid gap-3 sm:grid-cols-2"
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const f = new FormData(e.currentTarget as HTMLFormElement);
-                                void run(
-                                  () =>
-                                    upsertLesson({
-                                      data: {
-                                        id: l.id,
-                                        chapter_id: String(f.get("chapter_id")),
-                                        title: String(f.get("title")),
-                                        kind: String(f.get("kind")),
-                                        audio_url: String(f.get("audio_url") ?? "") || null,
-                                        video_url: String(f.get("video_url") ?? "") || null,
-                                        pdf_url: String(f.get("pdf_url") ?? "") || null,
-                                        summary: String(f.get("summary") ?? "") || null,
-                                        duration_minutes: Number(f.get("duration_minutes") ?? 10),
-                                        order_index: Number(f.get("order_index") ?? 1),
-                                        published: f.get("published") === "on",
-                                      },
-                                    }),
-                                  "Lesson updated",
-                                ).then(() => setEditLesson(null));
-                              }}
+                    {subChapters.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">
+                        No chapters in this subject yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3 pl-0 sm:pl-2">
+                        {subChapters.map((c) => {
+                          const chapLessons = data.lessons.filter((l) => l.chapter_id === c.id);
+                          return (
+                            <div
+                              key={c.id}
+                              className="rounded-2xl border border-border/60 bg-secondary/40 p-3.5 sm:p-4 space-y-3"
                             >
-                              <div className="space-y-1.5">
-                                <Label>Chapter</Label>
-                                <select
-                                  name="chapter_id"
-                                  defaultValue={l.chapter_id}
-                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                                >
-                                  {chapters.map((ch) => (
-                                    <option key={ch.id} value={ch.id}>
-                                      {ch.title}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                              <div className="space-y-1.5">
-                                <Label>Kind</Label>
-                                <select
-                                  name="kind"
-                                  defaultValue={l.kind}
-                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                                >
-                                  <option value="audio">Audio</option>
-                                  <option value="video">Video</option>
-                                  <option value="summary">Summary</option>
-                                  <option value="pdf">PDF notes</option>
-                                </select>
-                              </div>
-                              <div className="space-y-1.5">
-                                <Label>Title</Label>
-                                <Input name="title" required defaultValue={l.title} />
-                              </div>
-                              <div className="space-y-1.5">
-                                <Label>Order</Label>
-                                <Input name="order_index" type="number" defaultValue={l.order_index} />
-                              </div>
-                              <MediaInput
-                                name="audio_url"
-                                label="Audio (link or upload)"
-                                accept="audio/*"
-                                folder="audio"
-                                defaultValue={l.audio_url ?? ""}
-                              />
-                              <MediaInput
-                                name="video_url"
-                                label="Video (link or upload)"
-                                accept="video/*"
-                                folder="video"
-                                defaultValue={l.video_url ?? ""}
-                              />
-                              <MediaInput
-                                name="pdf_url"
-                                label="PDF notes (link or upload)"
-                                accept="application/pdf"
-                                folder="pdf"
-                                defaultValue={l.pdf_url ?? ""}
-                              />
-
-                              <div className="space-y-1.5">
-                                <Label>Duration (min)</Label>
-                                <Input name="duration_minutes" type="number" defaultValue={l.duration_minutes} />
-                              </div>
-                              <div className="space-y-1.5 sm:col-span-2">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <Label>Summary</Label>
-                                  <AiAutofill mode="lesson" label="Auto-generate" />
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                                    {c.order_index}
+                                  </span>
+                                  <p className="font-semibold text-sm sm:text-base text-foreground truncate">
+                                    {c.title}
+                                  </p>
+                                  <span className="text-[11px] text-muted-foreground font-medium">
+                                    ({chapLessons.length} {chapLessons.length === 1 ? "lesson" : "lessons"})
+                                  </span>
                                 </div>
-                                <Textarea name="summary" rows={4} defaultValue={l.summary ?? ""} />
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-full text-xs h-7 px-3"
+                                    onClick={() => setEditChapter(editChapter === c.id ? null : c.id)}
+                                  >
+                                    {editChapter === c.id ? "Close" : "Edit Chapter"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="rounded-full text-xs h-7 px-2.5 text-destructive hover:bg-destructive/10"
+                                    onClick={() =>
+                                      void run(
+                                        () => removeRow({ data: { table: "chapters", id: c.id } }),
+                                        "Deleted",
+                                      )
+                                    }
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
                               </div>
 
-                              <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                                <input
-                                  type="checkbox"
-                                  name="published"
-                                  defaultChecked={l.published}
-                                  className="size-4"
-                                />
-                                Published
-                              </label>
-                              <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
-                                Save changes
-                              </Button>
-                            </form>
-                          )}
-                        </div>
-                      ))}
+                              {editChapter === c.id && (
+                                <form
+                                  className="grid gap-3 rounded-2xl bg-background p-4 sm:grid-cols-2"
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const f = new FormData(e.currentTarget as HTMLFormElement);
+                                    void run(
+                                      () =>
+                                        upsertChapter({
+                                          data: {
+                                            id: c.id,
+                                            subject_id: String(f.get("subject_id")),
+                                            title: String(f.get("title")),
+                                            slug: String(f.get("slug")),
+                                            description: String(f.get("description") ?? ""),
+                                            order_index: Number(f.get("order_index") ?? 0),
+                                            published: f.get("published") === "on",
+                                          },
+                                        }),
+                                      "Chapter updated",
+                                    ).then(() => setEditChapter(null));
+                                  }}
+                                >
+                                  <div className="space-y-1.5">
+                                    <Label>Subject</Label>
+                                    <select
+                                      name="subject_id"
+                                      defaultValue={c.subject_id}
+                                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                                    >
+                                      {data.subjects.map((sub) => (
+                                        <option key={sub.id} value={sub.id}>
+                                          {sub.name} ({classLabel(sub.class_level)})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label>Order</Label>
+                                    <Input name="order_index" type="number" defaultValue={c.order_index} />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label>Title</Label>
+                                    <Input name="title" required defaultValue={c.title} />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label>Slug</Label>
+                                    <Input name="slug" required defaultValue={c.slug} />
+                                  </div>
+                                  <div className="space-y-1.5 sm:col-span-2">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <Label>Description</Label>
+                                      <AiAutofill mode="chapter" label="Auto-generate" />
+                                    </div>
+                                    <Textarea name="description" rows={2} defaultValue={c.description ?? ""} />
+                                  </div>
+
+                                  <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                                    <input
+                                      type="checkbox"
+                                      name="published"
+                                      defaultChecked={c.published}
+                                      className="size-4"
+                                    />
+                                    Published
+                                  </label>
+                                  <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
+                                    Save Chapter Changes
+                                  </Button>
+                                </form>
+                              )}
+
+                              {chapLessons.length > 0 && (
+                                <div className="space-y-1.5 pl-2 sm:pl-3 border-l-2 border-primary/20">
+                                  {chapLessons.map((l) => (
+                                    <div
+                                      key={l.id}
+                                      className="rounded-xl border border-border/40 bg-background/80 p-2.5 sm:p-3"
+                                    >
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <Badge
+                                            variant="outline"
+                                            className="rounded-md text-[11px] font-semibold uppercase shrink-0"
+                                          >
+                                            {l.kind}
+                                          </Badge>
+                                          <span className="text-xs sm:text-sm font-medium text-foreground truncate">
+                                            {l.title}
+                                          </span>
+                                          {l.duration_minutes && (
+                                            <span className="text-[11px] text-muted-foreground shrink-0 hidden sm:inline">
+                                              ({l.duration_minutes}m)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-1">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="rounded-full h-6 px-2.5 text-[11px]"
+                                            onClick={() => setEditLesson(editLesson === l.id ? null : l.id)}
+                                          >
+                                            {editLesson === l.id ? "Close" : "Edit"}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="rounded-full h-6 px-2 text-[11px] text-destructive hover:bg-destructive/10"
+                                            onClick={() =>
+                                              void run(
+                                                () => removeRow({ data: { table: "lessons", id: l.id } }),
+                                                "Deleted",
+                                              )
+                                            }
+                                          >
+                                            Delete
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {editLesson === l.id && (
+                                        <form
+                                          className="mt-3 grid gap-3 rounded-2xl bg-secondary/40 p-3 sm:grid-cols-2"
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            const f = new FormData(e.currentTarget as HTMLFormElement);
+                                            void run(
+                                              () =>
+                                                upsertLesson({
+                                                  data: {
+                                                    id: l.id,
+                                                    chapter_id: String(f.get("chapter_id")),
+                                                    title: String(f.get("title")),
+                                                    kind: String(f.get("kind")),
+                                                    audio_url: String(f.get("audio_url") ?? "") || null,
+                                                    video_url: String(f.get("video_url") ?? "") || null,
+                                                    pdf_url: String(f.get("pdf_url") ?? "") || null,
+                                                    summary: String(f.get("summary") ?? "") || null,
+                                                    duration_minutes: Number(f.get("duration_minutes") ?? 10),
+                                                    order_index: Number(f.get("order_index") ?? 1),
+                                                    published: f.get("published") === "on",
+                                                  },
+                                                }),
+                                              "Lesson updated",
+                                            ).then(() => setEditLesson(null));
+                                          }}
+                                        >
+                                          <div className="space-y-1.5">
+                                            <Label>Chapter</Label>
+                                            <select
+                                              name="chapter_id"
+                                              defaultValue={l.chapter_id}
+                                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                                            >
+                                              {data.chapters.map((ch) => (
+                                                <option key={ch.id} value={ch.id}>
+                                                  {ch.title}
+                                                </option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Kind</Label>
+                                            <select
+                                              name="kind"
+                                              defaultValue={l.kind}
+                                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                                            >
+                                              <option value="audio">Audio</option>
+                                              <option value="video">Video</option>
+                                              <option value="summary">Summary</option>
+                                              <option value="pdf">PDF notes</option>
+                                            </select>
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Title</Label>
+                                            <Input name="title" required defaultValue={l.title} />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Order</Label>
+                                            <Input
+                                              name="order_index"
+                                              type="number"
+                                              defaultValue={l.order_index}
+                                            />
+                                          </div>
+                                          <MediaInput
+                                            name="audio_url"
+                                            label="Audio (link or upload)"
+                                            accept="audio/*"
+                                            folder="audio"
+                                            defaultValue={l.audio_url ?? ""}
+                                          />
+                                          <MediaInput
+                                            name="video_url"
+                                            label="Video (link or upload)"
+                                            accept="video/*"
+                                            folder="video"
+                                            defaultValue={l.video_url ?? ""}
+                                          />
+                                          <MediaInput
+                                            name="pdf_url"
+                                            label="PDF notes (link or upload)"
+                                            accept="application/pdf"
+                                            folder="pdf"
+                                            defaultValue={l.pdf_url ?? ""}
+                                          />
+                                          <div className="space-y-1.5">
+                                            <Label>Duration (min)</Label>
+                                            <Input
+                                              name="duration_minutes"
+                                              type="number"
+                                              defaultValue={l.duration_minutes ?? 10}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5 sm:col-span-2">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <Label>Summary</Label>
+                                              <AiAutofill mode="lesson" />
+                                            </div>
+                                            <Textarea name="summary" rows={3} defaultValue={l.summary ?? ""} />
+                                          </div>
+
+                                          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                                            <input
+                                              type="checkbox"
+                                              name="published"
+                                              defaultChecked={l.published}
+                                              className="size-4"
+                                            />
+                                            Published
+                                          </label>
+                                          <Button
+                                            type="submit"
+                                            disabled={busy}
+                                            className="rounded-full sm:col-span-2"
+                                          >
+                                            Save Lesson Changes
+                                          </Button>
+                                        </form>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </CardContent>
           </Card>
+
 
         </TabsContent>
 
