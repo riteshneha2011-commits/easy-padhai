@@ -32,7 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MediaPlayer } from "@/components/media-player";
-import { downloadLessonForOffline, isLessonOffline, removeOfflineLesson } from "@/lib/offline-storage";
+import { downloadLessonForOffline, isLessonOffline, removeOfflineLesson, cacheChapterMeta } from "@/lib/offline-storage";
 
 import { VictoryModal } from "@/components/victory-modal";
 import { soundFx } from "@/lib/sound-effects";
@@ -100,6 +100,30 @@ function ChapterPage() {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(false);
   const [victoryXp, setVictoryXp] = useState(20);
+
+  useEffect(() => {
+    if (chapter && lessons.length > 0) {
+      void cacheChapterMeta({
+        id: chapter.id,
+        slug: chapter.slug,
+        title: chapter.title,
+        description: chapter.description ?? "",
+        subject_id: chapter.subject_id,
+        subject_name: chapter.subjects?.name ?? "",
+        class_level: chapter.subjects?.class_level ?? 0,
+        lessons: lessons.map((l) => ({
+          id: l.id,
+          chapter_id: l.chapter_id,
+          title: l.title,
+          kind: l.kind,
+          summary: l.summary,
+          duration_minutes: l.duration_minutes,
+          order_index: l.order_index,
+          isFree: l.isFree,
+        })),
+      });
+    }
+  }, [chapter, lessons]);
 
   const progressQuery = useQuery({
     queryKey: ["chapter-progress", chapter.id, user?.id],

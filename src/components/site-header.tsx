@@ -1,8 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck, Download, WifiOff } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { soundFx } from "@/lib/sound-effects";
 import brandMark from "@/assets/easy-padhai-mark.png";
 
-
 const links = [
   { to: "/learn", label: "Learn", icon: BookOpen },
+  { to: "/offline", label: "Downloads", icon: Download },
   { to: "/leaderboard", label: "Leaderboard" },
 ];
 
@@ -21,119 +21,193 @@ export function SiteHeader() {
   const { user, profile, isStaff, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const fetchWallet = useServerFn(getWallet);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const updateOnlineStatus = () => setIsOffline(!navigator.onLine);
+    updateOnlineStatus();
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, []);
+
   const { data: wallet } = useQuery({
     queryKey: ["wallet-pill", user?.id],
     queryFn: () => fetchWallet(),
     enabled: Boolean(user),
     refetchOnWindowFocus: true,
-    staleTime: 10_000,
   });
-  const credits = wallet?.credits ?? profile?.credits ?? 0;
-  const xp = profile?.total_xp ?? 0;
 
-  const navItems = [
-    ...links,
-    ...(user ? [{ to: "/dashboard", label: "My Progress", icon: LayoutDashboard }] : []),
-    ...(user ? [{ to: "/revision", label: "Revision", icon: RotateCcw }] : []),
-    ...(user ? [{ to: "/wallet", label: "Credits", icon: WalletIcon }] : []),
-    ...(isStaff ? [{ to: "/teach", label: "Studio", icon: BookOpen }] : []),
-    ...(isAdmin ? [{ to: "/admin", label: "Admin", icon: ShieldCheck }] : []),
-  ];
-
-  async function handleSignOut() {
+  const handleSignOut = async () => {
     await signOut();
-    setOpen(false);
-    navigate({ to: "/", replace: true });
-  }
+    void navigate({ to: "/" });
+  };
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl transition-all">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-3 sm:px-4">
-          <Link to="/" className="flex items-center gap-2.5 transition-transform active:scale-95">
-            <img
-              src={brandMark}
-              alt="Easy Padhai Logo"
-              className="size-9 sm:size-10 rounded-xl object-contain shadow-xs"
-            />
-            <span className="font-display text-lg sm:text-xl font-bold tracking-tight text-foreground">
-              Easy Padhai
-            </span>
+      {isOffline && (
+        <div className="bg-amber-600 text-white px-4 py-2 text-center text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 shadow-md">
+          <WifiOff className="size-4 animate-pulse" />
+          <span>You are in 100% Offline Mode (No Internet).</span>
+          <Link
+            to="/offline"
+            className="underline font-bold bg-black/20 px-2.5 py-0.5 rounded-full ml-1 hover:bg-black/30 transition-colors inline-flex items-center gap-1"
+          >
+            <Download className="size-3.5" />
+            <span>Open Downloaded Lectures</span>
           </Link>
+        </div>
+      )}
 
-          <nav className="ml-4 hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
-                  pathname.startsWith(item.to) && "bg-secondary text-foreground font-semibold",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+      <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-6">
+            <Link to="/" className="flex items-center gap-2.5">
+              <img
+                src={brandMark}
+                alt="Easy Padhai"
+                className="size-8 rounded-xl object-contain shadow-sm"
+              />
+              <span className="font-display text-lg font-bold tracking-tight text-foreground">
+                Easy Padhai
+              </span>
+            </Link>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+            <nav className="hidden md:flex items-center gap-1">
+              {links.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                    pathname.startsWith(item.to)
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {user && (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className={cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                      pathname.startsWith("/dashboard")
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    My Progress
+                  </Link>
+                  <Link
+                    to="/revision"
+                    className={cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                      pathname.startsWith("/revision")
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    Revision
+                  </Link>
+                  <Link
+                    to="/wallet"
+                    className={cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                      pathname.startsWith("/wallet")
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    )}
+                  >
+                    Credits
+                  </Link>
+                </>
+              )}
+              {isStaff && (
+                <Link
+                  to="/teach"
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                    pathname.startsWith("/teach")
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  Studio
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  to="/admin"
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                    pathname.startsWith("/admin")
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  )}
+                >
+                  Admin
+                </Link>
+              )}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-2">
             {user ? (
-              <>
+              <div className="flex items-center gap-2">
                 <Link
                   to="/wallet"
-                  title="Credits"
-                  className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+                  className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 transition-colors hover:bg-amber-500/20"
                 >
-                  <Coins className="size-3.5 sm:size-4" />
-                  <span>{credits}</span>
-                  <span className="hidden sm:inline">credits</span>
+                  <Coins className="size-3.5" />
+                  <span>{wallet?.balance ?? profile?.credits_balance ?? 0}</span>
                 </Link>
-                <span
-                  title="XP (Experience Points)"
-                  className="hidden items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-xs sm:text-sm font-semibold text-accent lg:flex"
-                >
-                  <Flame className="size-3.5 sm:size-4" />
-                  {xp} XP
-                </span>
+
+                <div className="flex items-center gap-1 rounded-full border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-bold text-orange-600">
+                  <Flame className="size-3.5" />
+                  <span>{profile?.xp_points ?? 0} XP</span>
+                </div>
+
                 <ThemeToggle />
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="hidden sm:inline-flex"
+                <button
                   onClick={handleSignOut}
-                  aria-label="Sign out"
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/70 px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
                 >
-                  <LogOut className="size-4" />
-                </Button>
-              </>
+                  <LogOut className="size-3.5" />
+                  Sign out
+                </button>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <ThemeToggle />
-                <Button asChild size="sm" className="rounded-full h-8 sm:h-9 px-3 sm:px-4 text-xs sm:text-sm shadow-xs">
-                  <Link to="/auth">Start free</Link>
+                <Button asChild size="sm" className="rounded-full">
+                  <Link to="/auth">Sign in</Link>
                 </Button>
-              </>
+              </div>
             )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden size-9 rounded-xl"
-              onClick={() => setOpen((v) => !v)}
-              aria-label="Toggle Menu"
+            <button
+              onClick={() => setOpen(!open)}
+              className="grid size-9 place-items-center rounded-full border border-border/70 text-foreground md:hidden"
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </Button>
+            </button>
           </div>
         </div>
 
         {open && (
-          <div className="border-t border-border/70 bg-background/95 backdrop-blur-xl px-4 py-4 md:hidden shadow-lg animate-in slide-in-from-top-2 duration-200">
-            <div className="flex flex-col gap-1.5">
-              {navItems.map((item) => (
+          <div className="border-t border-border/70 bg-background/95 px-4 py-4 md:hidden">
+            <div className="flex flex-col gap-1">
+              {links.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
@@ -162,13 +236,12 @@ export function SiteHeader() {
         )}
       </header>
 
-      {/* Mobile Bottom Navigation Bar for modern app-like experience */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex h-16 items-center justify-around border-t border-border/70 bg-background/95 backdrop-blur-xl px-2 py-1 md:hidden pb-safe shadow-lg">
         <Link
           to="/learn"
           onClick={() => soundFx.playClick()}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
+            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/learn") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -176,10 +249,21 @@ export function SiteHeader() {
           <span>Learn</span>
         </Link>
         <Link
+          to="/offline"
+          onClick={() => soundFx.playClick()}
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
+            pathname.startsWith("/offline") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Download className="size-5" />
+          <span>Offline</span>
+        </Link>
+        <Link
           to={user ? "/dashboard" : "/auth"}
           onClick={() => soundFx.playClick()}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
+            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/dashboard") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -190,7 +274,7 @@ export function SiteHeader() {
           to={user ? "/revision" : "/auth"}
           onClick={() => soundFx.playClick()}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
+            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/revision") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -201,7 +285,7 @@ export function SiteHeader() {
           to={user ? "/wallet" : "/auth"}
           onClick={() => soundFx.playClick()}
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
+            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
             pathname.startsWith("/wallet") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -213,7 +297,7 @@ export function SiteHeader() {
             to="/admin"
             onClick={() => soundFx.playClick()}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 rounded-xl px-3 py-1 text-[11px] font-medium transition-colors",
+              "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
               pathname.startsWith("/admin") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
             )}
           >
@@ -222,7 +306,6 @@ export function SiteHeader() {
           </Link>
         )}
       </nav>
-
     </>
   );
 }

@@ -4,6 +4,9 @@
 export interface OfflineLessonData {
   id: string;
   chapter_id: string;
+  chapter_title?: string;
+  subject_name?: string;
+  chapter_slug?: string;
   title: string;
   kind: string;
   summary: string | null;
@@ -14,9 +17,30 @@ export interface OfflineLessonData {
   size_bytes: number;
 }
 
+export interface CachedChapterMeta {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  subject_id: string;
+  subject_name: string;
+  class_level: number;
+  lessons: Array<{
+    id: string;
+    chapter_id: string;
+    title: string;
+    kind: string;
+    summary: string | null;
+    duration_minutes: number | null;
+    order_index: number;
+    isFree: boolean;
+  }>;
+}
+
 const DB_NAME = "EasyPadhaiOfflineDB";
-const DB_VERSION = 1;
-const STORE_NAME = "offline_lessons";
+const DB_VERSION = 2;
+const STORE_LESSONS = "offline_lessons";
+const STORE_CHAPTERS = "cached_chapters";
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -29,9 +53,13 @@ function openDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(STORE_LESSONS)) {
+        const store = db.createObjectStore(STORE_LESSONS, { keyPath: "id" });
         store.createIndex("chapter_id", "chapter_id", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_CHAPTERS)) {
+        const chapStore = db.createObjectStore(STORE_CHAPTERS, { keyPath: "slug" });
+        chapStore.createIndex("id", "id", { unique: false });
       }
     };
 
@@ -45,8 +73,8 @@ export async function isLessonOffline(lessonId: string): Promise<boolean> {
   try {
     const db = await openDB();
     return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_LESSONS, "readonly");
+      const store = tx.objectStore(STORE_LESSONS);
       const req = store.get(lessonId);
       req.onsuccess = () => resolve(Boolean(req.result));
       req.onerror = () => resolve(false);
@@ -61,8 +89,8 @@ export async function getOfflineLesson(lessonId: string): Promise<OfflineLessonD
   try {
     const db = await openDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_LESSONS, "readonly");
+      const store = tx.objectStore(STORE_LESSONS);
       const req = store.get(lessonId);
       req.onsuccess = () => resolve(req.result ?? null);
       req.onerror = () => reject(req.error);
@@ -88,11 +116,46 @@ export async function getOfflineMediaUrl(
   }
 }
 
+/** Cache chapter metadata so chapters can be viewed offline */
+export async function cacheChapterMeta(chapterData: CachedChapterMeta): Promise<void> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_CHAPTERS, "readwrite");
+      const store = tx.objectStore(STORE_CHAPTERS);
+      const req = store.put(chapterData);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn("Could not cache chapter meta:", err);
+  }
+}
+
+/** Retrieve cached chapter metadata when offline */
+export async function getCachedChapterMeta(slug: string): Promise<CachedChapterMeta | null> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_CHAPTERS, "readonly");
+      const store = tx.objectStore(STORE_CHAPTERS);
+      const req = store.get(slug);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Download a lesson's audio/notes into the private IndexedDB sandbox */
 export async function downloadLessonForOffline(
   lesson: {
     id: string;
     chapter_id: string;
+    chapter_title?: string;
+    subject_name?: string;
+    chapter_slug?: string;
     title: string;
     kind: string;
     summary: string | null;
@@ -136,6 +199,9 @@ export async function downloadLessonForOffline(
   const record: OfflineLessonData = {
     id: lesson.id,
     chapter_id: lesson.chapter_id,
+    chapter_title: lesson.chapter_title,
+    subject_name: lesson.subject_name,
+    chapter_slug: lesson.chapter_slug,
     title: lesson.title,
     kind: lesson.kind,
     summary: lesson.summary,
@@ -148,8 +214,8 @@ export async function downloadLessonForOffline(
 
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+    const tx = db.transaction(STORE_LESSONS, "readwrite");
+    const store = tx.objectStore(STORE_LESSONS);
     const req = store.put(record);
     req.onsuccess = () => {
       if (onProgress) onProgress(100);
@@ -164,8 +230,8 @@ export async function removeOfflineLesson(lessonId: string): Promise<void> {
   try {
     const db = await openDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_LESSONS, "readwrite");
+      const store = tx.objectStore(STORE_LESSONS);
       const req = store.delete(lessonId);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
@@ -180,8 +246,8 @@ export async function listAllOfflineLessons(): Promise<OfflineLessonData[]> {
   try {
     const db = await openDB();
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, "readonly");
-      const store = tx.objectStore(STORE_NAME);
+      const tx = db.transaction(STORE_LESSONS, "readonly");
+      const store = tx.objectStore(STORE_LESSONS);
       const req = store.getAll();
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => reject(req.error);
