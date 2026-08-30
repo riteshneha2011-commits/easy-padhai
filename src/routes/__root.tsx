@@ -92,6 +92,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -130,12 +131,12 @@ function RootComponent() {
         <div className="flex min-h-screen flex-col">
           <OnboardingGate />
           <SiteHeader />
-          <main className="flex-1">
+          <main className="flex-1 pb-20 md:pb-0">
             {/* Required: nested routes render here. */}
             <Outlet />
           </main>
-          <footer className="border-t border-border/70 py-8 text-center text-sm text-muted-foreground">
-            Easy Padhai — built for Class 9–12 learners. Class 9 live now, more classes coming soon.
+          <footer className="border-t border-border/70 py-8 text-center text-sm text-muted-foreground pb-24 md:pb-8">
+            Easy Padhai — built for Class 9–12 learners.
           </footer>
         </div>
         <Toaster position="top-center" richColors />

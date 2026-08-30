@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import brandMark from "@/assets/easy-padhai-mark.png.asset.json";
+import brandLogo from "@/assets/easy-padhai-logo.png";
 import { DEFAULT_CLASS_LEVEL } from "@/lib/classes";
 
 export const Route = createFileRoute("/auth")({
@@ -80,12 +80,14 @@ function AuthPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14">
+    <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-10 sm:py-14">
       <div className="flex flex-col items-center gap-3 text-center">
-        <img src={brandMark.url} alt="Easy Padhai" className="size-14 object-contain" />
-        <h1 className="font-display text-3xl font-bold tracking-tight">Learn a little, every day</h1>
-        <p className="text-sm text-muted-foreground">
-          Free to start for Class 9–12 students. Streaks, XP and instant test feedback.
+        <img src={brandLogo} alt="Easy Padhai" className="h-20 sm:h-24 w-auto object-contain drop-shadow-sm rounded-2xl" />
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Learn a little, every day
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-xs">
+          Free to start for Class 9–12 students. Audio, video, notes and tests.
         </p>
       </div>
 
