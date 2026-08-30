@@ -27,8 +27,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { MediaPlayer } from "@/components/media-player";
+
+import { VictoryModal } from "@/components/victory-modal";
+import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import { classLabel, DEFAULT_CLASS_LEVEL } from "@/lib/classes";
+
 
 type Lesson = {
   id: string;
