@@ -14,15 +14,31 @@ import { getSignedUploadUrlAction } from "@/lib/admin.functions";
 type Props = {
   name: string;
   label: string;
-  accept: string;
+  accept?: string;
   defaultValue?: string;
   value?: string;
   onValueChange?: (val: string) => void;
-  folder: string;
+  folder?: string;
+  type?: "audio" | "video" | "pdf" | string;
+  placeholder?: string;
 };
 
 /** URL field with automatic audio compression and high-speed direct signed upload into Easy Padhai storage. */
-export function MediaInput({ name, label, accept, defaultValue = "", value: controlledValue, onValueChange, folder }: Props) {
+export function MediaInput({
+  name,
+  label,
+  accept,
+  defaultValue = "",
+  value: controlledValue,
+  onValueChange,
+  folder,
+  type,
+  placeholder,
+}: Props) {
+  const resolvedFolder = folder || (type === "audio" ? "audio" : type === "video" ? "video" : type === "pdf" ? "pdf" : "media");
+  const resolvedAccept = accept || (resolvedFolder === "audio" ? "audio/*" : resolvedFolder === "video" ? "video/*" : resolvedFolder === "pdf" ? "application/pdf" : "*/*");
+  const isAudio = resolvedFolder === "audio" || (resolvedAccept?.includes("audio") ?? false);
+
   const [internalValue, setInternalValue] = useState(defaultValue);
   const isControlled = controlledValue !== undefined;
   const value = isControlled ? controlledValue : internalValue;
@@ -43,7 +59,6 @@ export function MediaInput({ name, label, accept, defaultValue = "", value: cont
   const fileRef = useRef<HTMLInputElement>(null);
   const getUploadUrl = useServerFn(getSignedUploadUrlAction);
 
-  const isAudio = folder === "audio" || accept.includes("audio");
 
 
   return (
@@ -62,7 +77,7 @@ export function MediaInput({ name, label, accept, defaultValue = "", value: cont
           name={name}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Paste Cloudflare R2 / Drive / Dropbox / direct link"
+          placeholder={placeholder || "Paste Cloudflare R2 / Drive / Dropbox / direct link"}
         />
         <Button
           type="button"
@@ -78,7 +93,7 @@ export function MediaInput({ name, label, accept, defaultValue = "", value: cont
       <input
         ref={fileRef}
         type="file"
-        accept={accept}
+        accept={resolvedAccept}
         hidden
         onChange={async (e) => {
           let file = e.target.files?.[0];
@@ -106,9 +121,10 @@ export function MediaInput({ name, label, accept, defaultValue = "", value: cont
             const { path, token, storageRef } = await getUploadUrl({
               data: {
                 fileName: file.name,
-                folder,
+                folder: resolvedFolder,
               },
             });
+
 
             setStatusMsg("Uploading directly to storage...");
             const { error } = await supabase.storage.from(LESSON_BUCKET).uploadToSignedUrl(
