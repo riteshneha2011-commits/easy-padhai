@@ -41,9 +41,26 @@ function LeaderboardPage() {
         </span>
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight">Leaderboard</h1>
-          <p className="text-sm text-muted-foreground">Top learners by all-time XP.</p>
+          <p className="text-sm text-muted-foreground">Top learners ranked by all-time XP.</p>
         </div>
       </div>
+
+      {!user && (
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-4 sm:p-5 shadow-sm">
+          <div className="space-y-0.5 text-center sm:text-left">
+            <h3 className="font-display text-base font-bold text-foreground">Want to see your name on the Leaderboard?</h3>
+            <p className="text-xs text-muted-foreground">
+              Sign in to earn XP from daily audio lectures, chapter summaries, and quick tests!
+            </p>
+          </div>
+          <Link
+            to="/auth"
+            className="rounded-full bg-primary px-5 py-2 text-xs font-bold text-primary-foreground shadow-glow shrink-0 hover:bg-primary/90 transition-colors"
+          >
+            Sign In to Rank 🚀
+          </Link>
+        </div>
+      )}
 
       <Card className="mt-6 rounded-3xl">
         <CardContent className="divide-y divide-border/70 py-2">
