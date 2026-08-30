@@ -752,7 +752,7 @@ function Home() {
                 className="size-36 sm:size-44 object-contain rounded-xl"
               />
               <span className="text-[11px] font-extrabold text-slate-900 tracking-wide text-center">
-                Scan with WhatsApp
+                Scan with Google Lens / Camera
               </span>
             </div>
           </div>
