@@ -5,9 +5,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isStorageRef, storagePath } from "@/lib/storage";
+import { isStorageRef, storagePath, LESSON_BUCKET } from "@/lib/storage";
+import { supabase } from "@/integrations/supabase/client";
 import { compressAudioForSpeech } from "@/lib/audio-compressor";
-import { uploadMediaAction } from "@/lib/admin.functions";
+import { getSignedUploadUrlAction } from "@/lib/admin.functions";
 
 type Props = {
   name: string;
@@ -17,26 +18,13 @@ type Props = {
   folder: string;
 };
 
-function fileToBase64(file: File | Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(",")[1] || "";
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-/** URL field with optional automatic audio compression and direct file upload into Easy Padhai storage. */
+/** URL field with automatic audio compression and high-speed direct signed upload into Easy Padhai storage. */
 export function MediaInput({ name, label, accept, defaultValue = "", folder }: Props) {
   const [value, setValue] = useState(defaultValue);
   const [busy, setBusy] = useState(false);
   const [statusMsg, setStatusMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const uploadToServer = useServerFn(uploadMediaAction);
+  const getUploadUrl = useServerFn(getSignedUploadUrlAction);
 
   const isAudio = folder === "audio" || accept.includes("audio");
 
@@ -96,17 +84,25 @@ export function MediaInput({ name, label, accept, defaultValue = "", folder }: P
               }
             }
 
-            setStatusMsg("Uploading to storage...");
-            const base64 = await fileToBase64(file);
-            const ref = await uploadToServer({
+            setStatusMsg("Getting secure upload token...");
+            const { path, token, storageRef } = await getUploadUrl({
               data: {
-                base64,
-                name: file.name,
-                type: file.type,
+                fileName: file.name,
                 folder,
               },
             });
-            setValue(ref);
+
+            setStatusMsg("Uploading directly to storage...");
+            const { error } = await supabase.storage.from(LESSON_BUCKET).uploadToSignedUrl(
+              path,
+              token,
+              file,
+              { contentType: file.type || "application/octet-stream" }
+            );
+
+            if (error) throw error;
+
+            setValue(storageRef);
             toast.success("File uploaded and linked successfully!");
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Upload failed", { id: "compress-toast" });

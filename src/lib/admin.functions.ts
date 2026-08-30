@@ -153,12 +153,13 @@ export const autofillLessonMeta = createServerFn({ method: "POST" })
     return admin.generateLessonMeta(data);
   });
 
-export const uploadMediaAction = createServerFn({ method: "POST" })
+export const getSignedUploadUrlAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { base64: string; name: string; type: string; folder: string }) => data)
+  .inputValidator((data: { fileName: string; folder: string }) => data)
   .handler(async ({ data, context }) => {
     const admin = await import("./admin.server");
     await admin.assertStaff(context.supabase, context.userId);
-    return admin.uploadAdminStorageFile(data);
+    return admin.createAdminSignedUploadUrl(data);
   });
+
 

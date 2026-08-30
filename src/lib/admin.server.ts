@@ -358,20 +358,20 @@ Return strict JSON: {"summary":"crisp revision summary of this lesson in 60-110 
   return { summary: String(out.summary ?? "").trim() };
 }
 
-export async function uploadAdminStorageFile(input: {
-  base64: string;
-  name: string;
-  type: string;
+export async function createAdminSignedUploadUrl(input: {
+  fileName: string;
   folder: string;
 }) {
-  const ext = input.name.includes(".") ? input.name.split(".").pop() : "bin";
-  const safe = `${input.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const buffer = Buffer.from(input.base64, "base64");
-  const { data, error } = await supabaseAdmin.storage.from("lesson-media").upload(safe, buffer, {
-    contentType: input.type || "application/octet-stream",
-    upsert: true,
-  });
-  if (error) throw new Error(error.message);
-  return `storage://${safe}`;
+  const ext = input.fileName.includes(".") ? input.fileName.split(".").pop() : "bin";
+  const safePath = `${input.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { data, error } = await supabaseAdmin.storage.from("lesson-media").createSignedUploadUrl(safePath);
+  if (error || !data) throw new Error(error?.message || "Failed to generate upload URL");
+  return {
+    path: safePath,
+    signedUrl: data.signedUrl,
+    token: data.token,
+    storageRef: `storage://${safePath}`,
+  };
 }
+
 
