@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { MediaInput } from "@/components/media-input";
 import { AiAutofill } from "@/components/ai-autofill";
 import { slugify } from "@/lib/slug";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 
