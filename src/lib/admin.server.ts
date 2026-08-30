@@ -232,53 +232,120 @@ export async function generateQuestionsWithAi(params: {
   chapterId: string;
   count: number;
   difficulty: string;
+  language?: "hindi" | "english" | "hinglish";
   sourceText?: string;
+  sources?: {
+    useSummary?: boolean;
+    useLessons?: boolean;
+    customNotes?: string;
+  };
 }): Promise<DraftQuestion[]> {
-  let source = params.sourceText?.trim() ?? "";
   const { data: chapter } = await supabaseAdmin
     .from("chapters")
-    .select("title, description, subjects(class_level)")
+    .select("title, description, subjects(name, class_level)")
     .eq("id", params.chapterId)
     .maybeSingle();
 
   const chapterClassLevel =
     (chapter?.subjects as { class_level?: number } | null)?.class_level ?? DEFAULT_CLASS_LEVEL;
+  const subjectName =
+    (chapter?.subjects as { name?: string } | null)?.name ?? "Science";
 
-  if (!source) {
-    const { data: lessons } = await supabaseAdmin
-      .from("lessons")
-      .select("summary")
-      .eq("chapter_id", params.chapterId);
-    source = (lessons ?? [])
-      .map((l) => l.summary)
-      .filter(Boolean)
-      .join("\n\n");
+  let sourceMaterial = "";
+
+  const useSummary = params.sources?.useSummary ?? true;
+  const useLessons = params.sources?.useLessons ?? true;
+
+  if (useSummary && chapter?.description) {
+    sourceMaterial += `Chapter Concept:\n${chapter.description}\n\n`;
   }
 
-  const prompt = `You are writing objective multiple-choice questions for Indian Class ${chapterClassLevel} students (NCERT syllabus).
-Chapter: ${chapter?.title ?? "Unknown"}${chapter?.description ? ` — ${chapter.description}` : ""}
-Difficulty: ${params.difficulty}
-Number of questions: ${params.count}
+  if (useLessons) {
+    const { data: lessons } = await supabaseAdmin
+      .from("lessons")
+      .select("title, summary")
+      .eq("chapter_id", params.chapterId)
+      .order("order_index");
 
-Source material:
-${source || `Use standard NCERT Class ${chapterClassLevel} content for this chapter.`}
+    if (lessons && lessons.length > 0) {
+      sourceMaterial += `Key Topics & Lesson Summaries:\n`;
+      lessons.forEach((l) => {
+        sourceMaterial += `• ${l.title}: ${l.summary || "Core concept"}\n`;
+      });
+      sourceMaterial += "\n";
+    }
+  }
 
-Return strict JSON only, shaped as:
-{"questions":[{"prompt":"...","options":["A","B","C","D"],"correctIndex":0,"explanation":"one short sentence","topic":"short topic name","difficulty":"${params.difficulty}"}]}
-Exactly 4 options per question. Never reference "the passage".`;
+  const customNotes = params.sources?.customNotes?.trim() || params.sourceText?.trim() || "";
+  if (customNotes) {
+    sourceMaterial += `Additional Study Notes:\n${customNotes}\n\n`;
+  }
+
+  const language = params.language ?? "hindi";
+  let languageInstruction = "";
+  if (language === "hindi") {
+    languageInstruction = `LANGUAGE REQUIREMENT: Pure NCERT Hindi (हिंदी - देवनागरी लिपि). All questions (prompt), options (A, B, C, D), and explanations MUST be written in high-quality, clear Hindi according to NCERT textbook standards. Do not use English script for the question text.`;
+  } else if (language === "hinglish") {
+    languageInstruction = `LANGUAGE REQUIREMENT: Natural Hinglish (Hindi words in Latin/English script, as spoken by Indian school students). Example: "Plants me photosynthesis process kahan hota hai?" Explanations should also be in helpful conversational Hinglish.`;
+  } else {
+    languageInstruction = `LANGUAGE REQUIREMENT: Standard CBSE/NCERT English. Clear, grammatically correct and appropriate for Class ${chapterClassLevel} students.`;
+  }
+
+  const prompt = `You are an expert NCERT Indian school teacher and curriculum designer for Class ${chapterClassLevel} ${subjectName}.
+Generate exactly ${params.count} objective Multiple-Choice Questions (MCQs) for the chapter: "${chapter?.title ?? "Core Chapter"}".
+
+${languageInstruction}
+
+Difficulty Target: ${params.difficulty} (mix of recall, conceptual understanding, and practical application).
+
+Source Material:
+${sourceMaterial || `Standard NCERT Class ${chapterClassLevel} ${subjectName} syllabus.`}
+
+Rules:
+1. Every question must have EXACTLY 4 plausible, unambiguous options.
+2. Provide correctIndex (0 for first option, 1 for second, 2 for third, 3 for fourth).
+3. Provide a clear, educational 1-2 sentence explanation for why the correct answer is right.
+4. Provide a short relevant topic tag (e.g., "प्रकाश संश्लेषण" / "Photosynthesis").
+5. Never use phrases like "According to the passage" or "In the text above".
+
+Return STRICT JSON ONLY matching this format without any surrounding text or markdown formatting:
+{
+  "questions": [
+    {
+      "prompt": "Question text here",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correctIndex": 0,
+      "explanation": "Explanation here",
+      "topic": "Topic Name",
+      "difficulty": "${params.difficulty}"
+    }
+  ]
+}`;
 
   const content = await requestAiChatCompletion(prompt, true);
-  const parsed = JSON.parse(content) as { questions?: DraftQuestion[] };
+  let cleaned = content.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+  } else if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```\s*/, "").replace(/\s*```$/, "");
+  }
 
-  return (parsed.questions ?? []).map((q) => ({
-    prompt: String(q.prompt ?? "").trim(),
-    options: (q.options ?? []).map((o) => String(o)),
-    correctIndex: Number(q.correctIndex ?? 0),
-    explanation: q.explanation ?? null,
-    topic: q.topic ?? null,
-    difficulty: q.difficulty ?? params.difficulty,
-  }));
+  try {
+    const parsed = JSON.parse(cleaned) as { questions?: DraftQuestion[] };
+    return (parsed.questions ?? []).map((q) => ({
+      prompt: String(q.prompt ?? "").trim(),
+      options: (q.options ?? []).map((o) => String(o).trim()),
+      correctIndex: Math.min(3, Math.max(0, Number(q.correctIndex ?? 0))),
+      explanation: q.explanation ? String(q.explanation).trim() : null,
+      topic: q.topic ? String(q.topic).trim() : null,
+      difficulty: q.difficulty ?? params.difficulty,
+    }));
+  } catch (err) {
+    console.error("Failed to parse AI quiz JSON:", cleaned);
+    throw new Error("Could not format AI questions. Please try generating again.");
+  }
 }
+
 
 export async function listPeople() {
   const [{ data: profiles }, { data: roles }] = await Promise.all([

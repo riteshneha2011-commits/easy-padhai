@@ -95,18 +95,32 @@ export const getTestQuestions = createServerFn({ method: "POST" })
 export const generateQuestions = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { chapterId: string; count: number; difficulty: string; sourceText?: string }) => data,
+    (data: {
+      chapterId: string;
+      count: number;
+      difficulty: string;
+      language?: "hindi" | "english" | "hinglish";
+      sourceText?: string;
+      sources?: {
+        useSummary?: boolean;
+        useLessons?: boolean;
+        customNotes?: string;
+      };
+    }) => data,
   )
   .handler(async ({ data, context }) => {
     const admin = await import("./admin.server");
     await admin.assertStaff(context.supabase, context.userId);
     return admin.generateQuestionsWithAi({
       chapterId: data.chapterId,
-      count: Math.min(Math.max(data.count, 1), 20),
+      count: Math.min(Math.max(data.count, 1), 30),
       difficulty: data.difficulty,
+      language: data.language,
       sourceText: data.sourceText,
+      sources: data.sources,
     });
   });
+
 
 export const getPeople = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

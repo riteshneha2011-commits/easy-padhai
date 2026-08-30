@@ -33,8 +33,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+
 import { Switch } from "@/components/ui/switch";
 import { ACTIVE_CLASS_LABEL, ACTIVE_CLASS_LEVELS, UPCOMING_CLASS_LABEL, classLabel } from "@/lib/classes";
+import { soundFx } from "@/lib/sound-effects";
+import {
+  Sparkles,
+  Wand2,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Layers,
+  BookOpen,
+  Brain,
+  Globe,
+  Check,
+  RefreshCw,
+  HelpCircle,
+} from "lucide-react";
+
 
 export const Route = createFileRoute("/teach")({
   head: () => ({
@@ -85,8 +102,13 @@ function TeachPage() {
   const [drafts, setDrafts] = useState<DraftQuestion[]>([]);
   const [raw, setRaw] = useState("");
   const [aiCount, setAiCount] = useState(5);
-  const [aiDifficulty, setAiDifficulty] = useState("medium");
-  const [aiSource, setAiSource] = useState("");
+  const [aiDifficulty, setAiDifficulty] = useState("mixed");
+  const [aiLanguage, setAiLanguage] = useState<"hindi" | "english" | "hinglish">("hindi");
+  const [aiUseSummary, setAiUseSummary] = useState(true);
+  const [aiUseLessons, setAiUseLessons] = useState(true);
+  const [aiCustomNotes, setAiCustomNotes] = useState("");
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [qSubjectId, setQSubjectId] = useState("");
   const [busy, setBusy] = useState(false);
   const [editChapter, setEditChapter] = useState<string | null>(null);
   const [editLesson, setEditLesson] = useState<string | null>(null);
@@ -108,6 +130,12 @@ function TeachPage() {
     : (availableChaptersForNewLesson[0]?.id || "");
   const effectiveSubjectId = newChapterSubjectId || data?.subjects?.[0]?.id || "";
 
+  const effectiveQSubjectId = qSubjectId || data?.subjects?.[0]?.id || "";
+  const availableChaptersForQuiz = data?.chapters?.filter((c) => c.subject_id === effectiveQSubjectId) || [];
+  const effectiveQChapterId = chapterId && availableChaptersForQuiz.some((c) => c.id === chapterId)
+    ? chapterId
+    : (availableChaptersForQuiz[0]?.id || "");
+
   useEffect(() => {
     if (data?.lessons && effectiveChapterId) {
       const chapLessons = data.lessons.filter((l) => l.chapter_id === effectiveChapterId);
@@ -128,14 +156,14 @@ function TeachPage() {
     }
   }, [data?.chapters, effectiveSubjectId]);
 
-
   if (loading) return <Shell>Loading…</Shell>;
   if (user && !isStaff) return <Shell>You need a teacher or admin role to open Studio.</Shell>;
   if (isLoading || !data) return <Shell>Loading studio…</Shell>;
 
   const chapters = data.chapters;
-  const activeChapter = chapters.find((c) => c.id === chapterId) ?? chapters[0] ?? null;
+  const activeChapter = data.chapters.find((c) => c.id === effectiveQChapterId) ?? data.chapters[0] ?? null;
   const activeTest = activeChapter ? data.tests.find((t) => t.chapter_id === activeChapter.id) : null;
+
 
 
 
@@ -160,18 +188,43 @@ function TeachPage() {
       return;
     }
     setDrafts(result.questions);
+    soundFx.playSuccess();
     toast.success(`${result.questions.length} questions ready to review`);
   }
 
   async function saveDrafts() {
-    if (!activeTest) return toast.error("Create a test for this chapter first");
-    await run(
-      () => insertQuestions({ data: { testId: activeTest.id, questions: drafts } }),
-      `${drafts.length} questions added`,
-    );
-    setDrafts([]);
-    setRaw("");
+
+    if (!activeChapter) return toast.error("Select a chapter first");
+    if (drafts.length === 0) return toast.error("No questions to save");
+    setBusy(true);
+    try {
+      let testId = activeTest?.id;
+      if (!testId) {
+        const newTest = await upsertTest({
+          data: {
+            chapter_id: activeChapter.id,
+            title: `${activeChapter.title} — Test`,
+            duration_minutes: Math.max(10, drafts.length * 2),
+            published: true,
+          },
+        });
+        testId = newTest?.id;
+      }
+      if (!testId) throw new Error("Could not create test record");
+
+      await insertQuestions({ data: { testId, questions: drafts } });
+      await refresh();
+      soundFx.playCelebration();
+      toast.success(`🎉 ${drafts.length} questions published to "${activeChapter.title}" quiz!`);
+      setDrafts([]);
+      setRaw("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save questions");
+    } finally {
+      setBusy(false);
+    }
   }
+
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
@@ -1020,84 +1073,317 @@ function TeachPage() {
 
         </TabsContent>
 
-        <TabsContent value="questions" className="space-y-4">
-          <Card className="rounded-3xl">
+        <TabsContent value="questions" className="space-y-6">
+          {/* Subject & Chapter Filter Card */}
+          <Card className="rounded-3xl border-border/80 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Pick a chapter test</CardTitle>
+              <CardTitle className="font-display text-lg flex items-center gap-2">
+                <Layers className="size-5 text-primary" />
+                <span>1. Select Chapter for Quiz</span>
+              </CardTitle>
+              <CardDescription>
+                Choose subject and chapter to generate or manage multiple-choice questions.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <select
-                value={activeChapter?.id ?? ""}
-                onChange={(e) => setChapterId(e.target.value)}
-                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-              >
-                {chapters.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-              {activeTest ? (
-                <p className="text-sm text-muted-foreground">
-                  Test: <span className="font-medium text-foreground">{activeTest.title}</span> ·{" "}
-                  {activeTest.questionCount} questions
-                </p>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground">No test yet for this chapter.</p>
-                  <Button
-                    size="sm"
-                    className="rounded-full"
-                    disabled={!activeChapter || busy}
-                    onClick={() =>
-                      activeChapter &&
-                      void run(
-                        () =>
-                          upsertTest({
-                            data: {
-                              chapter_id: activeChapter.id,
-                              title: `${activeChapter.title} — Test`,
-                              duration_minutes: 15,
-                              published: true,
-                            },
-                          }),
-                        "Test created",
-                      )
-                    }
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Subject</Label>
+                  <select
+                    value={effectiveQSubjectId}
+                    onChange={(e) => {
+                      setQSubjectId(e.target.value);
+                      const filtered = data.chapters.filter((c) => c.subject_id === e.target.value);
+                      if (filtered[0]) setChapterId(filtered[0].id);
+                    }}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                   >
-                    Create test
-                  </Button>
+                    {data.subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({classLabel(s.class_level)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Chapter</Label>
+                  <select
+                    value={activeChapter?.id ?? ""}
+                    onChange={(e) => setChapterId(e.target.value)}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
+                  >
+                    {availableChaptersForQuiz.length === 0 && (
+                      <option value="">No chapters in this subject</option>
+                    )}
+                    {availableChaptersForQuiz.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.order_index}. {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {activeChapter && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/60 p-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-primary" />
+                    <span className="font-semibold text-foreground">
+                      Chapter: {activeChapter.title}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    {activeTest ? (
+                      <span className="font-semibold text-emerald-600">
+                        ✓ Published Quiz ({activeTest.questionCount} questions)
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 font-semibold">
+                        ⚡ Quiz will be automatically created on publish
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-3xl">
+          {/* AI Quiz Builder & Input Modes */}
+          <Card className="rounded-3xl border-border/80 shadow-sm overflow-hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Add questions</CardTitle>
-              <CardDescription>Form, JSON, Markdown or AI — review before saving.</CardDescription>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Sparkles className="size-5 text-primary animate-pulse" />
+                    <span>2. Build Questions</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Use Google Gemini AI to craft NCERT-aligned MCQs, or input manually.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="manual">
-                <TabsList className="rounded-full">
-                  <TabsTrigger value="manual" className="rounded-full">
-                    Manual
+            <CardContent className="pt-2">
+              <Tabs defaultValue="ai" className="w-full">
+                <TabsList className="rounded-full bg-secondary/80 p-1 mb-4 flex-wrap h-auto">
+                  <TabsTrigger value="ai" className="rounded-full gap-1.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Sparkles className="size-3.5" />
+                    <span>AI Quiz Builder ✨</span>
                   </TabsTrigger>
-                  <TabsTrigger value="json" className="rounded-full">
+                  <TabsTrigger value="manual" className="rounded-full text-xs font-semibold">
+                    Manual Form
+                  </TabsTrigger>
+                  <TabsTrigger value="json" className="rounded-full text-xs font-semibold">
                     JSON
                   </TabsTrigger>
-                  <TabsTrigger value="markdown" className="rounded-full">
+                  <TabsTrigger value="markdown" className="rounded-full text-xs font-semibold">
                     Markdown
-                  </TabsTrigger>
-                  <TabsTrigger value="ai" className="rounded-full">
-                    AI
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="manual">
-                  <ManualForm onAdd={(q) => setDrafts((d) => [...d, q])} />
+                {/* AI Quiz Builder Suite */}
+                <TabsContent value="ai" className="space-y-5">
+                  {/* Language Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Globe className="size-3.5 text-primary" />
+                      <span>Language of Quiz</span>
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("hindi")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "hindi"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🇮🇳 शुद्ध हिंदी</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">NCERT Devanagari</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("english")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "english"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🇬🇧 Pure English</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">CBSE / Standard</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("hinglish")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "hinglish"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🗣️ Hinglish Mix</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">Conversational</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sources Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <BookOpen className="size-3.5 text-primary" />
+                      <span>Source Content for Questions</span>
+                    </Label>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 cursor-pointer hover:border-primary/40 transition-colors">
+                        <Switch checked={aiUseSummary} onCheckedChange={setAiUseSummary} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold">Chapter Summary & Concepts</p>
+                          <p className="text-[11px] text-muted-foreground">Uses chapter overview & core definition</p>
+                        </div>
+                      </label>
+
+                      <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 cursor-pointer hover:border-primary/40 transition-colors">
+                        <Switch checked={aiUseLessons} onCheckedChange={setAiUseLessons} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-semibold">Lesson Summaries & Notes</p>
+                          <p className="text-[11px] text-muted-foreground">Extracts topics from published lessons</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="pt-1">
+                      <Label className="text-xs text-muted-foreground mb-1 block">
+                        Extra Custom Notes / Specific Topics (Optional):
+                      </Label>
+                      <Textarea
+                        rows={3}
+                        value={aiCustomNotes}
+                        onChange={(e) => setAiCustomNotes(e.target.value)}
+                        placeholder="Optional: Paste any specific topic points or PDF text you want questions from..."
+                        className="text-xs rounded-2xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Count & Difficulty */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Question Count */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Number of Questions
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        {[5, 10, 15].map((cnt) => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => setAiCount(cnt)}
+                            className={`flex-1 rounded-xl border py-2 text-xs font-bold transition-all ${
+                              aiCount === cnt
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {cnt} Qs
+                          </button>
+                        ))}
+                        <div className="w-20 shrink-0">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={aiCount}
+                            onChange={(e) => setAiCount(Math.max(1, Math.min(30, Number(e.target.value))))}
+                            className="h-9 text-xs font-bold text-center rounded-xl"
+                            title="Custom count"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Difficulty */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Difficulty Target
+                      </Label>
+                      <select
+                        value={aiDifficulty}
+                        onChange={(e) => setAiDifficulty(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
+                      >
+                        <option value="mixed">🎯 Mixed (NCERT Board Pattern)</option>
+                        <option value="easy">🟢 Easy (Basic Recall)</option>
+                        <option value="medium">🟡 Medium (Conceptual Understanding)</option>
+                        <option value="hard">🔴 Hard (HOTS / Analytical)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Generate Trigger */}
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      disabled={busy || aiGenerating || !activeChapter}
+                      onClick={async () => {
+                        if (!activeChapter) return toast.error("Please pick a chapter first");
+                        setAiGenerating(true);
+                        soundFx.playClick();
+                        try {
+                          const qs = await aiGenerate({
+                            data: {
+                              chapterId: activeChapter.id,
+                              count: aiCount,
+                              difficulty: aiDifficulty,
+                              language: aiLanguage,
+                              sources: {
+                                useSummary: aiUseSummary,
+                                useLessons: aiUseLessons,
+                                customNotes: aiCustomNotes,
+                              },
+                            },
+                          });
+                          setDrafts((prev) => [...prev, ...qs]);
+                          soundFx.playSuccess();
+                          toast.success(`✨ ${qs.length} NCERT questions generated in ${aiLanguage.toUpperCase()}! Review below.`);
+                        } catch (e) {
+                          soundFx.playError();
+                          toast.error(e instanceof Error ? e.message : "AI generation failed");
+                        } finally {
+                          setAiGenerating(false);
+                        }
+                      }}
+                      className="w-full rounded-full py-6 text-sm sm:text-base font-bold shadow-md gap-2"
+                    >
+                      {aiGenerating ? (
+                        <>
+                          <RefreshCw className="size-4 animate-spin" />
+                          <span>Gemini AI is crafting NCERT MCQs in {aiLanguage.toUpperCase()}…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-4" />
+                          <span>Generate {aiCount} Questions with AI ✨</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </TabsContent>
 
+                {/* Manual Form */}
+                <TabsContent value="manual">
+                  <ManualForm onAdd={(q) => {
+                    setDrafts((d) => [...d, q]);
+                    soundFx.playSuccess();
+                    toast.success("Question added to draft review!");
+                  }} />
+                </TabsContent>
+
+                {/* JSON Mode */}
                 <TabsContent value="json" className="space-y-3">
                   <Textarea
                     rows={10}
@@ -1111,6 +1397,7 @@ function TeachPage() {
                   </Button>
                 </TabsContent>
 
+                {/* Markdown Mode */}
                 <TabsContent value="markdown" className="space-y-3">
                   <Textarea
                     rows={10}
@@ -1123,107 +1410,223 @@ function TeachPage() {
                     Parse Markdown
                   </Button>
                 </TabsContent>
-
-                <TabsContent value="ai" className="space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>How many</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={aiCount}
-                        onChange={(e) => setAiCount(Number(e.target.value))}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Difficulty</Label>
-                      <select
-                        value={aiDifficulty}
-                        onChange={(e) => setAiDifficulty(e.target.value)}
-                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                  </div>
-                  <Textarea
-                    rows={5}
-                    value={aiSource}
-                    onChange={(e) => setAiSource(e.target.value)}
-                    placeholder="Optional: paste source text. Leave empty to use chapter summaries."
-                  />
-                  <Button
-                    className="rounded-full"
-                    disabled={busy || !activeChapter}
-                    onClick={async () => {
-                      if (!activeChapter) return;
-                      setBusy(true);
-                      try {
-                        const qs = await aiGenerate({
-                          data: {
-                            chapterId: activeChapter.id,
-                            count: aiCount,
-                            difficulty: aiDifficulty,
-                            sourceText: aiSource,
-                          },
-                        });
-                        setDrafts(qs);
-                        toast.success(`${qs.length} questions drafted — review below`);
-                      } catch (e) {
-                        toast.error(e instanceof Error ? e.message : "AI failed");
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    {busy ? "Generating…" : "Generate with AI"}
-                  </Button>
-                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
 
+          {/* Interactive Draft Review & In-Place Editor */}
           {drafts.length > 0 && (
-            <Card className="rounded-3xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="font-display text-lg">Review {drafts.length} questions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+            <Card className="rounded-3xl border-primary/40 bg-gradient-to-b from-primary/5 to-transparent p-5 sm:p-6 space-y-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <Badge variant="secondary" className="rounded-full text-xs font-bold text-primary mb-1">
+                    Ready to Review & Publish
+                  </Badge>
+                  <CardTitle className="font-display text-xl sm:text-2xl font-bold">
+                    Draft Questions ({drafts.length})
+                  </CardTitle>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    You can edit any question, modify options, change the correct answer, or remove questions before publishing.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setDrafts((prev) => [
+                        ...prev,
+                        {
+                          prompt: "",
+                          options: ["", "", "", ""],
+                          correctIndex: 0,
+                          explanation: "",
+                          topic: "",
+                          difficulty: "medium",
+                        },
+                      ]);
+                      soundFx.playClick();
+                    }}
+                    className="rounded-full text-xs gap-1.5"
+                  >
+                    <Plus className="size-3.5" />
+                    <span>Add Blank Question</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to clear all draft questions?")) {
+                        setDrafts([]);
+                      }
+                    }}
+                    className="rounded-full text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+
+              {/* Question List Cards */}
+              <div className="space-y-4">
                 {drafts.map((d, i) => (
-                  <div key={i} className="rounded-2xl bg-secondary p-4 text-sm">
+                  <Card key={i} className="rounded-2xl border-border/80 bg-card p-4 sm:p-5 space-y-3.5 shadow-xs">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium">
-                        {i + 1}. {d.prompt}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                          {i + 1}
+                        </span>
+                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          Question {i + 1}
+                        </span>
+                      </div>
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setDrafts((prev) => prev.filter((_, x) => x !== i))}
+                        onClick={() => {
+                          setDrafts((prev) => prev.filter((_, x) => x !== i));
+                          soundFx.playClick();
+                        }}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        title="Remove question"
                       >
-                        Remove
+                        <Trash2 className="size-3.5 mr-1" /> Remove
                       </Button>
                     </div>
-                    <ul className="mt-2 space-y-1">
-                      {d.options.map((o, oi) => (
-                        <li
-                          key={oi}
-                          className={oi === d.correctIndex ? "font-semibold text-accent" : "text-muted-foreground"}
-                        >
-                          {oi === d.correctIndex ? "✓ " : "• "}
-                          {o}
-                        </li>
-                      ))}
-                    </ul>
-                    {d.explanation && <p className="mt-2 text-muted-foreground">{d.explanation}</p>}
-                  </div>
+
+                    {/* Question Prompt */}
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold">Question Statement</Label>
+                      <Textarea
+                        rows={2}
+                        value={d.prompt}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDrafts((prev) =>
+                            prev.map((item, idx) => (idx === i ? { ...item, prompt: val } : item))
+                          );
+                        }}
+                        placeholder="Enter question statement..."
+                        className="text-xs sm:text-sm font-medium rounded-xl"
+                      />
+                    </div>
+
+                    {/* 4 Options Grid */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-semibold flex items-center justify-between">
+                        <span>4 Options (Click radio button to mark correct answer)</span>
+                        <span className="text-[11px] text-primary font-bold">
+                          Option {String.fromCharCode(65 + d.correctIndex)} is marked Correct
+                        </span>
+                      </Label>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {d.options.map((opt, optIdx) => (
+                          <div
+                            key={optIdx}
+                            onClick={() => {
+                              setDrafts((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === i ? { ...item, correctIndex: optIdx } : item
+                                )
+                              );
+                            }}
+                            className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-pointer ${
+                              d.correctIndex === optIdx
+                                ? "border-emerald-500/60 bg-emerald-500/10 ring-1 ring-emerald-500/30"
+                                : "border-border/70 bg-secondary/40"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name={`correct_${i}`}
+                              checked={d.correctIndex === optIdx}
+                              onChange={() => {
+                                setDrafts((prev) =>
+                                  prev.map((item, idx) =>
+                                    idx === i ? { ...item, correctIndex: optIdx } : item
+                                  )
+                                );
+                              }}
+                              className="size-4 accent-emerald-600 shrink-0"
+                            />
+                            <span className="font-bold text-xs shrink-0 text-muted-foreground">
+                              {String.fromCharCode(65 + optIdx)}.
+                            </span>
+                            <Input
+                              value={opt}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setDrafts((prev) =>
+                                  prev.map((item, idx) =>
+                                    idx === i
+                                      ? {
+                                          ...item,
+                                          options: item.options.map((o, oI) =>
+                                            oI === optIdx ? val : o
+                                          ),
+                                        }
+                                      : item
+                                  )
+                                );
+                              }}
+                              placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                              className="h-8 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Topic & Explanation */}
+                    <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-muted-foreground">Topic Tag</Label>
+                        <Input
+                          value={d.topic ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setDrafts((prev) =>
+                              prev.map((item, idx) => (idx === i ? { ...item, topic: val } : item))
+                            );
+                          }}
+                          placeholder="e.g. Photosynthesis / गति के नियम"
+                          className="h-8 text-xs rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-muted-foreground">Explanation / Solution</Label>
+                        <Input
+                          value={d.explanation ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setDrafts((prev) =>
+                              prev.map((item, idx) => (idx === i ? { ...item, explanation: val } : item))
+                            );
+                          }}
+                          placeholder="Short explanation for student review..."
+                          className="h-8 text-xs rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  </Card>
                 ))}
-                <Button className="rounded-full" onClick={saveDrafts} disabled={busy || !activeTest}>
-                  Save all to test
+              </div>
+
+              {/* Save & Publish Action Bar */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground text-center sm:text-left">
+                  Clicking publish will save all {drafts.length} questions to <strong>"{activeChapter?.title}"</strong> quiz.
+                </p>
+                <Button
+                  className="rounded-full w-full sm:w-auto px-8 py-6 text-sm sm:text-base font-bold shadow-lg gap-2"
+                  disabled={busy}
+                  onClick={saveDrafts}
+                >
+                  <Sparkles className="size-4" />
+                  <span>Save & Publish All {drafts.length} Questions 🚀</span>
                 </Button>
-              </CardContent>
+              </div>
             </Card>
           )}
         </TabsContent>
@@ -1244,7 +1647,7 @@ function ManualForm({ onAdd }: { onAdd: (q: DraftQuestion) => void }) {
       className="mt-4 space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        onAdd({ prompt, options, correctIndex: correct, explanation, topic });
+        onAdd({ prompt, options, correctIndex: correct, explanation, topic, difficulty: "medium" });
         setPrompt("");
         setOptions(["", "", "", ""]);
         setExplanation("");
@@ -1252,8 +1655,8 @@ function ManualForm({ onAdd }: { onAdd: (q: DraftQuestion) => void }) {
       }}
     >
       <div className="space-y-1.5">
-        <Label>Question</Label>
-        <Textarea rows={2} required value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <Label className="text-xs font-semibold">Question</Label>
+        <Textarea rows={2} required value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Enter question statement..." className="text-xs sm:text-sm rounded-xl" />
       </div>
       {options.map((opt, i) => (
         <div key={i} className="flex items-center gap-3">
@@ -1262,6 +1665,7 @@ function ManualForm({ onAdd }: { onAdd: (q: DraftQuestion) => void }) {
             value={opt}
             placeholder={`Option ${i + 1}`}
             onChange={(e) => setOptions((o) => o.map((v, x) => (x === i ? e.target.value : v)))}
+            className="text-xs rounded-xl"
           />
           <div className="flex shrink-0 items-center gap-1.5">
             <Switch checked={correct === i} onCheckedChange={() => setCorrect(i)} />
@@ -1271,16 +1675,16 @@ function ManualForm({ onAdd }: { onAdd: (q: DraftQuestion) => void }) {
       ))}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label>Topic</Label>
-          <Input value={topic} onChange={(e) => setTopic(e.target.value)} />
+          <Label className="text-xs font-semibold">Topic</Label>
+          <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Topic name" className="text-xs rounded-xl" />
         </div>
         <div className="space-y-1.5">
-          <Label>Explanation</Label>
-          <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} />
+          <Label className="text-xs font-semibold">Explanation</Label>
+          <Input value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Explanation" className="text-xs rounded-xl" />
         </div>
       </div>
-      <Button type="submit" className="rounded-full">
-        Add to review list
+      <Button type="submit" className="rounded-full text-xs font-semibold">
+        Add to Review List
       </Button>
     </form>
   );
@@ -1289,3 +1693,4 @@ function ManualForm({ onAdd }: { onAdd: (q: DraftQuestion) => void }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-5xl px-4 py-16 text-muted-foreground">{children}</div>;
 }
+
