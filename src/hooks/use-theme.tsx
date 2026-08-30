@@ -9,11 +9,10 @@ const ThemeContext = createContext<{ theme: Theme; toggle: () => void } | null>(
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Read the stored preference after hydration to avoid SSR mismatches.
+  // Read the stored preference after hydration to avoid SSR mismatches. Default to light.
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const next =
-      stored ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = stored ?? "light";
     setTheme(next);
   }, []);
 

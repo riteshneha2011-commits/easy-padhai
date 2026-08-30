@@ -637,6 +637,58 @@ function Home() {
         </div>
       </section>
 
+      {/* 4.5. WHATSAPP COMMUNITY & UPDATES CHANNEL */}
+      <section className="mx-auto w-full max-w-6xl px-4">
+        <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 via-card to-teal-500/10 p-6 sm:p-8 shadow-sm">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
+            <div className="space-y-3 text-center md:text-left flex-1 min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-sm">
+                <span>📱 Official WhatsApp Community</span>
+              </span>
+
+              <div className="space-y-1">
+                <h3 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                  Connect with Easy Padhai &amp; Ritesh Sir on WhatsApp
+                </h3>
+                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  For Class 9–12 Students &amp; Parents
+                </p>
+              </div>
+
+              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
+                Get instant notifications for new chapter uploads, daily NCERT concepts, formula revision sheets, and direct guidance from Ritesh Sir on your phone.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
+                <a
+                  href="https://whatsapp.com/channel/0029Vb4qJbC7IUYThCcvd22L"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-xs sm:text-sm font-bold shadow-md inline-flex items-center gap-2 transition-colors"
+                >
+                  <span>📲 Tap to Join WhatsApp Channel</span>
+                </a>
+                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
+                  or scan the QR code 👉
+                </span>
+              </div>
+            </div>
+
+            {/* QR Code Container */}
+            <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-emerald-500/30 shadow-lg">
+              <img
+                src="/whatsapp-channel-qr.png"
+                alt="Easy Padhai WhatsApp Channel QR Code"
+                className="size-36 sm:size-44 object-contain rounded-xl"
+              />
+              <span className="text-[11px] font-extrabold text-slate-900 tracking-wide text-center">
+                Scan with WhatsApp
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 5. CALL TO ACTION FOOTER */}
       <section className="mx-auto w-full max-w-6xl px-4">
         <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-8 sm:p-12 text-center space-y-5 shadow-sm">
@@ -660,37 +712,29 @@ function Home() {
   );
 }
 
-/** 30-Second Sample Audio Player for No-Login Preview */
+/** 2-Minute Sample Audio Player for No-Login Preview */
 function SampleAudioPlayer() {
   const [playing, setPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState<number>(1);
-  const [resolvedAudioUrl, setResolvedAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    // Attempt to load signed sample audio from Chapter 1
-    resolveMediaUrl("storage://audio/1788082638083-nt69pq.mp3").then((url) => {
-      if (url) setResolvedAudioUrl(url);
-    });
-  }, []);
+  const MAX_SAMPLE_DURATION = 120; // 2 minutes (120s)
 
   const togglePlay = () => {
-    if (!audioRef.current && !resolvedAudioUrl) {
-      // Synthesized simulated playback if no audio file is available
-      setPlaying((prev) => !prev);
-      return;
-    }
-    if (audioRef.current) {
-      if (playing) {
-        audioRef.current.pause();
-        setPlaying(false);
-      } else {
-        audioRef.current.playbackRate = speed;
-        void audioRef.current.play().then(() => setPlaying(true)).catch(() => {
-          setPlaying(true);
+    if (!audioRef.current) return;
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.playbackRate = speed;
+      void audioRef.current
+        .play()
+        .then(() => setPlaying(true))
+        .catch((err) => {
+          console.warn("Audio play prevented:", err);
+          setPlaying(false);
         });
-      }
     }
   };
 
@@ -700,16 +744,27 @@ function SampleAudioPlayer() {
     }
   }, [speed]);
 
-  // Synthetic progress interval when playing mock
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (playing && !resolvedAudioUrl) {
-      timer = setInterval(() => {
-        setProgress((prev) => (prev >= 100 ? 0 : prev + 2));
-      }, 300);
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      const cur = audioRef.current.currentTime;
+      if (cur >= MAX_SAMPLE_DURATION) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setPlaying(false);
+        setCurrentTime(0);
+      } else {
+        setCurrentTime(cur);
+      }
     }
-    return () => clearInterval(timer);
-  }, [playing, resolvedAudioUrl]);
+  };
+
+  const progressPercent = Math.min(100, (currentTime / MAX_SAMPLE_DURATION) * 100);
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
 
   return (
     <Card className="rounded-3xl border-border/80 p-5 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between">
@@ -719,7 +774,7 @@ function SampleAudioPlayer() {
             <Headphones className="size-3.5" /> Sample Audio Lecture
           </span>
           <Badge variant="outline" className="text-[10px] font-semibold">
-            Free Preview
+            2 Min Preview
           </Badge>
         </div>
 
@@ -754,31 +809,25 @@ function SampleAudioPlayer() {
           <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full bg-primary rounded-full transition-all"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
-            <span>0:{Math.floor((progress * 0.45)).toString().padStart(2, "0")}</span>
-            <span>0:45 sample</span>
+            <span>{formatTime(currentTime)}</span>
+            <span>2:00 sample</span>
           </div>
         </div>
 
-        {resolvedAudioUrl && (
-          <audio
-            ref={audioRef}
-            src={resolvedAudioUrl}
-            onTimeUpdate={(e) => {
-              const el = e.currentTarget;
-              if (el.duration) {
-                setProgress((el.currentTime / el.duration) * 100);
-              }
-            }}
-            onEnded={() => {
-              setPlaying(false);
-              setProgress(0);
-            }}
-          />
-        )}
+        <audio
+          ref={audioRef}
+          src="/sample-lecture.mp3"
+          preload="metadata"
+          onTimeUpdate={handleTimeUpdate}
+          onEnded={() => {
+            setPlaying(false);
+            setCurrentTime(0);
+          }}
+        />
       </div>
 
       {/* Player Controls */}
@@ -789,7 +838,7 @@ function SampleAudioPlayer() {
           className="rounded-full text-xs font-bold gap-2 px-4 shadow-sm"
         >
           {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5 fill-current" />}
-          <span>{playing ? "Pause Audio" : "Play 45s Clip"}</span>
+          <span>{playing ? "Pause Audio" : "Play 2 Min Preview"}</span>
         </Button>
 
         <div className="flex items-center gap-1 bg-secondary/80 rounded-full p-0.5">
