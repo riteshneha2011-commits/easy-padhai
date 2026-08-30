@@ -232,6 +232,23 @@ function Home() {
               </span>
             </h1>
 
+            {/* Mobile-First Instant Visual Card (Shown right below heading on mobile) */}
+            <div className="md:hidden relative overflow-hidden rounded-2xl border-2 border-primary/30 shadow-md bg-card my-2">
+              <img
+                src="/hero-audio-illustration.jpg"
+                alt="Students learning on commute, walking, bedtime"
+                className="w-full h-48 sm:h-56 object-cover object-center"
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 text-white">
+                <p className="text-xs font-bold flex items-center gap-1.5 text-amber-300">
+                  <Headphones className="size-3.5" /> Listen anywhere, anytime
+                </p>
+                <p className="text-[10px] text-slate-200 mt-0.5">
+                  Commute · Walking · Bedtime · Daily 15-min audio sessions
+                </p>
+              </div>
+            </div>
+
             <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
               Learn Class 9–12 Science on your commute, while walking, or before bed. 
               Audio lectures generated using AI and verified under the expert pedagogical guidance of Ritesh Sir (21+ Yrs Kota Experience). 
@@ -280,19 +297,34 @@ function Home() {
                 <BookOpen className="size-4 text-primary" /> Class 9 Science &amp; Maths · Lectures added regularly
               </span>
             </div>
+
+            {/* 4 Steps Grid on Mobile */}
+            <div className="grid grid-cols-2 gap-2 pt-2 md:hidden">
+              {steps.map((step) => (
+                <Card key={step.title} className="rounded-2xl border-border/70 p-3 bg-card/90 shadow-sm flex items-center gap-2.5">
+                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                    <step.icon className="size-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold truncate">{step.title}</h4>
+                    <p className="text-[10px] text-muted-foreground truncate">{step.body}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
 
-          {/* Hero Visual Card (Responsive for Mobile, Tablet, Laptop) */}
-          <div className="md:col-span-5 flex flex-col gap-4">
+          {/* Desktop Right Column: Hero Visual Card + 4 Steps */}
+          <div className="hidden md:flex md:col-span-5 flex-col gap-4">
             <div className="relative overflow-hidden rounded-3xl border-2 border-primary/30 shadow-2xl bg-card">
               <img
                 src="/hero-audio-illustration.jpg"
                 alt="Learn anytime, anywhere on phone - commute, walking, bedtime, lunch"
-                className="w-full h-auto max-h-[380px] sm:max-h-[440px] md:max-h-none object-cover"
+                className="w-full h-auto object-cover"
               />
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 sm:p-5 text-white">
-                <p className="text-xs sm:text-sm font-bold flex items-center gap-1.5">
-                  <Headphones className="size-4 text-amber-400" /> Listen anytime, anywhere
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-4 sm:p-5 text-white">
+                <p className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-amber-300">
+                  <Headphones className="size-4" /> Listen anytime, anywhere
                 </p>
                 <p className="text-[11px] sm:text-xs text-slate-200 mt-0.5">
                   Commute · Walking · Bedtime · Daily 15-min audio sessions
@@ -300,9 +332,9 @@ function Home() {
               </div>
             </div>
 
-            {/* Quick 4 Steps Ribbon */}
+            {/* Quick 4 Steps on Desktop */}
             <div className="grid grid-cols-2 gap-2">
-              {steps.slice(0, 2).map((step) => (
+              {steps.map((step) => (
                 <Card key={step.title} className="rounded-2xl border-border/70 p-3 bg-card/90 shadow-sm flex items-center gap-2.5">
                   <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
                     <step.icon className="size-4" />
