@@ -212,7 +212,7 @@ function Home() {
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-2 md:items-center">
           <div className="space-y-6">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-              <Sparkles className="size-3.5" /> {CLASS_RANGE_LABEL} · NCERT Science &amp; Maths
+              <Sparkles className="size-3.5" /> Class 9th Live Now · Class 10th, 11th &amp; 12th Coming Soon
             </span>
 
             <h1 className="text-4xl font-extrabold leading-[1.08] text-foreground sm:text-5xl md:text-6xl tracking-tight">
@@ -256,7 +256,7 @@ function Home() {
                 <Trophy className="size-4 text-amber-500" /> XP &amp; badges
               </span>
               <span className="flex items-center gap-1.5">
-                <BookOpen className="size-4 text-primary" /> Class 9 Science &amp; Maths added weekly
+                <BookOpen className="size-4 text-primary" /> Class 9 Science &amp; Maths · Lectures added regularly
               </span>
             </div>
           </div>
@@ -331,7 +331,7 @@ function Home() {
                   🏛️ Resonance Kota faculty alumnus
                 </Badge>
                 <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
-                  ⚡ Mentor to thousands of CBSE &amp; JEE students
+                  ⚡ Mentor to thousands of CBSE, NEET, and JEE students
                 </Badge>
                 <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
                   🇮🇳 Founder, Physics by Ritesh
@@ -526,13 +526,13 @@ function Home() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Curated Curriculum Library
+              Curated Curriculum Library · Class 9th Live Now
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Start with a chapter
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Every chapter is broken into 10-minute audio lectures, visual notes, and quick tests.
+              Every chapter is broken into 10 to 25 minutes audio lectures, visual notes, and tests.
             </p>
           </div>
           <Button asChild variant="ghost" className="rounded-full self-start sm:self-auto text-xs font-semibold gap-1">
