@@ -62,6 +62,7 @@ export const saveTest = createServerFn({ method: "POST" })
     (data: {
       id?: string;
       chapter_id: string;
+      lesson_id?: string | null;
       title: string;
       description?: string | null;
       duration_minutes?: number | null;
@@ -97,6 +98,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       chapterId: string;
+      lessonId?: string | null;
       count: number;
       difficulty: string;
       language?: "hindi" | "english" | "hinglish";
@@ -113,6 +115,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
     await admin.assertStaff(context.supabase, context.userId);
     return admin.generateQuestionsWithAi({
       chapterId: data.chapterId,
+      lessonId: data.lessonId,
       count: Math.min(Math.max(data.count, 1), 30),
       difficulty: data.difficulty,
       language: data.language,
@@ -120,6 +123,7 @@ export const generateQuestions = createServerFn({ method: "POST" })
       sources: data.sources,
     });
   });
+
 
 
 export const getPeople = createServerFn({ method: "GET" })

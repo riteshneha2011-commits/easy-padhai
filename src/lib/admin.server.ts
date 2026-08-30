@@ -24,10 +24,16 @@ export async function fetchAdminCatalog() {
     subjects: subjects ?? [],
     chapters: chapters ?? [],
     lessons: lessons ?? [],
-    tests: (tests ?? []).map((t) => ({
-      ...t,
-      questionCount: (questions ?? []).filter((q) => q.test_id === t.id).length,
-    })),
+    tests: (tests ?? []).map((t) => {
+      const isLesson = t.description?.startsWith("lesson:") ?? false;
+      const lessonId = isLesson ? t.description?.slice(7).split("|")[0]?.trim() ?? null : null;
+      return {
+        ...t,
+        lesson_id: lessonId,
+        is_lesson_test: Boolean(lessonId),
+        questionCount: (questions ?? []).filter((q) => q.test_id === t.id).length,
+      };
+    }),
   };
 }
 
@@ -117,19 +123,32 @@ export async function removeRow(table: string, id: string) {
 export async function upsertTest(input: {
   id?: string;
   chapter_id: string;
+  lesson_id?: string | null;
   title: string;
   description?: string | null;
   duration_minutes?: number | null;
   published?: boolean;
 }) {
+  let description = input.description ?? null;
+  if (input.lesson_id) {
+    description = `lesson:${input.lesson_id}${input.description ? ` | ${input.description}` : ""}`;
+  }
   const { data, error } = await supabaseAdmin
     .from("tests")
-    .upsert({ ...input, id: input.id ?? undefined })
+    .upsert({
+      id: input.id ?? undefined,
+      chapter_id: input.chapter_id,
+      title: input.title,
+      description,
+      duration_minutes: input.duration_minutes,
+      published: input.published ?? true,
+    })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
   return data;
 }
+
 
 export async function insertQuestions(testId: string, questions: DraftQuestion[]) {
   const { count } = await supabaseAdmin
@@ -230,6 +249,7 @@ async function requestAiChatCompletion(prompt: string, jsonMode = true): Promise
 
 export async function generateQuestionsWithAi(params: {
   chapterId: string;
+  lessonId?: string | null;
   count: number;
   difficulty: string;
   language?: "hindi" | "english" | "hinglish";
@@ -251,28 +271,45 @@ export async function generateQuestionsWithAi(params: {
   const subjectName =
     (chapter?.subjects as { name?: string } | null)?.name ?? "Science";
 
+  let targetContext = `Chapter: "${chapter?.title ?? "Core Chapter"}"`;
   let sourceMaterial = "";
 
-  const useSummary = params.sources?.useSummary ?? true;
-  const useLessons = params.sources?.useLessons ?? true;
-
-  if (useSummary && chapter?.description) {
-    sourceMaterial += `Chapter Concept:\n${chapter.description}\n\n`;
-  }
-
-  if (useLessons) {
-    const { data: lessons } = await supabaseAdmin
+  if (params.lessonId) {
+    const { data: lesson } = await supabaseAdmin
       .from("lessons")
-      .select("title, summary")
-      .eq("chapter_id", params.chapterId)
-      .order("order_index");
+      .select("title, summary, kind")
+      .eq("id", params.lessonId)
+      .maybeSingle();
 
-    if (lessons && lessons.length > 0) {
-      sourceMaterial += `Key Topics & Lesson Summaries:\n`;
-      lessons.forEach((l) => {
-        sourceMaterial += `• ${l.title}: ${l.summary || "Core concept"}\n`;
-      });
-      sourceMaterial += "\n";
+    if (lesson) {
+      targetContext = `Specific Lesson: "${lesson.title}" from Chapter "${chapter?.title ?? "Core Chapter"}"`;
+      sourceMaterial += `Target Lesson: ${lesson.title} (${lesson.kind})\n`;
+      if (lesson.summary) {
+        sourceMaterial += `Lesson Summary & Concepts:\n${lesson.summary}\n\n`;
+      }
+    }
+  } else {
+    const useSummary = params.sources?.useSummary ?? true;
+    const useLessons = params.sources?.useLessons ?? true;
+
+    if (useSummary && chapter?.description) {
+      sourceMaterial += `Chapter Concept:\n${chapter.description}\n\n`;
+    }
+
+    if (useLessons) {
+      const { data: lessons } = await supabaseAdmin
+        .from("lessons")
+        .select("title, summary")
+        .eq("chapter_id", params.chapterId)
+        .order("order_index");
+
+      if (lessons && lessons.length > 0) {
+        sourceMaterial += `Key Topics & Lesson Summaries:\n`;
+        lessons.forEach((l) => {
+          sourceMaterial += `• ${l.title}: ${l.summary || "Core concept"}\n`;
+        });
+        sourceMaterial += "\n";
+      }
     }
   }
 
@@ -292,7 +329,8 @@ export async function generateQuestionsWithAi(params: {
   }
 
   const prompt = `You are an expert NCERT Indian school teacher and curriculum designer for Class ${chapterClassLevel} ${subjectName}.
-Generate exactly ${params.count} objective Multiple-Choice Questions (MCQs) for the chapter: "${chapter?.title ?? "Core Chapter"}".
+Generate exactly ${params.count} objective Multiple-Choice Questions (MCQs) for ${targetContext}.
+${params.lessonId ? "Make sure questions test specifically the core concepts, definitions, and formulas of this single lecture/lesson." : ""}
 
 ${languageInstruction}
 
@@ -302,6 +340,7 @@ Source Material:
 ${sourceMaterial || `Standard NCERT Class ${chapterClassLevel} ${subjectName} syllabus.`}
 
 Rules:
+
 1. Every question must have EXACTLY 4 plausible, unambiguous options.
 2. Provide correctIndex (0 for first option, 1 for second, 2 for third, 3 for fourth).
 3. Provide a clear, educational 1-2 sentence explanation for why the correct answer is right.
