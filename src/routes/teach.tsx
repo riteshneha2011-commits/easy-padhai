@@ -599,6 +599,292 @@ function TeachPage() {
               </form>
             </CardContent>
           </Card>
+
+          <Card className="rounded-3xl border-border/80 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-display text-lg">Published content</CardTitle>
+              <CardDescription>
+                Subject-wise and Chapter-wise organized view of your curriculum.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {data.subjects.map((sub) => {
+                const subChapters = data.chapters.filter((c) => c.subject_id === sub.id);
+                return (
+                  <div key={sub.id} className="rounded-2xl border border-border/70 bg-card p-4 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
+                          {classLabel(sub.class_level)}
+                        </Badge>
+                        <h3 className="font-display text-base font-bold text-foreground">
+                          {sub.name}
+                        </h3>
+                        <span className="text-xs text-muted-foreground">
+                          ({subChapters.length} {subChapters.length === 1 ? "Chapter" : "Chapters"})
+                        </span>
+                      </div>
+                    </div>
+
+                    {subChapters.length === 0 ? (
+                      <p className="text-xs italic text-muted-foreground py-2">
+                        No chapters in this subject yet.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {subChapters.map((c) => {
+                          const chapLessons = data.lessons.filter((l) => l.chapter_id === c.id);
+                          return (
+                            <div key={c.id} className="rounded-xl bg-secondary/50 p-3 space-y-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                  <span className="text-xs font-bold text-primary mr-1.5">
+                                    Chapter {c.order_index}:
+                                  </span>
+                                  <span className="font-semibold text-sm">{c.title}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">
+                                    ({chapLessons.length} {chapLessons.length === 1 ? "lesson" : "lessons"})
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs"
+                                    onClick={() => setEditChapter(editChapter === c.id ? null : c.id)}
+                                  >
+                                    {editChapter === c.id ? "Cancel" : "Edit Chapter"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                                    onClick={() =>
+                                      run(() => removeRow({ data: { table: "chapters", id: c.id } }), "Chapter deleted")
+                                    }
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {editChapter === c.id && (
+                                <form
+                                  className="grid gap-3 rounded-lg border border-border/80 bg-background p-3 sm:grid-cols-2 text-xs"
+                                  onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const f = new FormData(e.currentTarget);
+                                    const title = String(f.get("title") ?? c.title);
+                                    void run(
+                                      () =>
+                                        upsertChapter({
+                                          data: {
+                                            id: c.id,
+                                            subject_id: String(f.get("subject_id") ?? c.subject_id),
+                                            title,
+                                            slug: slugify(title),
+                                            description: String(f.get("description") ?? c.description ?? "") || null,
+                                            order_index: Number(f.get("order_index") ?? c.order_index ?? 1),
+                                            published: (f.get("published") as string) === "on",
+                                          },
+                                        }),
+                                      "Chapter updated",
+                                    );
+                                    setEditChapter(null);
+                                  }}
+                                >
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Title</Label>
+                                    <Input name="title" defaultValue={c.title} required className="h-8 text-xs" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Subject</Label>
+                                    <select
+                                      name="subject_id"
+                                      defaultValue={c.subject_id}
+                                      className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                    >
+                                      {data.subjects.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                          {s.name} ({classLabel(s.class_level)})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="space-y-1 sm:col-span-2">
+                                    <Label className="text-xs">Description</Label>
+                                    <Input name="description" defaultValue={c.description ?? ""} className="h-8 text-xs" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Order</Label>
+                                    <Input name="order_index" type="number" defaultValue={c.order_index ?? 1} className="h-8 text-xs" />
+                                  </div>
+                                  <label className="flex items-center gap-2 text-xs">
+                                    <input type="checkbox" name="published" defaultChecked={c.published} />
+                                    Published
+                                  </label>
+                                  <Button type="submit" disabled={busy} className="h-8 rounded-full sm:col-span-2 text-xs">
+                                    Save Chapter Changes
+                                  </Button>
+                                </form>
+                              )}
+
+                              {chapLessons.length > 0 && (
+                                <div className="space-y-1.5 pl-2 sm:pl-4 border-l-2 border-primary/20">
+                                  {chapLessons.map((l) => (
+                                    <div key={l.id} className="rounded-lg bg-background/80 p-2.5 text-xs">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-bold text-muted-foreground">
+                                            #{l.order_index}
+                                          </span>
+                                          <span className="font-medium text-foreground">{l.title}</span>
+                                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize">
+                                            {l.kind}
+                                          </Badge>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 px-2 text-[11px]"
+                                            onClick={() => setEditLesson(editLesson === l.id ? null : l.id)}
+                                          >
+                                            {editLesson === l.id ? "Cancel" : "Edit"}
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                                            onClick={() =>
+                                              run(() => removeRow({ data: { table: "lessons", id: l.id } }), "Lesson deleted")
+                                            }
+                                          >
+                                            Delete
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {editLesson === l.id && (
+                                        <form
+                                          className="mt-3 grid gap-3 border-t border-border/40 pt-3 sm:grid-cols-2"
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            const f = new FormData(e.currentTarget);
+                                            void run(
+                                              () =>
+                                                upsertLesson({
+                                                  data: {
+                                                    id: l.id,
+                                                    chapter_id: String(f.get("chapter_id") ?? l.chapter_id),
+                                                    title: String(f.get("title") ?? l.title),
+                                                    kind: String(f.get("kind") ?? l.kind),
+                                                    audio_url: String(f.get("audio_url") ?? l.audio_url ?? "") || null,
+                                                    video_url: String(f.get("video_url") ?? l.video_url ?? "") || null,
+                                                    pdf_url: String(f.get("pdf_url") ?? l.pdf_url ?? "") || null,
+                                                    summary: String(f.get("summary") ?? l.summary ?? "") || null,
+                                                    duration_minutes: Number(f.get("duration_minutes") ?? l.duration_minutes),
+                                                    order_index: Number(f.get("order_index") ?? l.order_index),
+                                                    published: (f.get("published") as string) === "on",
+                                                  },
+                                                }),
+                                              "Lesson updated",
+                                            );
+                                            setEditLesson(null);
+                                          }}
+                                        >
+                                          <div className="space-y-1.5">
+                                            <Label>Title</Label>
+                                            <Input name="title" defaultValue={l.title} required />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Kind</Label>
+                                            <select
+                                              name="kind"
+                                              defaultValue={l.kind}
+                                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                                            >
+                                              <option value="audio">Audio lecture</option>
+                                              <option value="video">Video lecture</option>
+                                              <option value="summary">Summary</option>
+                                              <option value="pdf">PDF notes</option>
+                                            </select>
+                                          </div>
+                                          <div className="space-y-1.5 sm:col-span-2">
+                                            <MediaInput
+                                              name="audio_url"
+                                              label="Audio File"
+                                              type="audio"
+                                              defaultValue={l.audio_url ?? ""}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5 sm:col-span-2">
+                                            <MediaInput
+                                              name="video_url"
+                                              label="Video File"
+                                              type="video"
+                                              defaultValue={l.video_url ?? ""}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5 sm:col-span-2">
+                                            <MediaInput
+                                              name="pdf_url"
+                                              label="PDF Document"
+                                              type="pdf"
+                                              defaultValue={l.pdf_url ?? ""}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5 sm:col-span-2">
+                                            <Label>Summary notes</Label>
+                                            <Input name="summary" defaultValue={l.summary ?? ""} />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Duration (min)</Label>
+                                            <Input
+                                              name="duration_minutes"
+                                              type="number"
+                                              defaultValue={l.duration_minutes}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label>Order</Label>
+                                            <Input
+                                              name="order_index"
+                                              type="number"
+                                              defaultValue={l.order_index}
+                                            />
+                                          </div>
+                                          <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                                            <input
+                                              type="checkbox"
+                                              name="published"
+                                              defaultChecked={l.published}
+                                            />
+                                            Published
+                                          </label>
+                                          <Button
+                                            type="submit"
+                                            disabled={busy}
+                                            className="rounded-full sm:col-span-2"
+                                          >
+                                            Save Lesson Changes
+                                          </Button>
+                                        </form>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="questions" className="space-y-6">
@@ -609,8 +895,12 @@ function TeachPage() {
                 <Layers className="size-5 text-primary" />
                 <span>1. Select Quiz Target & Scope</span>
               </CardTitle>
+              <CardDescription>
+                Generate a quick 3–5 question quiz for a specific lesson, or a comprehensive chapter-wide test.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Quiz Scope Toggle */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   Quiz Level (Scope)
@@ -628,8 +918,10 @@ function TeachPage() {
                         : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
                     }`}
                   >
+                    <Sparkles className="size-4" />
                     <span>⚡ Lesson Quick Quiz</span>
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -642,11 +934,13 @@ function TeachPage() {
                         : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
                     }`}
                   >
+                    <BookOpen className="size-4" />
                     <span>📖 Full Chapter Test</span>
                   </button>
                 </div>
               </div>
 
+              {/* Hierarchy Selectors: Subject, Chapter, and Lesson */}
               <div className={`grid gap-3 ${quizScope === "lesson" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Subject</Label>
@@ -657,93 +951,373 @@ function TeachPage() {
                       const filtered = data.chapters.filter((c) => c.subject_id === e.target.value);
                       if (filtered[0]) setChapterId(filtered[0].id);
                     }}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                   >
                     {data.subjects.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name}
+                        {s.name} ({classLabel(s.class_level)})
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Chapter</Label>
                   <select
                     value={activeChapter?.id ?? ""}
                     onChange={(e) => setChapterId(e.target.value)}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                   >
+                    {availableChaptersForQuiz.length === 0 && (
+                      <option value="">No chapters in this subject</option>
+                    )}
                     {availableChaptersForQuiz.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.title}
+                        {c.order_index}. {c.title}
                       </option>
                     ))}
                   </select>
                 </div>
+
                 {quizScope === "lesson" && (
                   <div className="space-y-1.5 sm:col-span-1">
-                    <Label className="text-xs font-semibold">Lesson</Label>
+                    <Label className="text-xs font-semibold flex items-center justify-between">
+                      <span>Specific Lesson</span>
+                      {activeLesson && (
+                        <span className="text-[10px] text-primary font-bold">
+                          #{activeLesson.order_index}
+                        </span>
+                      )}
+                    </Label>
                     <select
                       value={activeLesson?.id ?? ""}
                       onChange={(e) => setQLessonId(e.target.value)}
-                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                     >
-                      {availableLessonsForQuiz.map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.title}
-                        </option>
-                      ))}
+                      {availableLessonsForQuiz.length === 0 && (
+                        <option value="">No lessons in this chapter</option>
+                      )}
+                      {availableLessonsForQuiz.map((l) => {
+                        const hasQuiz = data.tests.some((t: any) => t.lesson_id === l.id);
+                        return (
+                          <option key={l.id} value={l.id}>
+                            {l.order_index}. {l.title} {hasQuiz ? "✓ [Quiz live]" : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 )}
               </div>
+
+              {/* Status Banner */}
+              {activeChapter && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/60 p-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="size-4 text-primary" />
+                    <span className="font-semibold text-foreground">
+                      Target: {quizScope === "lesson" ? (activeLesson ? `Lesson "${activeLesson.title}"` : "Pick a lesson") : `Chapter "${activeChapter.title}"`}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    {activeTest ? (
+                      <span className="font-semibold text-emerald-600">
+                        ✓ Published Quiz ({activeTest.questionCount} questions active)
+                      </span>
+                    ) : (
+                      <span className="text-amber-600 font-semibold">
+                        ⚡ Quiz will be automatically created on publish
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
+          {/* AI Quiz Builder & Input Modes */}
           <Card className="rounded-3xl border-border/80 shadow-sm overflow-hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg flex items-center gap-2">
-                <Sparkles className="size-5 text-primary animate-pulse" />
-                <span>2. Build Questions</span>
-              </CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="font-display text-lg flex items-center gap-2">
+                    <Sparkles className="size-5 text-primary animate-pulse" />
+                    <span>2. Build Questions</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {quizScope === "lesson"
+                      ? `AI will focus specifically on "${activeLesson?.title ?? "selected lesson"}" to craft targeted micro-quiz questions.`
+                      : `AI will craft comprehensive questions covering all topics of chapter "${activeChapter?.title ?? "selected chapter"}".`}
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="pt-2">
-              <Button
-                type="button"
-                disabled={busy || aiGenerating || !activeChapter || (quizScope === "lesson" && !activeLesson)}
-                onClick={async () => {
-                  if (!activeChapter) return toast.error("Please pick a chapter first");
-                  if (quizScope === "lesson" && !activeLesson) return toast.error("Please pick a lesson first");
-                  setAiGenerating(true);
-                  try {
-                    const qs = await aiGenerate({
-                      data: {
-                        chapterId: activeChapter.id,
-                        lessonId: quizScope === "lesson" && activeLesson ? activeLesson.id : null,
-                        count: aiCount,
-                        difficulty: aiDifficulty,
-                        language: aiLanguage,
-                        sources: {
-                          useSummary: aiUseSummary,
-                          useLessons: aiUseLessons,
-                          customNotes: aiCustomNotes,
-                        },
-                      },
-                    });
-                    setDrafts((prev) => [...prev, ...qs]);
-                    toast.success(`✨ ${qs.length} questions generated!`);
-                  } catch (e) {
-                    toast.error(e instanceof Error ? e.message : "AI generation failed");
-                  } finally {
-                    setAiGenerating(false);
-                  }
-                }}
-                className="w-full rounded-full"
-              >
-                {aiGenerating ? "Generating..." : `Generate ${aiCount} Questions with AI ✨`}
-              </Button>
+              <Tabs defaultValue="ai" className="w-full">
+                <TabsList className="rounded-full bg-secondary/80 p-1 mb-4 flex-wrap h-auto">
+                  <TabsTrigger value="ai" className="rounded-full gap-1.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <Sparkles className="size-3.5" />
+                    <span>AI Quiz Builder ✨</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="manual" className="rounded-full text-xs font-semibold">
+                    Manual Form
+                  </TabsTrigger>
+                  <TabsTrigger value="json" className="rounded-full text-xs font-semibold">
+                    JSON
+                  </TabsTrigger>
+                  <TabsTrigger value="markdown" className="rounded-full text-xs font-semibold">
+                    Markdown
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* AI Quiz Builder Suite */}
+                <TabsContent value="ai" className="space-y-5">
+                  {/* Language Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Globe className="size-3.5 text-primary" />
+                      <span>Language of Quiz</span>
+                    </Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("hindi")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "hindi"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🇮🇳 शुद्ध हिंदी</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">NCERT Devanagari</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("english")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "english"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🇬🇧 Pure English</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">CBSE / Standard</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAiLanguage("hinglish")}
+                        className={`flex flex-col items-center justify-center rounded-2xl border p-3 text-center transition-all ${
+                          aiLanguage === "hinglish"
+                            ? "border-primary bg-primary/15 font-bold text-primary ring-2 ring-primary/30"
+                            : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                        }`}
+                      >
+                        <span className="text-sm sm:text-base">🗣️ Hinglish Mix</span>
+                        <span className="text-[10px] sm:text-xs opacity-80 mt-0.5">Conversational</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sources Selector */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <BookOpen className="size-3.5 text-primary" />
+                      <span>Source Content for Questions</span>
+                    </Label>
+
+                    {quizScope === "lesson" ? (
+                      <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3.5 space-y-1.5">
+                        <p className="text-xs font-bold text-primary flex items-center gap-1.5">
+                          <Check className="size-3.5" />
+                          <span>Focused on Lesson: {activeLesson?.title ?? "Selected Lesson"}</span>
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {activeLesson?.summary ? `Summary: "${activeLesson.summary}"` : "AI will craft questions targeting the key concepts of this lesson."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 cursor-pointer hover:border-primary/40 transition-colors">
+                          <Switch checked={aiUseSummary} onCheckedChange={setAiUseSummary} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold">Chapter Summary & Concepts</p>
+                            <p className="text-[11px] text-muted-foreground">Uses chapter overview & core definition</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 cursor-pointer hover:border-primary/40 transition-colors">
+                          <Switch checked={aiUseLessons} onCheckedChange={setAiUseLessons} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold">All Lesson Summaries</p>
+                            <p className="text-[11px] text-muted-foreground">Extracts topics from all chapter lessons</p>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="pt-1">
+                      <Label className="text-xs text-muted-foreground mb-1 block">
+                        Extra Custom Notes / Specific Topics (Optional):
+                      </Label>
+                      <Textarea
+                        rows={3}
+                        value={aiCustomNotes}
+                        onChange={(e) => setAiCustomNotes(e.target.value)}
+                        placeholder="Optional: Paste any specific topic points or PDF text you want questions from..."
+                        className="text-xs rounded-2xl"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Count & Difficulty */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {/* Question Count */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Number of Questions
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        {[3, 5, 10, 15].map((cnt) => (
+                          <button
+                            key={cnt}
+                            type="button"
+                            onClick={() => setAiCount(cnt)}
+                            className={`flex-1 rounded-xl border py-2 text-xs font-bold transition-all ${
+                              aiCount === cnt
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {cnt} Qs
+                          </button>
+                        ))}
+                        <div className="w-20 shrink-0">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={30}
+                            value={aiCount}
+                            onChange={(e) => setAiCount(Math.max(1, Math.min(30, Number(e.target.value))))}
+                            className="h-9 text-xs font-bold text-center rounded-xl"
+                            title="Custom count"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Difficulty */}
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Difficulty Target
+                      </Label>
+                      <select
+                        value={aiDifficulty}
+                        onChange={(e) => setAiDifficulty(e.target.value)}
+                        className="h-9 w-full rounded-xl border border-input bg-background px-3 text-xs font-semibold"
+                      >
+                        <option value="mixed">🎯 Mixed (NCERT Board Pattern)</option>
+                        <option value="easy">🟢 Easy (Basic Recall)</option>
+                        <option value="medium">🟡 Medium (Conceptual Understanding)</option>
+                        <option value="hard">🔴 Hard (HOTS / Analytical)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Generate Trigger */}
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      disabled={busy || aiGenerating || !activeChapter || (quizScope === "lesson" && !activeLesson)}
+                      onClick={async () => {
+                        if (!activeChapter) return toast.error("Please pick a chapter first");
+                        if (quizScope === "lesson" && !activeLesson) return toast.error("Please pick a lesson first");
+                        setAiGenerating(true);
+                        soundFx.playClick();
+                        try {
+                          const qs = await aiGenerate({
+                            data: {
+                              chapterId: activeChapter.id,
+                              lessonId: quizScope === "lesson" && activeLesson ? activeLesson.id : null,
+                              count: aiCount,
+                              difficulty: aiDifficulty,
+                              language: aiLanguage,
+                              sources: {
+                                useSummary: aiUseSummary,
+                                useLessons: aiUseLessons,
+                                customNotes: aiCustomNotes,
+                              },
+                            },
+                          });
+                          setDrafts((prev) => [...prev, ...qs]);
+                          soundFx.playSuccess();
+                          const targetLabel = quizScope === "lesson" && activeLesson ? `Lesson "${activeLesson.title}"` : `Chapter "${activeChapter.title}"`;
+                          toast.success(`✨ ${qs.length} NCERT questions generated for ${targetLabel} in ${aiLanguage.toUpperCase()}! Review below.`);
+                        } catch (e) {
+                          soundFx.playError();
+                          toast.error(e instanceof Error ? e.message : "AI generation failed");
+                        } finally {
+                          setAiGenerating(false);
+                        }
+                      }}
+                      className="w-full rounded-full py-6 text-sm sm:text-base font-bold shadow-md gap-2"
+                    >
+                      {aiGenerating ? (
+                        <>
+                          <RefreshCw className="size-4 animate-spin" />
+                          <span>Gemini AI is crafting questions in {aiLanguage.toUpperCase()}…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="size-4" />
+                          <span>Generate {aiCount} Questions with AI ✨</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Manual Form */}
+                <TabsContent value="manual">
+                  <ManualForm onAdd={(q) => {
+                    setDrafts((d) => [...d, q]);
+                    soundFx.playSuccess();
+                    toast.success("Question added to draft review!");
+                  }} />
+                </TabsContent>
+
+                {/* JSON Mode */}
+                <TabsContent value="json" className="space-y-3">
+                  <Textarea
+                    rows={10}
+                    value={raw}
+                    onChange={(e) => setRaw(e.target.value)}
+                    placeholder={JSON_EXAMPLE}
+                    className="font-mono text-xs"
+                  />
+                  <Button className="rounded-full" onClick={() => loadDrafts(parseJsonQuestions(raw))}>
+                    Parse JSON
+                  </Button>
+                </TabsContent>
+
+                {/* Markdown Mode */}
+                <TabsContent value="markdown" className="space-y-3">
+                  <Textarea
+                    rows={10}
+                    value={raw}
+                    onChange={(e) => setRaw(e.target.value)}
+                    placeholder={MARKDOWN_EXAMPLE}
+                    className="font-mono text-xs"
+                  />
+                  <Button className="rounded-full" onClick={() => loadDrafts(parseMarkdownQuestions(raw))}>
+                    Parse Markdown
+                  </Button>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
+
 
           {drafts.length > 0 && (
             <Card className="rounded-3xl border-primary/40 bg-gradient-to-b from-primary/5 to-transparent p-5 sm:p-6 space-y-6 shadow-sm">
