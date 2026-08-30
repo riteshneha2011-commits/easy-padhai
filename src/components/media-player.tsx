@@ -97,9 +97,47 @@ export function MediaPlayer({ value, title, kind, onActiveChange }: Props) {
 
   const source = stored
     ? kind === "pdf"
-      ? ({ mode: "link", src: url } as const)
+      ? ({ mode: "pdf-embed", src: url, directUrl: url } as const)
       : ({ mode: "native", src: url } as const)
     : classifyMedia(url, kind);
+
+  if (source.mode === "pdf-embed" || kind === "pdf") {
+    const pdfSrc = source.mode === "pdf-embed" ? source.src : url;
+    const directSrc = source.mode === "pdf-embed" ? source.directUrl : url;
+    const embedUrl =
+      pdfSrc.startsWith("http") &&
+      !pdfSrc.includes("drive.google.com") &&
+      !pdfSrc.includes("docs.google.com")
+        ? `https://docs.google.com/viewer?url=${encodeURIComponent(pdfSrc)}&embedded=true`
+        : pdfSrc;
+
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+            <FileText className="size-4 text-primary" />
+            <span className="truncate max-w-[240px] sm:max-w-md">{title || "PDF Notes"}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+              <a href={directSrc} target="_blank" rel="noreferrer">
+                <ExternalLink className="size-3.5" /> Open full page
+              </a>
+            </Button>
+          </div>
+        </div>
+
+        <div className="w-full h-[72vh] min-h-[500px] overflow-hidden rounded-2xl border bg-background shadow-sm relative">
+          <iframe
+            src={embedUrl}
+            title={title || "PDF Document"}
+            className="size-full border-0"
+            allow="fullscreen"
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (source.mode === "iframe") {
     const isAudioEmbed = kind === "audio";
@@ -109,44 +147,25 @@ export function MediaPlayer({ value, title, kind, onActiveChange }: Props) {
         <div
           className={cn(
             "w-full overflow-hidden rounded-2xl bg-secondary",
-            kind === "pdf" ? "h-[70vh] min-h-80" : isAudioEmbed ? "aspect-video sm:aspect-[16/7]" : "aspect-video",
+            kind === "pdf" ? "h-[72vh] min-h-[500px]" : isAudioEmbed ? "aspect-video sm:aspect-[16/7]" : "aspect-video",
           )}
         >
           <iframe
             src={source.src}
             title={title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
-            className="size-full"
+            className="size-full border-0"
           />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Use the player&apos;s own settings menu to change speed on{" "}
-          {source.provider === "youtube" ? "YouTube" : source.provider === "vimeo" ? "Vimeo" : "this"} content.{" "}
-          <a href={url} target="_blank" rel="noreferrer" className="font-semibold underline">
-            Open original
+        <p className="text-xs text-muted-foreground flex items-center justify-between">
+          <span>
+            Playing via {source.provider === "youtube" ? "YouTube" : source.provider === "drive" ? "Google Drive" : source.provider === "vimeo" ? "Vimeo" : "Player"}.
+          </span>
+          <a href={url} target="_blank" rel="noreferrer" className="font-semibold underline ml-2">
+            Open in new tab
           </a>
         </p>
-      </div>
-    );
-  }
-
-  if (source.mode === "link") {
-    return (
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="outline" className="w-fit rounded-full">
-          <a href={source.src} target="_blank" rel="noreferrer">
-            <FileText className="size-4" /> Open {kind === "pdf" ? "PDF notes" : "file"}
-          </a>
-        </Button>
-        <a
-          href={source.src}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
-        >
-          <ExternalLink className="size-3" /> New tab
-        </a>
       </div>
     );
   }
