@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, FileText, Gauge, Loader2 } from "lucide-react";
+import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
 import { classifyMedia, PLAYBACK_RATES } from "@/lib/media";
@@ -13,43 +13,178 @@ type Props = {
   onActiveChange?: (active: boolean) => void;
 };
 
-function SpeedPicker({
-  rate,
-  onChange,
-}: {
-  rate: number;
-  onChange: (r: number) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="mr-1 inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground">
-        <Gauge className="size-3.5" /> Speed
-      </span>
-      {PLAYBACK_RATES.map((r) => (
-        <button
-          key={r}
-          type="button"
-          onClick={() => onChange(r)}
-          className={cn(
-            "rounded-full border border-border px-2.5 py-1 text-xs font-bold transition-colors",
-            rate === r
-              ? "border-primary bg-primary text-primary-foreground"
-              : "bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
-          )}
-        >
-          {r}×
-        </button>
-      ))}
-    </div>
-  );
+function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) return "00:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
 }
 
-function ActiveReporter({ onActiveChange }: { onActiveChange?: (active: boolean) => void }) {
+function CustomAudioPlayer({
+  src,
+  title,
+  rate,
+  onRateChange,
+  onActiveChange,
+}: {
+  src: string;
+  title: string;
+  rate: number;
+  onRateChange: (r: number) => void;
+  onActiveChange?: (active: boolean) => void;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const storageKey = `easypadhai_audio_pos_${encodeURIComponent(src)}`;
+
   useEffect(() => {
-    onActiveChange?.(true);
-    return () => onActiveChange?.(false);
-  }, [onActiveChange]);
-  return null;
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.playbackRate = rate;
+  }, [rate]);
+
+  const handleLoadedMetadata = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setDuration(audio.duration || 0);
+
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const pos = parseFloat(saved);
+        if (pos > 0 && pos < (audio.duration || 100) - 5) {
+          audio.currentTime = pos;
+          setCurrentTime(pos);
+        }
+      }
+    } catch {}
+  };
+
+  const handleTimeUpdate = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setCurrentTime(audio.currentTime);
+    if (Math.floor(audio.currentTime) % 5 === 0) {
+      try {
+        localStorage.setItem(storageKey, audio.currentTime.toString());
+      } catch {}
+    }
+  };
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {});
+    }
+  };
+
+  const skip = (delta: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const target = parseFloat(e.target.value);
+    audio.currentTime = target;
+    setCurrentTime(target);
+  };
+
+  return (
+    <div className="rounded-3xl border border-border/80 bg-linear-to-b from-card to-secondary/30 p-5 sm:p-6 shadow-sm space-y-4">
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="metadata"
+        onLoadedMetadata={handleLoadedMetadata}
+        onTimeUpdate={handleTimeUpdate}
+        onPlay={() => {
+          setIsPlaying(true);
+          onActiveChange?.(true);
+        }}
+        onPause={() => {
+          setIsPlaying(false);
+          onActiveChange?.(false);
+        }}
+        onEnded={() => {
+          setIsPlaying(false);
+          onActiveChange?.(false);
+          try {
+            localStorage.removeItem(storageKey);
+          } catch {}
+        }}
+      />
+
+      <div className="flex items-center gap-3">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Headphones className="size-6" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Audio Lecture · M4A / AAC</p>
+          <h4 className="truncate text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
+        </div>
+      </div>
+
+      {/* Scrubber Progress Bar */}
+      <div className="space-y-1.5">
+        <input
+          type="range"
+          min={0}
+          max={duration || 100}
+          step={0.1}
+          value={currentTime}
+          onChange={handleSeek}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-secondary accent-primary"
+        />
+        <div className="flex justify-between text-xs font-medium text-muted-foreground">
+          <span>{formatTime(currentTime)}</span>
+          <span>{duration > 0 ? formatTime(duration) : "--:--"}</span>
+        </div>
+      </div>
+
+      {/* Playback Controls & Speed */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => skip(-10)}
+            title="Rewind 10 seconds"
+            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold"
+          >
+            -10s
+          </button>
+
+          <button
+            type="button"
+            onClick={togglePlay}
+            title={isPlaying ? "Pause" : "Play"}
+            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95"
+          >
+            {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 ml-0.5 fill-current" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => skip(10)}
+            title="Forward 10 seconds"
+            className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold"
+          >
+            +10s
+          </button>
+        </div>
+
+        <SpeedPicker rate={rate} onChange={onRateChange} />
+      </div>
+    </div>
+  );
 }
 
 /** Plays external links (YouTube/Vimeo/Drive/direct files) or uploaded storage files. */
@@ -172,23 +307,13 @@ export function MediaPlayer({ value, title, kind, onActiveChange }: Props) {
 
   if (kind === "audio") {
     return (
-      <div className="space-y-3">
-        <audio
-          ref={mediaRef as React.RefObject<HTMLAudioElement>}
-          controls
-          src={source.src}
-          className="w-full"
-          onPlay={() => onActiveChange?.(true)}
-          onPause={() => onActiveChange?.(false)}
-          onEnded={() => onActiveChange?.(false)}
-          onLoadedMetadata={(e) => {
-            e.currentTarget.playbackRate = rate;
-          }}
-        >
-          Your browser does not support audio playback.
-        </audio>
-        <SpeedPicker rate={rate} onChange={setRate} />
-      </div>
+      <CustomAudioPlayer
+        src={source.src}
+        title={title}
+        rate={rate}
+        onRateChange={setRate}
+        onActiveChange={onActiveChange}
+      />
     );
   }
 
