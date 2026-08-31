@@ -296,7 +296,17 @@ function TeachPage() {
 
   const chapters = data.chapters;
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+  const refresh = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["admin-catalog"] }),
+      qc.invalidateQueries({ queryKey: ["curriculum"] }),
+      qc.invalidateQueries({ queryKey: ["chapters"] }),
+      qc.invalidateQueries({ queryKey: ["content"] }),
+      qc.invalidateQueries({ queryKey: ["learn"] }),
+      qc.invalidateQueries({ queryKey: ["dashboard"] }),
+    ]);
+    await qc.refetchQueries({ queryKey: ["admin-catalog"] });
+  };
 
   async function run(fn: () => Promise<unknown>, message: string) {
     setBusy(true);
@@ -540,13 +550,14 @@ function TeachPage() {
                   const form = e.currentTarget as HTMLFormElement;
                   const f = new FormData(form);
                   const title = String(f.get("title") ?? "");
+                  const slug = String(f.get("slug") ?? "").trim() || slugify(title);
                   void run(
                     () =>
                       upsertChapter({
                         data: {
                           subject_id: effectiveSubjectId,
                           title,
-                          slug: slugify(title),
+                          slug,
                           description: String(f.get("description") ?? "") || null,
                           order_index: newChapterOrder,
                           published: true,
@@ -585,12 +596,19 @@ function TeachPage() {
                   />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Title</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Title</Label>
+                    <AiAutofill mode="chapter" />
+                  </div>
                   <Input name="title" required placeholder="e.g. Motion" />
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
+                <div className="space-y-1.5">
+                  <Label>Slug (URL key)</Label>
+                  <Input name="slug" placeholder="e.g. motion (auto-generated if blank)" />
+                </div>
+                <div className="space-y-1.5">
                   <Label>Description</Label>
-                  <Input name="description" placeholder="Short description" />
+                  <Input name="description" placeholder="Short description or overview" />
                 </div>
                 <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
                   Publish chapter
@@ -714,8 +732,16 @@ function TeachPage() {
                   <MediaInput name="pdf_url" label="PDF Document" type="pdf" />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Summary notes</Label>
-                  <Input name="summary" placeholder="Bullet summary or key formula" />
+                  <div className="flex items-center justify-between">
+                    <Label>Summary notes / formulas</Label>
+                    <AiAutofill mode="lesson" />
+                  </div>
+                  <Textarea
+                    name="summary"
+                    placeholder="Bullet summary or key formula (Markdown supported, or use Auto-generate)"
+                    rows={3}
+                    className="rounded-xl text-sm"
+                  />
                 </div>
                 <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
                   Publish lesson
@@ -799,6 +825,7 @@ function TeachPage() {
                                     e.preventDefault();
                                     const f = new FormData(e.currentTarget);
                                     const title = String(f.get("title") ?? c.title);
+                                    const slug = String(f.get("slug") ?? "").trim() || slugify(title);
                                     void run(
                                       () =>
                                         upsertChapter({
@@ -806,7 +833,7 @@ function TeachPage() {
                                             id: c.id,
                                             subject_id: String(f.get("subject_id") ?? c.subject_id),
                                             title,
-                                            slug: slugify(title),
+                                            slug,
                                             description: String(f.get("description") ?? c.description ?? "") || null,
                                             order_index: Number(f.get("order_index") ?? c.order_index ?? 1),
                                             published: (f.get("published") as string) === "on",
@@ -817,8 +844,11 @@ function TeachPage() {
                                     setEditChapter(null);
                                   }}
                                 >
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Title</Label>
+                                  <div className="space-y-1 sm:col-span-2">
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-xs">Title</Label>
+                                      <AiAutofill mode="chapter" />
+                                    </div>
                                     <Input name="title" defaultValue={c.title} required className="h-8 text-xs" />
                                   </div>
                                   <div className="space-y-1">
@@ -834,6 +864,10 @@ function TeachPage() {
                                         </option>
                                       ))}
                                     </select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <Label className="text-xs">Slug (URL key)</Label>
+                                    <Input name="slug" defaultValue={c.slug ?? ""} className="h-8 text-xs" />
                                   </div>
                                   <div className="space-y-1 sm:col-span-2">
                                     <Label className="text-xs">Description</Label>
@@ -959,8 +993,17 @@ function TeachPage() {
                                             />
                                           </div>
                                           <div className="space-y-1.5 sm:col-span-2">
-                                            <Label>Summary notes</Label>
-                                            <Input name="summary" defaultValue={l.summary ?? ""} />
+                                            <div className="flex items-center justify-between">
+                                              <Label>Summary notes</Label>
+                                              <AiAutofill mode="lesson" />
+                                            </div>
+                                            <Textarea
+                                              name="summary"
+                                              defaultValue={l.summary ?? ""}
+                                              placeholder="Bullet summary or key formula"
+                                              rows={3}
+                                              className="rounded-xl text-xs"
+                                            />
                                           </div>
                                           <div className="space-y-1.5">
                                             <Label>Duration (min)</Label>

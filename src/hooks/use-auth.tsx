@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { startSession } from "@/lib/credits.functions";
@@ -36,6 +37,7 @@ type AuthValue = {
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const qc = useQueryClient();
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -91,13 +93,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result?.referral?.attached) {
           toast.success("Referral applied — bonus credits land when you finish your first lesson 🎁");
         }
-        if (result?.awarded) toast.success(`Daily visit bonus · +${result.awarded} credits`);
+        if (result?.awarded) {
+          toast.success(`Daily visit bonus · +${result.awarded} credits`);
+          void qc.invalidateQueries({ queryKey: ["wallet"] });
+        }
         void load(userId);
+        void qc.invalidateQueries({ queryKey: ["wallet"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
       })
       .catch(() => {
         /* non-critical */
       });
-  }, [session?.user?.id, load]);
+  }, [session?.user?.id, load, qc]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -109,13 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       roles,
       isStaff: roles.includes("admin") || roles.includes("teacher"),
       isAdmin: roles.includes("admin"),
-      refresh: () => load(session?.user?.id),
+      refresh: async () => {
+        await Promise.all([
+          load(session?.user?.id),
+          qc.invalidateQueries({ queryKey: ["wallet"] }),
+          qc.invalidateQueries({ queryKey: ["dashboard"] }),
+        ]);
+      },
       signOut: async () => {
         bootstrapped.current = null;
         await supabase.auth.signOut();
       },
     }),
-    [loading, session, profile, roles, load],
+    [loading, session, profile, roles, load, qc],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
