@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import {
   ArrowRight,
   BookOpen,
+  ChevronRight,
   Flame,
   Headphones,
   FileText,
@@ -367,6 +368,24 @@ function Home() {
         c.subjectCategory === "Social Science",
     ).length,
   };
+
+  const spotlightChapters = useMemo(() => {
+    const scienceChap =
+      allChapters.find((c) => ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)) ??
+      allChapters[0];
+    const mathChap =
+      allChapters.find((c) => c.subjectCategory === "Mathematics") ??
+      allChapters[1];
+    const sstChap =
+      allChapters.find((c) => c.subjectCategory === "Social Science") ??
+      allChapters[2];
+
+    return [
+      scienceChap ? { ...scienceChap, badge: "🔥 Trending in Science", icon: Atom } : null,
+      mathChap ? { ...mathChap, badge: "📐 Essential Maths", icon: Calculator } : null,
+      sstChap ? { ...sstChap, badge: "🌍 Core Social Science", icon: Globe } : null,
+    ].filter(Boolean) as Array<(typeof allChapters)[0] & { badge: string; icon: typeof Atom }>;
+  }, [allChapters]);
 
   return (
     <div className="space-y-16 sm:space-y-24 pb-20">
@@ -743,8 +762,8 @@ function Home() {
         </div>
       </section>
 
-      {/* 4. CHAPTERS WITH SUBJECT FILTERING & 2-LINE FORMAT */}
-      <section className="mx-auto w-full max-w-6xl px-4 space-y-6">
+      {/* 4. CURRICULUM DISCOVERY & SPOTLIGHT CHAPTERS */}
+      <section className="mx-auto w-full max-w-6xl px-4 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
@@ -757,109 +776,164 @@ function Home() {
               Every chapter is broken into 10 to 25 minutes audio lectures, visual notes, and tests.
             </p>
           </div>
-          <Button asChild variant="ghost" className="rounded-full self-start sm:self-auto text-xs font-semibold gap-1">
+          <Button asChild className="rounded-full self-start sm:self-auto text-xs font-bold gap-1.5 shadow-xs">
             <Link to="/learn">
-              See all chapters <ArrowRight className="size-3.5" />
+              Browse all {allChapters.length} chapters <ArrowRight className="size-3.5" />
             </Link>
           </Button>
         </div>
 
-        {/* Subject Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-border/50 pb-3">
-          {(
-            [
-              { key: "Science", label: "🔬 All Science", count: counts.Science },
-              { key: "Physics", label: "⚛️ Physics", count: counts.Physics },
-              { key: "Chemistry", label: "🧪 Chemistry", count: counts.Chemistry },
-              { key: "Biology", label: "🧬 Biology", count: counts.Biology },
-              { key: "Mathematics", label: "📐 Mathematics", count: counts.Mathematics },
-              { key: "Social Science", label: "🌍 Social Science", count: counts.SocialScience },
-              { key: "All", label: "📚 All Chapters", count: counts.All },
-            ] as const
-          ).map((tab) => {
-            const isSelected = selectedFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setSelectedFilter(tab.key)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-                  isSelected
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary/70 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                )}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={cn(
-                    "text-[10px] rounded-full px-1.5 py-0.2",
-                    isSelected ? "bg-primary-foreground/20 text-white" : "bg-card text-muted-foreground"
-                  )}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            );
-          })}
+        {/* 3 Subject Overview Cards */}
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Link to="/learn" className="group block">
+            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-primary/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Atom className="size-5" />
+                  </div>
+                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
+                    {counts.Science} Chapters
+                  </Badge>
+                </div>
+                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                  Class 9 Science
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Physics, Chemistry & Biology with story-driven audio lectures and visual notes.
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-primary gap-1 pt-2 border-t border-border/40">
+                <span>Explore Science Syllabus</span>
+                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Card>
+          </Link>
+
+          <Link to="/learn" className="group block">
+            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-blue-500/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Calculator className="size-5" />
+                  </div>
+                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
+                    {counts.Mathematics} Chapters
+                  </Badge>
+                </div>
+                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">
+                  Class 9 Mathematics
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Number Systems, Polynomials, Coordinate Geometry and intuitive formulas.
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 gap-1 pt-2 border-t border-border/40">
+                <span>Explore Math Syllabus</span>
+                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Card>
+          </Link>
+
+          <Link to="/learn" className="group block">
+            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-amber-500/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Globe className="size-5" />
+                  </div>
+                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
+                    {counts.SocialScience} Chapters
+                  </Badge>
+                </div>
+                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-amber-500 transition-colors">
+                  Class 9 Social Science
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  History, Geography, Civics & Economics concepts simplified for board mastery.
+                </p>
+              </div>
+              <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 gap-1 pt-2 border-t border-border/40">
+                <span>Explore SST Syllabus</span>
+                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Card>
+          </Link>
         </div>
 
-        {/* Chapter Grid (Strict 2-Line Format) */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredChapters.map((chapter) => {
-            const SubjectIcon =
-              chapter.subjectCategory === "Physics"
-                ? Atom
-                : chapter.subjectCategory === "Chemistry"
-                ? FlaskConical
-                : chapter.subjectCategory === "Biology"
-                ? Dna
-                : chapter.subjectCategory === "Social Science"
-                ? Globe
-                : Calculator;
+        {/* Featured Spotlight Chapters */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-primary" /> Today's Featured Chapters
+            </span>
+            <Link to="/learn" className="text-xs font-bold text-primary hover:underline">
+              View all {allChapters.length} chapters →
+            </Link>
+          </div>
 
-            return (
-              <Link key={chapter.id} to="/learn/$slug" params={{ slug: chapter.slug }} className="group block h-full">
-                <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-5 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all">
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
-                        <SubjectIcon className="size-3" />
-                        <span>{chapter.subjectCategory}</span>
-                      </span>
-                      <span className="rounded-full bg-secondary/80 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
-                        {chapter.lessonCount} lectures
-                      </span>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {spotlightChapters.map((chapter) => {
+              const Icon = chapter.icon;
+              return (
+                <Link key={chapter.id} to="/learn/$slug" params={{ slug: chapter.slug }} className="group block h-full">
+                  <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-5 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
+                          <Icon className="size-3" />
+                          <span>{chapter.subjectCategory}</span>
+                        </span>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                          {chapter.badge}
+                        </span>
+                      </div>
+
+                      <h3 className="font-display text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
+                        {chapter.title}
+                      </h3>
+
+                      <div className="space-y-1 text-xs">
+                        <p className="font-bold text-foreground/90 leading-normal">
+                          {chapter.hook}
+                        </p>
+                        <p className="text-muted-foreground leading-relaxed line-clamp-2">
+                          {chapter.outcome}
+                        </p>
+                      </div>
                     </div>
 
-                    <h3 className="font-display text-lg sm:text-xl font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
-                      {chapter.title}
-                    </h3>
-
-                    {/* Strict 2-Line Copywriting Format */}
-                    <div className="space-y-1 text-xs">
-                      <p className="font-bold text-foreground/90 leading-normal">
-                        {chapter.hook}
-                      </p>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {chapter.outcome}
-                      </p>
+                    <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                      <span className="flex items-center gap-1 text-primary">
+                        <Headphones className="size-3" /> {chapter.lessonCount} Lectures
+                      </span>
+                      <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
+                        Start Chapter <ArrowRight className="size-3" />
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                    <span className="flex items-center gap-1 text-primary">
-                      <Headphones className="size-3" /> Audio + Notes
-                    </span>
-                    <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                      Explore <ArrowRight className="size-3" />
-                    </span>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
         </div>
+
+        {/* Bottom Full-Width Explorer Banner */}
+        <Card className="rounded-3xl border-border/70 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
+          <div className="space-y-1.5 text-center sm:text-left">
+            <h3 className="text-xl font-bold tracking-tight text-foreground">
+              Ready to explore the full curriculum?
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
+              Browse all {allChapters.length} chapters organized in sequence: Subject ➔ Chapter ➔ Lessons with audio lectures and notes.
+            </p>
+          </div>
+          <Button asChild size="lg" className="rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 shrink-0 gap-2">
+            <Link to="/learn">
+              Open Curriculum Explorer <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </Card>
       </section>
 
       {/* 4.5. WHATSAPP COMMUNITY & UPDATES CHANNEL */}

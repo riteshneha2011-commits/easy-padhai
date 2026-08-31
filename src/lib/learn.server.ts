@@ -50,8 +50,67 @@ export async function completeLessonFor(userId: string, lessonId: string) {
   return { alreadyDone: false, xp: 10, credits };
 }
 
+function detectSubjectCategory(
+  slug: string,
+  title: string,
+  subjectName: string,
+  description?: string | null,
+): string {
+  const pName = (subjectName ?? "").toLowerCase();
+  if (
+    pName.includes("social") ||
+    pName.includes("history") ||
+    pName.includes("geography") ||
+    pName.includes("civics") ||
+    pName.includes("economics") ||
+    pName.includes("sst")
+  ) {
+    return "Social Science";
+  }
+  if (pName.includes("math")) {
+    return "Mathematics";
+  }
+  const text = `${slug} ${title} ${description ?? ""}`.toLowerCase();
+  if (
+    text.includes("history") ||
+    text.includes("geography") ||
+    text.includes("civics") ||
+    text.includes("economics") ||
+    text.includes("revolution") ||
+    text.includes("democracy") ||
+    text.includes("constitution") ||
+    text.includes("drainage")
+  ) {
+    return "Social Science";
+  }
+  if (
+    text.includes("atom") ||
+    text.includes("matter") ||
+    text.includes("mixture") ||
+    text.includes("chemical") ||
+    text.includes("reaction") ||
+    text.includes("solution") ||
+    text.includes("acid") ||
+    text.includes("base")
+  ) {
+    return "Chemistry";
+  }
+  if (
+    text.includes("cell") ||
+    text.includes("tissue") ||
+    text.includes("life") ||
+    text.includes("living") ||
+    text.includes("organism") ||
+    text.includes("diversity") ||
+    text.includes("reproduction")
+  ) {
+    return "Biology";
+  }
+  return "Physics";
+}
+
 export async function getDashboardFor(userId: string) {
-  const [profileRes, streakRes, progressRes, attemptsRes, badgesRes, lessonsRes, chaptersRes] =
+  const [profileRes, streakRes, progressRes, attemptsRes, badgesRes, lessonsRes, chaptersRes, subjectsRes] =
     await Promise.all([
       supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle(),
       supabaseAdmin.from("streaks").select("*").eq("user_id", userId).maybeSingle(),
@@ -64,20 +123,38 @@ export async function getDashboardFor(userId: string) {
         .limit(10),
       supabaseAdmin.from("user_badges").select("badge_code, earned_at").eq("user_id", userId),
       supabaseAdmin.from("lessons").select("id, title, chapter_id, kind").eq("published", true),
-      supabaseAdmin.from("chapters").select("id, slug, title, order_index").eq("published", true).order("order_index"),
+      supabaseAdmin
+        .from("chapters")
+        .select("id, slug, title, order_index, subject_id, description")
+        .eq("published", true)
+        .order("order_index"),
+      supabaseAdmin.from("subjects").select("id, name, slug").eq("published", true),
     ]);
 
   const done = new Set((progressRes.data ?? []).map((p) => p.lesson_id));
   const lessons = lessonsRes.data ?? [];
   const chapters = chaptersRes.data ?? [];
+  const subjects = subjectsRes.data ?? [];
 
   const chapterProgress = chapters.map((chapter) => {
     const own = lessons.filter((l) => l.chapter_id === chapter.id);
     const completed = own.filter((l) => done.has(l.id)).length;
+    const sub = subjects.find((s) => s.id === chapter.subject_id);
+    const subjectName = sub?.name ?? "Science";
+    const subjectCategory = detectSubjectCategory(
+      chapter.slug,
+      chapter.title,
+      subjectName,
+      chapter.description,
+    );
+
     return {
       id: chapter.id,
       slug: chapter.slug,
       title: chapter.title,
+      subjectId: chapter.subject_id,
+      subjectName,
+      subjectCategory,
       total: own.length,
       completed,
       percent: own.length ? Math.round((completed / own.length) * 100) : 0,

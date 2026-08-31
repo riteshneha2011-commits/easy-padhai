@@ -1,5 +1,18 @@
 import { createPublicClient } from "./db.server";
 
+export type CatalogLesson = {
+  id: string;
+  chapter_id: string;
+  title: string;
+  order_index: number;
+  kind: string | null;
+  duration_minutes: number | null;
+  hasAudio: boolean;
+  hasVideo: boolean;
+  hasPdf: boolean;
+  hasSummary: boolean;
+};
+
 export type CatalogChapter = {
   id: string;
   slug: string;
@@ -8,6 +21,7 @@ export type CatalogChapter = {
   order_index: number;
   lessonCount: number;
   testId: string | null;
+  lessons: CatalogLesson[];
 };
 
 export type CatalogSubject = {
@@ -26,7 +40,11 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
     await Promise.all([
       supabase.from("subjects").select("*").eq("published", true).order("order_index"),
       supabase.from("chapters").select("*").eq("published", true).order("order_index"),
-      supabase.from("lessons").select("id, chapter_id").eq("published", true),
+      supabase
+        .from("lessons")
+        .select("id, chapter_id, title, order_index, kind, duration_seconds, audio_url, video_url, pdf_url, summary_text")
+        .eq("published", true)
+        .order("order_index"),
       supabase.from("tests").select("id, chapter_id").eq("published", true),
     ]);
 
@@ -38,15 +56,37 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
     description: subject.description,
     chapters: (chapters ?? [])
       .filter((chapter) => chapter.subject_id === subject.id)
-      .map((chapter) => ({
-        id: chapter.id,
-        slug: chapter.slug,
-        title: chapter.title,
-        description: chapter.description,
-        order_index: chapter.order_index,
-        lessonCount: (lessons ?? []).filter((l) => l.chapter_id === chapter.id).length,
-        testId: (tests ?? []).find((t) => t.chapter_id === chapter.id && !t.description?.startsWith("lesson:"))?.id ?? null,
-      })),
+      .map((chapter) => {
+        const ownLessons = (lessons ?? [])
+          .filter((l) => l.chapter_id === chapter.id)
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+          .map((l) => ({
+            id: l.id,
+            chapter_id: l.chapter_id,
+            title: l.title,
+            order_index: l.order_index ?? 0,
+            kind: l.kind ?? "concept",
+            duration_minutes: l.duration_seconds ? Math.round(l.duration_seconds / 60) : null,
+            hasAudio: Boolean(l.audio_url),
+            hasVideo: Boolean(l.video_url),
+            hasPdf: Boolean(l.pdf_url),
+            hasSummary: Boolean(l.summary_text),
+          }));
+
+        return {
+          id: chapter.id,
+          slug: chapter.slug,
+          title: chapter.title,
+          description: chapter.description,
+          order_index: chapter.order_index,
+          lessonCount: ownLessons.length,
+          testId:
+            (tests ?? []).find(
+              (t) => t.chapter_id === chapter.id && !t.description?.startsWith("lesson:"),
+            )?.id ?? null,
+          lessons: ownLessons,
+        };
+      }),
   }));
 }
 
