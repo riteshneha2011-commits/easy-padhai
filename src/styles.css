@@ -195,3 +195,94 @@
     box-shadow: 0 18px 40px -22px color-mix(in oklab, var(--ink) 45%, transparent);
   }
 }
+
+/* Rich Markdown styling for Notes & Summaries */
+.easy-markdown {
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--foreground);
+}
+
+.easy-markdown h1,
+.easy-markdown h2,
+.easy-markdown h3,
+.easy-markdown h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--foreground);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.35;
+}
+
+.easy-markdown h1 { font-size: 1.5rem; }
+.easy-markdown h2 { font-size: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+.easy-markdown h3 { font-size: 1.1rem; color: var(--primary); }
+.easy-markdown h4 { font-size: 1rem; }
+
+.easy-markdown p {
+  margin-bottom: 0.75rem;
+}
+
+.easy-markdown strong,
+.easy-markdown b {
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.easy-markdown em,
+.easy-markdown i {
+  font-style: italic;
+  color: var(--foreground);
+  opacity: 0.95;
+}
+
+.easy-markdown ul {
+  list-style-type: disc;
+  padding-left: 1.35rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.easy-markdown ol {
+  list-style-type: decimal;
+  padding-left: 1.35rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.easy-markdown li {
+  margin-bottom: 0.35rem;
+}
+
+.easy-markdown li > ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+  list-style-type: circle;
+  padding-left: 1.15rem;
+}
+
+.easy-markdown hr {
+  border: 0;
+  border-top: 1px dashed var(--border);
+  margin: 1.25rem 0;
+  opacity: 0.8;
+}
+
+.easy-markdown blockquote {
+  border-left: 3px solid var(--primary);
+  padding-left: 0.85rem;
+  margin: 0.75rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+}
+
+.easy-markdown code {
+  font-family: monospace;
+  font-size: 0.85em;
+  background-color: var(--secondary);
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.375rem;
+  color: var(--primary);
+}
+

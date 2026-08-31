@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Headphones, FileText, BookOpen, Trash2, ArrowLeft, WifiOff, HardDrive, Play, Sparkles } from "lucide-react";
 import { listAllOfflineLessons, removeOfflineLesson, getOfflineStorageUsage, type OfflineLessonData } from "@/lib/offline-storage";
 import { MediaPlayer } from "@/components/media-player";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -208,8 +209,8 @@ function OfflinePage() {
                     <BookOpen className="size-3.5 sm:size-4 text-primary" />
                     <span>Summary & Notes</span>
                   </div>
-                  <div className="whitespace-pre-wrap rounded-2xl bg-secondary/50 p-3.5 sm:p-4 text-xs sm:text-sm leading-relaxed text-foreground/90 border border-border/50 break-words max-h-96 overflow-y-auto">
-                    {activeLesson.summary}
+                  <div className="rounded-2xl bg-card p-4 sm:p-5 text-xs sm:text-sm leading-relaxed text-foreground/90 border border-border/70 max-h-96 overflow-y-auto shadow-2xs">
+                    <MarkdownRenderer content={activeLesson.summary} />
                   </div>
                 </div>
               )}

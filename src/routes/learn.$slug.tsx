@@ -35,6 +35,7 @@ import { MediaPlayer } from "@/components/media-player";
 import { downloadLessonForOffline, isLessonOffline, removeOfflineLesson, cacheChapterMeta } from "@/lib/offline-storage";
 
 import { VictoryModal } from "@/components/victory-modal";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import { classLabel, DEFAULT_CLASS_LEVEL } from "@/lib/classes";
@@ -500,8 +501,8 @@ function LessonPanel({
       icon: BookOpen,
       hint: "Revise the key points — always free",
       render: () => (
-        <div className="whitespace-pre-wrap rounded-2xl bg-secondary/50 p-5 text-[15px] leading-relaxed text-foreground/90">
-          {lesson.summary}
+        <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs">
+          <MarkdownRenderer content={lesson.summary || ""} />
         </div>
       ),
     });
