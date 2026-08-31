@@ -59,6 +59,11 @@ import {
   FileQuestion,
   Eye,
   Save,
+  Headphones,
+  Video,
+  FileText,
+  Search,
+  Filter,
 } from "lucide-react";
 
 
@@ -236,6 +241,11 @@ function TeachPage() {
       toast.error(e.message || "Could not add question");
     }
   };
+
+  const [pubSubjectFilter, setPubSubjectFilter] = useState<string>("");
+  const [pubChapterFilter, setPubChapterFilter] = useState<string>("");
+  const [pubSearch, setPubSearch] = useState<string>("");
+  const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
 
   const [newLessonSubjectId, setNewLessonSubjectId] = useState("");
   const [newLessonChapterId, setNewLessonChapterId] = useState("");
@@ -751,305 +761,564 @@ function TeachPage() {
           </Card>
 
           <Card className="rounded-3xl border-border/80 shadow-sm">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Published content</CardTitle>
-              <CardDescription>
-                Subject-wise and Chapter-wise organized view of your curriculum.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {data.subjects.map((sub) => {
-                const subChapters = data.chapters.filter((c) => c.subject_id === sub.id);
-                return (
-                  <div key={sub.id} className="rounded-2xl border border-border/70 bg-card p-4 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
-                          {classLabel(sub.class_level)}
-                        </Badge>
-                        <h3 className="font-display text-base font-bold text-foreground">
-                          {sub.name}
-                        </h3>
-                        <span className="text-xs text-muted-foreground">
-                          ({subChapters.length} {subChapters.length === 1 ? "Chapter" : "Chapters"})
-                        </span>
-                      </div>
-                    </div>
-
-                    {subChapters.length === 0 ? (
-                      <p className="text-xs italic text-muted-foreground py-2">
-                        No chapters in this subject yet.
-                      </p>
+            <CardHeader className="pb-3 border-b border-border/40">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="font-display text-lg">Published content</CardTitle>
+                  <CardDescription>
+                    Filter by subject & chapter or collapse rows to navigate lectures effortlessly.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs font-semibold rounded-full"
+                    onClick={() => {
+                      const allCollapsed = Object.values(collapsedChapters).filter(Boolean).length > 0;
+                      if (allCollapsed) {
+                        setCollapsedChapters({});
+                      } else {
+                        const next: Record<string, boolean> = {};
+                        data.chapters.forEach((c) => {
+                          next[c.id] = true;
+                        });
+                        setCollapsedChapters(next);
+                      }
+                    }}
+                  >
+                    {Object.values(collapsedChapters).filter(Boolean).length > 0 ? (
+                      <>
+                        <ChevronDown className="size-3.5 mr-1" /> Expand All
+                      </>
                     ) : (
-                      <div className="space-y-3">
-                        {subChapters.map((c) => {
-                          const chapLessons = data.lessons.filter((l) => l.chapter_id === c.id);
-                          return (
-                            <div key={c.id} className="rounded-xl bg-secondary/50 p-3 space-y-3">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div>
-                                  <span className="text-xs font-bold text-primary mr-1.5">
-                                    Chapter {c.order_index}:
-                                  </span>
-                                  <span className="font-semibold text-sm">{c.title}</span>
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    ({chapLessons.length} {chapLessons.length === 1 ? "lesson" : "lessons"})
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 text-xs"
-                                    onClick={() => setEditChapter(editChapter === c.id ? null : c.id)}
-                                  >
-                                    {editChapter === c.id ? "Cancel" : "Edit Chapter"}
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-7 text-xs text-muted-foreground hover:text-destructive"
+                      <>
+                        <ChevronUp className="size-3.5 mr-1" /> Collapse All
+                      </>
+                    )}
+                  </Button>
+                  {(pubSubjectFilter || pubChapterFilter || pubSearch) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-full"
+                      onClick={() => {
+                        setPubSubjectFilter("");
+                        setPubChapterFilter("");
+                        setPubSearch("");
+                      }}
+                    >
+                      Reset Filter
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject & Chapter Filter Dropdowns */}
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-3 pt-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <Filter className="size-3" /> Filter by Subject
+                  </Label>
+                  <select
+                    value={pubSubjectFilter}
+                    onChange={(e) => {
+                      setPubSubjectFilter(e.target.value);
+                      setPubChapterFilter("");
+                    }}
+                    className="h-9 w-full rounded-xl border border-input bg-background px-2.5 text-xs font-medium focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">All Subjects ({data.subjects.length})</option>
+                    {data.subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({classLabel(s.class_level)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <BookOpen className="size-3" /> Filter by Chapter
+                  </Label>
+                  <select
+                    value={pubChapterFilter}
+                    onChange={(e) => setPubChapterFilter(e.target.value)}
+                    className="h-9 w-full rounded-xl border border-input bg-background px-2.5 text-xs font-medium focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="">
+                      {pubSubjectFilter ? "All Chapters in this Subject" : "All Chapters"} (
+                      {
+                        (pubSubjectFilter
+                          ? data.chapters.filter((c) => c.subject_id === pubSubjectFilter)
+                          : data.chapters
+                        ).length
+                      }
+                      )
+                    </option>
+                    {(pubSubjectFilter
+                      ? data.chapters.filter((c) => c.subject_id === pubSubjectFilter)
+                      : data.chapters
+                    ).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        #{c.order_index} {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                    <Search className="size-3" /> Quick Search
+                  </Label>
+                  <Input
+                    value={pubSearch}
+                    onChange={(e) => setPubSearch(e.target.value)}
+                    placeholder="Search chapter or lesson..."
+                    className="h-9 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6 pt-4">
+              {data.subjects
+                .filter((sub) => (pubSubjectFilter ? sub.id === pubSubjectFilter : true))
+                .map((sub) => {
+                  const subChapters = data.chapters
+                    .filter((c) => c.subject_id === sub.id)
+                    .filter((c) => {
+                      if (pubChapterFilter && c.id !== pubChapterFilter) return false;
+                      if (pubSearch.trim()) {
+                        const q = pubSearch.toLowerCase().trim();
+                        const matchChap =
+                          c.title.toLowerCase().includes(q) ||
+                          (c.slug && c.slug.toLowerCase().includes(q)) ||
+                          (c.description && c.description.toLowerCase().includes(q));
+                        const matchLesson = data.lessons.some(
+                          (l) => l.chapter_id === c.id && l.title.toLowerCase().includes(q),
+                        );
+                        return matchChap || matchLesson;
+                      }
+                      return true;
+                    });
+
+                  if (subChapters.length === 0 && (pubSubjectFilter || pubChapterFilter || pubSearch)) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={sub.id} className="rounded-2xl border border-border/70 bg-card p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wider">
+                            {classLabel(sub.class_level)}
+                          </Badge>
+                          <h3 className="font-display text-base font-bold text-foreground">
+                            {sub.name}
+                          </h3>
+                          <span className="text-xs text-muted-foreground">
+                            ({subChapters.length} {subChapters.length === 1 ? "Chapter" : "Chapters"})
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-primary"
+                          onClick={() => {
+                            setNewChapterSubjectId(sub.id);
+                            window.scrollTo({ top: 400, behavior: "smooth" });
+                          }}
+                        >
+                          <Plus className="size-3 mr-1" /> Add Chapter
+                        </Button>
+                      </div>
+
+                      {subChapters.length === 0 ? (
+                        <p className="text-xs italic text-muted-foreground py-2">
+                          No chapters in this subject match your filter.
+                        </p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {subChapters.map((c) => {
+                            const chapLessons = data.lessons.filter((l) => l.chapter_id === c.id);
+                            const isCollapsed = Boolean(collapsedChapters[c.id]) && pubChapterFilter !== c.id;
+                            const audioCount = chapLessons.filter((l) => Boolean(l.audio_url)).length;
+                            const videoCount = chapLessons.filter((l) => Boolean(l.video_url)).length;
+                            const pdfCount = chapLessons.filter((l) => Boolean(l.pdf_url)).length;
+                            const summaryCount = chapLessons.filter((l) => Boolean(l.summary)).length;
+
+                            return (
+                              <div
+                                key={c.id}
+                                className="rounded-xl border border-border/60 bg-secondary/30 transition-all hover:border-border"
+                              >
+                                {/* Chapter Header / Toggle Row */}
+                                <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+                                  <button
+                                    type="button"
                                     onClick={() =>
-                                      run(() => removeRow({ data: { table: "chapters", id: c.id } }), "Chapter deleted")
+                                      setCollapsedChapters((prev) => ({
+                                        ...prev,
+                                        [c.id]: !isCollapsed,
+                                      }))
                                     }
+                                    className="flex flex-1 min-w-[200px] items-center gap-2 text-left cursor-pointer group"
                                   >
-                                    Delete
-                                  </Button>
-                                </div>
-                              </div>
+                                    <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                                      #{c.order_index}
+                                    </span>
+                                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                                      {c.title}
+                                    </span>
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                                      {chapLessons.length} {chapLessons.length === 1 ? "lesson" : "lessons"}
+                                    </Badge>
 
-                              {editChapter === c.id && (
-                                <form
-                                  className="grid gap-3 rounded-lg border border-border/80 bg-background p-3 sm:grid-cols-2 text-xs"
-                                  onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const f = new FormData(e.currentTarget);
-                                    const title = String(f.get("title") ?? c.title);
-                                    const slug = String(f.get("slug") ?? "").trim() || slugify(title);
-                                    void run(
-                                      () =>
-                                        upsertChapter({
-                                          data: {
-                                            id: c.id,
-                                            subject_id: String(f.get("subject_id") ?? c.subject_id),
-                                            title,
-                                            slug,
-                                            description: String(f.get("description") ?? c.description ?? "") || null,
-                                            order_index: Number(f.get("order_index") ?? c.order_index ?? 1),
-                                            published: (f.get("published") as string) === "on",
-                                          },
-                                        }),
-                                      "Chapter updated",
-                                    );
-                                    setEditChapter(null);
-                                  }}
-                                >
-                                  <div className="space-y-1 sm:col-span-2">
-                                    <div className="flex items-center justify-between">
-                                      <Label className="text-xs">Title</Label>
-                                      <AiAutofill mode="chapter" />
-                                    </div>
-                                    <Input name="title" defaultValue={c.title} required className="h-8 text-xs" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Subject</Label>
-                                    <select
-                                      name="subject_id"
-                                      defaultValue={c.subject_id}
-                                      className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
-                                    >
-                                      {data.subjects.map((s) => (
-                                        <option key={s.id} value={s.id}>
-                                          {s.name} ({classLabel(s.class_level)})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Slug (URL key)</Label>
-                                    <Input name="slug" defaultValue={c.slug ?? ""} className="h-8 text-xs" />
-                                  </div>
-                                  <div className="space-y-1 sm:col-span-2">
-                                    <Label className="text-xs">Description</Label>
-                                    <Input name="description" defaultValue={c.description ?? ""} className="h-8 text-xs" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <Label className="text-xs">Order</Label>
-                                    <Input name="order_index" type="number" defaultValue={c.order_index ?? 1} className="h-8 text-xs" />
-                                  </div>
-                                  <label className="flex items-center gap-2 text-xs">
-                                    <input type="checkbox" name="published" defaultChecked={c.published} />
-                                    Published
-                                  </label>
-                                  <Button type="submit" disabled={busy} className="h-8 rounded-full sm:col-span-2 text-xs">
-                                    Save Chapter Changes
-                                  </Button>
-                                </form>
-                              )}
-
-                              {chapLessons.length > 0 && (
-                                <div className="space-y-1.5 pl-2 sm:pl-4 border-l-2 border-primary/20">
-                                  {chapLessons.map((l) => (
-                                    <div key={l.id} className="rounded-lg bg-background/80 p-2.5 text-xs">
-                                      <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-bold text-muted-foreground">
-                                            #{l.order_index}
-                                          </span>
-                                          <span className="font-medium text-foreground">{l.title}</span>
-                                          <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize">
-                                            {l.kind}
-                                          </Badge>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-6 px-2 text-[11px]"
-                                            onClick={() => setEditLesson(editLesson === l.id ? null : l.id)}
-                                          >
-                                            {editLesson === l.id ? "Cancel" : "Edit"}
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
-                                            onClick={() =>
-                                              run(() => removeRow({ data: { table: "lessons", id: l.id } }), "Lesson deleted")
-                                            }
-                                          >
-                                            Delete
-                                          </Button>
-                                        </div>
-                                      </div>
-
-                                      {editLesson === l.id && (
-                                        <form
-                                          className="mt-3 grid gap-3 border-t border-border/40 pt-3 sm:grid-cols-2"
-                                          onSubmit={(e) => {
-                                            e.preventDefault();
-                                            const f = new FormData(e.currentTarget);
-                                            void run(
-                                              () =>
-                                                upsertLesson({
-                                                  data: {
-                                                    id: l.id,
-                                                    chapter_id: String(f.get("chapter_id") ?? l.chapter_id),
-                                                    title: String(f.get("title") ?? l.title),
-                                                    kind: String(f.get("kind") ?? l.kind),
-                                                    audio_url: String(f.get("audio_url") ?? l.audio_url ?? "") || null,
-                                                    video_url: String(f.get("video_url") ?? l.video_url ?? "") || null,
-                                                    pdf_url: String(f.get("pdf_url") ?? l.pdf_url ?? "") || null,
-                                                    summary: String(f.get("summary") ?? l.summary ?? "") || null,
-                                                    duration_minutes: Number(f.get("duration_minutes") ?? l.duration_minutes),
-                                                    order_index: Number(f.get("order_index") ?? l.order_index),
-                                                    published: (f.get("published") as string) === "on",
-                                                  },
-                                                }),
-                                              "Lesson updated",
-                                            );
-                                            setEditLesson(null);
-                                          }}
-                                        >
-                                          <div className="space-y-1.5">
-                                            <Label>Title</Label>
-                                            <Input name="title" defaultValue={l.title} required />
-                                          </div>
-                                          <div className="space-y-1.5">
-                                            <Label>Kind</Label>
-                                            <select
-                                              name="kind"
-                                              defaultValue={l.kind}
-                                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                                            >
-                                              <option value="audio">Audio lecture</option>
-                                              <option value="video">Video lecture</option>
-                                              <option value="summary">Summary</option>
-                                              <option value="pdf">PDF notes</option>
-                                            </select>
-                                          </div>
-                                          <div className="space-y-1.5 sm:col-span-2">
-                                            <MediaInput
-                                              name="audio_url"
-                                              label="Audio File"
-                                              type="audio"
-                                              defaultValue={l.audio_url ?? ""}
-                                            />
-                                          </div>
-                                          <div className="space-y-1.5 sm:col-span-2">
-                                            <MediaInput
-                                              name="video_url"
-                                              label="Video File"
-                                              type="video"
-                                              defaultValue={l.video_url ?? ""}
-                                            />
-                                          </div>
-                                          <div className="space-y-1.5 sm:col-span-2">
-                                            <MediaInput
-                                              name="pdf_url"
-                                              label="PDF Document"
-                                              type="pdf"
-                                              defaultValue={l.pdf_url ?? ""}
-                                            />
-                                          </div>
-                                          <div className="space-y-1.5 sm:col-span-2">
-                                            <div className="flex items-center justify-between">
-                                              <Label>Summary notes</Label>
-                                              <AiAutofill mode="lesson" />
-                                            </div>
-                                            <Textarea
-                                              name="summary"
-                                              defaultValue={l.summary ?? ""}
-                                              placeholder="Bullet summary or key formula"
-                                              rows={3}
-                                              className="rounded-xl text-xs"
-                                            />
-                                          </div>
-                                          <div className="space-y-1.5">
-                                            <Label>Duration (min)</Label>
-                                            <Input
-                                              name="duration_minutes"
-                                              type="number"
-                                              defaultValue={l.duration_minutes}
-                                            />
-                                          </div>
-                                          <div className="space-y-1.5">
-                                            <Label>Order</Label>
-                                            <Input
-                                              name="order_index"
-                                              type="number"
-                                              defaultValue={l.order_index}
-                                            />
-                                          </div>
-                                          <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                                            <input
-                                              type="checkbox"
-                                              name="published"
-                                              defaultChecked={l.published}
-                                            />
-                                            Published
-                                          </label>
-                                          <Button
-                                            type="submit"
-                                            disabled={busy}
-                                            className="rounded-full sm:col-span-2"
-                                          >
-                                            Save Lesson Changes
-                                          </Button>
-                                        </form>
+                                    {/* Media summary badges */}
+                                    <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground ml-1">
+                                      {audioCount > 0 && (
+                                        <span className="inline-flex items-center gap-0.5 text-primary">
+                                          <Headphones className="size-3" /> {audioCount}
+                                        </span>
+                                      )}
+                                      {videoCount > 0 && (
+                                        <span className="inline-flex items-center gap-0.5 text-blue-500">
+                                          <Video className="size-3" /> {videoCount}
+                                        </span>
+                                      )}
+                                      {pdfCount > 0 && (
+                                        <span className="inline-flex items-center gap-0.5 text-orange-500">
+                                          <FileText className="size-3" /> {pdfCount}
+                                        </span>
+                                      )}
+                                      {summaryCount > 0 && (
+                                        <span className="inline-flex items-center gap-0.5 text-emerald-500">
+                                          <Sparkles className="size-3" /> {summaryCount}
+                                        </span>
                                       )}
                                     </div>
-                                  ))}
+                                  </button>
+
+                                  <div className="flex items-center gap-1.5">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2 text-[11px] font-medium"
+                                      onClick={() => {
+                                        setNewLessonSubjectId(sub.id);
+                                        setNewLessonChapterId(c.id);
+                                        window.scrollTo({ top: 600, behavior: "smooth" });
+                                      }}
+                                    >
+                                      <Plus className="size-3 mr-1" /> Add Lesson
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => setEditChapter(editChapter === c.id ? null : c.id)}
+                                    >
+                                      {editChapter === c.id ? "Cancel" : "Edit"}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                                      onClick={() =>
+                                        run(
+                                          () => removeRow({ data: { table: "chapters", id: c.id } }),
+                                          "Chapter deleted",
+                                        )
+                                      }
+                                    >
+                                      Delete
+                                    </Button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setCollapsedChapters((prev) => ({
+                                          ...prev,
+                                          [c.id]: !isCollapsed,
+                                        }))
+                                      }
+                                      className="p-1 rounded-md text-muted-foreground hover:bg-secondary transition-colors"
+                                      title={isCollapsed ? "Expand Lessons" : "Collapse Lessons"}
+                                    >
+                                      {isCollapsed ? (
+                                        <ChevronDown className="size-4" />
+                                      ) : (
+                                        <ChevronUp className="size-4" />
+                                      )}
+                                    </button>
+                                  </div>
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+
+                                {/* Edit Chapter Form */}
+                                {editChapter === c.id && (
+                                  <form
+                                    className="m-3 grid gap-3 rounded-xl border border-border/80 bg-background p-3 sm:grid-cols-2 text-xs"
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const f = new FormData(e.currentTarget);
+                                      const title = String(f.get("title") ?? c.title);
+                                      const slug = String(f.get("slug") ?? "").trim() || slugify(title);
+                                      void run(
+                                        () =>
+                                          upsertChapter({
+                                            data: {
+                                              id: c.id,
+                                              subject_id: String(f.get("subject_id") ?? c.subject_id),
+                                              title,
+                                              slug,
+                                              description: String(f.get("description") ?? c.description ?? "") || null,
+                                              order_index: Number(f.get("order_index") ?? c.order_index ?? 1),
+                                              published: (f.get("published") as string) === "on",
+                                            },
+                                          }),
+                                        "Chapter updated",
+                                      );
+                                      setEditChapter(null);
+                                    }}
+                                  >
+                                    <div className="space-y-1 sm:col-span-2">
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs">Title</Label>
+                                        <AiAutofill mode="chapter" />
+                                      </div>
+                                      <Input name="title" defaultValue={c.title} required className="h-8 text-xs" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Subject</Label>
+                                      <select
+                                        name="subject_id"
+                                        defaultValue={c.subject_id}
+                                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                                      >
+                                        {data.subjects.map((s) => (
+                                          <option key={s.id} value={s.id}>
+                                            {s.name} ({classLabel(s.class_level)})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Slug (URL key)</Label>
+                                      <Input name="slug" defaultValue={c.slug ?? ""} className="h-8 text-xs" />
+                                    </div>
+                                    <div className="space-y-1 sm:col-span-2">
+                                      <Label className="text-xs">Description</Label>
+                                      <Input name="description" defaultValue={c.description ?? ""} className="h-8 text-xs" />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Order</Label>
+                                      <Input name="order_index" type="number" defaultValue={c.order_index ?? 1} className="h-8 text-xs" />
+                                    </div>
+                                    <label className="flex items-center gap-2 text-xs">
+                                      <input type="checkbox" name="published" defaultChecked={c.published} />
+                                      Published
+                                    </label>
+                                    <Button type="submit" disabled={busy} className="h-8 rounded-full sm:col-span-2 text-xs">
+                                      Save Chapter Changes
+                                    </Button>
+                                  </form>
+                                )}
+
+                                {/* Lesson List (Collapsed/Expanded) */}
+                                {!isCollapsed && (
+                                  <div className="p-3 pt-0 space-y-2">
+                                    {chapLessons.length === 0 ? (
+                                      <p className="text-xs italic text-muted-foreground pl-3 py-1">
+                                        No lessons in this chapter yet. Click "+ Add Lesson" to publish one.
+                                      </p>
+                                    ) : (
+                                      <div className="space-y-1.5 pl-2 sm:pl-4 border-l-2 border-primary/20">
+                                        {chapLessons.map((l) => (
+                                          <div key={l.id} className="rounded-lg bg-background/90 p-2.5 text-xs shadow-xs">
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-bold text-muted-foreground">
+                                                  #{l.order_index}
+                                                </span>
+                                                <span className="font-medium text-foreground">{l.title}</span>
+                                                <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize">
+                                                  {l.kind}
+                                                </Badge>
+                                                {l.audio_url && (
+                                                  <span title="Audio available">
+                                                    <Headphones className="size-3 text-primary" />
+                                                  </span>
+                                                )}
+                                                {l.video_url && (
+                                                  <span title="Video available">
+                                                    <Video className="size-3 text-blue-500" />
+                                                  </span>
+                                                )}
+                                                {l.pdf_url && (
+                                                  <span title="PDF available">
+                                                    <FileText className="size-3 text-orange-500" />
+                                                  </span>
+                                                )}
+                                                {l.summary && (
+                                                  <span title="Summary notes available">
+                                                    <Sparkles className="size-3 text-emerald-500" />
+                                                  </span>
+                                                )}
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-6 px-2 text-[11px]"
+                                                  onClick={() => setEditLesson(editLesson === l.id ? null : l.id)}
+                                                >
+                                                  {editLesson === l.id ? "Cancel" : "Edit"}
+                                                </Button>
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  className="h-6 px-2 text-[11px] text-muted-foreground hover:text-destructive"
+                                                  onClick={() =>
+                                                    run(() => removeRow({ data: { table: "lessons", id: l.id } }), "Lesson deleted")
+                                                  }
+                                                >
+                                                  Delete
+                                                </Button>
+                                              </div>
+                                            </div>
+
+                                            {editLesson === l.id && (
+                                              <form
+                                                className="mt-3 grid gap-3 border-t border-border/40 pt-3 sm:grid-cols-2"
+                                                onSubmit={(e) => {
+                                                  e.preventDefault();
+                                                  const f = new FormData(e.currentTarget);
+                                                  void run(
+                                                    () =>
+                                                      upsertLesson({
+                                                        data: {
+                                                          id: l.id,
+                                                          chapter_id: String(f.get("chapter_id") ?? l.chapter_id),
+                                                          title: String(f.get("title") ?? l.title),
+                                                          kind: String(f.get("kind") ?? l.kind),
+                                                          audio_url: String(f.get("audio_url") ?? l.audio_url ?? "") || null,
+                                                          video_url: String(f.get("video_url") ?? l.video_url ?? "") || null,
+                                                          pdf_url: String(f.get("pdf_url") ?? l.pdf_url ?? "") || null,
+                                                          summary: String(f.get("summary") ?? l.summary ?? "") || null,
+                                                          duration_minutes: Number(f.get("duration_minutes") ?? l.duration_minutes),
+                                                          order_index: Number(f.get("order_index") ?? l.order_index),
+                                                          published: (f.get("published") as string) === "on",
+                                                        },
+                                                      }),
+                                                    "Lesson updated",
+                                                  );
+                                                  setEditLesson(null);
+                                                }}
+                                              >
+                                                <div className="space-y-1.5">
+                                                  <Label>Title</Label>
+                                                  <Input name="title" defaultValue={l.title} required />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                  <Label>Kind</Label>
+                                                  <select
+                                                    name="kind"
+                                                    defaultValue={l.kind}
+                                                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                                                  >
+                                                    <option value="audio">Audio lecture</option>
+                                                    <option value="video">Video lecture</option>
+                                                    <option value="summary">Summary</option>
+                                                    <option value="pdf">PDF notes</option>
+                                                  </select>
+                                                </div>
+                                                <div className="space-y-1.5 sm:col-span-2">
+                                                  <MediaInput
+                                                    name="audio_url"
+                                                    label="Audio File"
+                                                    type="audio"
+                                                    defaultValue={l.audio_url ?? ""}
+                                                  />
+                                                </div>
+                                                <div className="space-y-1.5 sm:col-span-2">
+                                                  <MediaInput
+                                                    name="video_url"
+                                                    label="Video File"
+                                                    type="video"
+                                                    defaultValue={l.video_url ?? ""}
+                                                  />
+                                                </div>
+                                                <div className="space-y-1.5 sm:col-span-2">
+                                                  <MediaInput
+                                                    name="pdf_url"
+                                                    label="PDF Document"
+                                                    type="pdf"
+                                                    defaultValue={l.pdf_url ?? ""}
+                                                  />
+                                                </div>
+                                                <div className="space-y-1.5 sm:col-span-2">
+                                                  <div className="flex items-center justify-between">
+                                                    <Label className="text-xs">Summary notes / formulas</Label>
+                                                    <AiAutofill mode="lesson" />
+                                                  </div>
+                                                  <Textarea
+                                                    name="summary"
+                                                    defaultValue={l.summary ?? ""}
+                                                    placeholder="Bullet summary or key formula"
+                                                    rows={3}
+                                                    className="rounded-xl text-xs"
+                                                  />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                  <Label>Duration (min)</Label>
+                                                  <Input
+                                                    name="duration_minutes"
+                                                    type="number"
+                                                    defaultValue={l.duration_minutes}
+                                                  />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                  <Label>Order</Label>
+                                                  <Input
+                                                    name="order_index"
+                                                    type="number"
+                                                    defaultValue={l.order_index}
+                                                  />
+                                                </div>
+                                                <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                                                  <input
+                                                    type="checkbox"
+                                                    name="published"
+                                                    defaultChecked={l.published}
+                                                  />
+                                                  Published
+                                                </label>
+                                                <Button
+                                                  type="submit"
+                                                  disabled={busy}
+                                                  className="rounded-full sm:col-span-2"
+                                                >
+                                                  Save Lesson Changes
+                                                </Button>
+                                              </form>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </CardContent>
           </Card>
         </TabsContent>

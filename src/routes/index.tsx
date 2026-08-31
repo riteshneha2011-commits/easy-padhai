@@ -21,6 +21,7 @@ import {
   Dna,
   Layers,
   Calculator,
+  Globe,
   Coins,
   Gift,
 } from "lucide-react";
@@ -183,23 +184,60 @@ const CHAPTER_MARKETING: Record<
   },
 };
 
-/** Smart dynamic sub-discipline detector for new Science chapters */
+/** Smart dynamic sub-discipline detector for new chapters */
 function detectSubjectCategory(
   slug: string,
   title: string,
   parentSubjectName: string,
   description?: string | null,
-): "Physics" | "Chemistry" | "Biology" | "Mathematics" {
+): "Physics" | "Chemistry" | "Biology" | "Mathematics" | "Social Science" {
   const slugKey = slug.toLowerCase().trim();
   if (CHAPTER_MARKETING[slugKey]) {
     return CHAPTER_MARKETING[slugKey].subjectCategory;
   }
 
-  if (parentSubjectName.toLowerCase().includes("math")) {
+  const pName = parentSubjectName.toLowerCase();
+  if (
+    pName.includes("social") ||
+    pName.includes("history") ||
+    pName.includes("geography") ||
+    pName.includes("civics") ||
+    pName.includes("economics") ||
+    pName.includes("pol") ||
+    pName.includes("sst")
+  ) {
+    return "Social Science";
+  }
+
+  if (pName.includes("math")) {
     return "Mathematics";
   }
 
   const text = `${slug} ${title} ${description ?? ""}`.toLowerCase();
+
+  // Social Science keywords
+  if (
+    text.includes("history") ||
+    text.includes("geography") ||
+    text.includes("civics") ||
+    text.includes("economics") ||
+    text.includes("revolution") ||
+    text.includes("democracy") ||
+    text.includes("constitution") ||
+    text.includes("drainage") ||
+    text.includes("climate") ||
+    text.includes("population") ||
+    text.includes("poverty") ||
+    text.includes("food security") ||
+    text.includes("electoral") ||
+    text.includes("monarchy") ||
+    text.includes("nazism") ||
+    text.includes("pastoralists") ||
+    text.includes("forest society") ||
+    text.includes("socialism")
+  ) {
+    return "Social Science";
+  }
 
   // Chemistry keywords
   if (
@@ -236,10 +274,8 @@ function detectSubjectCategory(
     text.includes("plant") ||
     text.includes("animal") ||
     text.includes("earth as a system") ||
-    text.includes("earth") ||
     text.includes("ecosystem") ||
     text.includes("heredity") ||
-    text.includes("bio") ||
     text.includes("health") ||
     text.includes("disease")
   ) {
@@ -250,7 +286,14 @@ function detectSubjectCategory(
   return "Physics";
 }
 
-type FilterCategory = "All" | "Science" | "Physics" | "Chemistry" | "Biology" | "Mathematics";
+type FilterCategory =
+  | "All"
+  | "Science"
+  | "Physics"
+  | "Chemistry"
+  | "Biology"
+  | "Mathematics"
+  | "Social Science";
 
 function Home() {
   const { data: subjects } = useSuspenseQuery(catalogQuery);
@@ -282,7 +325,8 @@ function Home() {
     if (selectedFilter === "All") return true;
     if (selectedFilter === "Science") {
       return (
-        c.parentSubjectName.toLowerCase().includes("science") ||
+        (c.parentSubjectName.toLowerCase().includes("science") &&
+          !c.parentSubjectName.toLowerCase().includes("social")) ||
         ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)
       );
     }
@@ -292,6 +336,12 @@ function Home() {
         c.subjectCategory === "Mathematics"
       );
     }
+    if (selectedFilter === "Social Science") {
+      return (
+        c.parentSubjectName.toLowerCase().includes("social") ||
+        c.subjectCategory === "Social Science"
+      );
+    }
     return c.subjectCategory === selectedFilter;
   });
 
@@ -299,8 +349,9 @@ function Home() {
     All: allChapters.length,
     Science: allChapters.filter(
       (c) =>
-        c.parentSubjectName.toLowerCase().includes("science") ||
-        ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)
+        (c.parentSubjectName.toLowerCase().includes("science") &&
+          !c.parentSubjectName.toLowerCase().includes("social")) ||
+        ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory),
     ).length,
     Physics: allChapters.filter((c) => c.subjectCategory === "Physics").length,
     Chemistry: allChapters.filter((c) => c.subjectCategory === "Chemistry").length,
@@ -308,7 +359,12 @@ function Home() {
     Mathematics: allChapters.filter(
       (c) =>
         c.parentSubjectName.toLowerCase().includes("math") ||
-        c.subjectCategory === "Mathematics"
+        c.subjectCategory === "Mathematics",
+    ).length,
+    SocialScience: allChapters.filter(
+      (c) =>
+        c.parentSubjectName.toLowerCase().includes("social") ||
+        c.subjectCategory === "Social Science",
     ).length,
   };
 
@@ -717,6 +773,7 @@ function Home() {
               { key: "Chemistry", label: "🧪 Chemistry", count: counts.Chemistry },
               { key: "Biology", label: "🧬 Biology", count: counts.Biology },
               { key: "Mathematics", label: "📐 Mathematics", count: counts.Mathematics },
+              { key: "Social Science", label: "🌍 Social Science", count: counts.SocialScience },
               { key: "All", label: "📚 All Chapters", count: counts.All },
             ] as const
           ).map((tab) => {
@@ -757,6 +814,8 @@ function Home() {
                 ? FlaskConical
                 : chapter.subjectCategory === "Biology"
                 ? Dna
+                : chapter.subjectCategory === "Social Science"
+                ? Globe
                 : Calculator;
 
             return (
