@@ -774,7 +774,7 @@ function Home() {
             <p className="text-xs text-muted-foreground">
               While reviewed for quality, AI can occasionally make mistakes. If you find anything, please{" "}
               <a
-                href="https://api.whatsapp.com/message/N35HRFN2XKMKE1?"
+                href="https://wa.me/917000588028?text=Hi"
                 target="_blank"
                 rel="noreferrer"
                 className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
