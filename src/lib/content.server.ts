@@ -42,7 +42,7 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
       supabase.from("chapters").select("*").eq("published", true).order("order_index"),
       supabase
         .from("lessons")
-        .select("id, chapter_id, title, order_index, kind, duration_seconds, audio_url, video_url, pdf_url, summary_text")
+        .select("id, chapter_id, title, order_index, kind, duration_minutes, audio_url, video_url, pdf_url, summary")
         .eq("published", true)
         .order("order_index"),
       supabase.from("tests").select("id, chapter_id").eq("published", true),
@@ -66,11 +66,11 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
             title: l.title,
             order_index: l.order_index ?? 0,
             kind: l.kind ?? "concept",
-            duration_minutes: l.duration_seconds ? Math.round(l.duration_seconds / 60) : null,
+            duration_minutes: l.duration_minutes ?? null,
             hasAudio: Boolean(l.audio_url),
             hasVideo: Boolean(l.video_url),
             hasPdf: Boolean(l.pdf_url),
-            hasSummary: Boolean(l.summary_text),
+            hasSummary: Boolean(l.summary),
           }));
 
         return {

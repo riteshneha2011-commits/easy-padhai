@@ -371,20 +371,60 @@ function Home() {
 
   const spotlightChapters = useMemo(() => {
     const scienceChap =
+      allChapters.find(
+        (c) =>
+          c.slug.includes("journey-inside-the-atom") ||
+          c.slug.includes("describing-motion") ||
+          c.slug.includes("atomic-foundations"),
+      ) ??
       allChapters.find((c) => ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)) ??
       allChapters[0];
+
     const mathChap =
+      allChapters.find(
+        (c) =>
+          c.slug.includes("polynomials") ||
+          c.slug.includes("numbers") ||
+          c.slug.includes("algebraic"),
+      ) ??
       allChapters.find((c) => c.subjectCategory === "Mathematics") ??
       allChapters[1];
+
     const sstChap =
+      allChapters.find(
+        (c) =>
+          c.slug.includes("democracy") ||
+          c.slug.includes("climate") ||
+          c.slug.includes("elections"),
+      ) ??
       allChapters.find((c) => c.subjectCategory === "Social Science") ??
       allChapters[2];
 
     return [
-      scienceChap ? { ...scienceChap, badge: "🔥 Trending in Science", icon: Atom } : null,
-      mathChap ? { ...mathChap, badge: "📐 Essential Maths", icon: Calculator } : null,
-      sstChap ? { ...sstChap, badge: "🌍 Core Social Science", icon: Globe } : null,
-    ].filter(Boolean) as Array<(typeof allChapters)[0] & { badge: string; icon: typeof Atom }>;
+      scienceChap
+        ? {
+            ...scienceChap,
+            badge: "🧠 High-Yield Science · Exam Favourite",
+            icon: Atom,
+          }
+        : null,
+      mathChap
+        ? {
+            ...mathChap,
+            badge: "📐 Core Foundation · Essential Concept",
+            icon: Calculator,
+          }
+        : null,
+      sstChap
+        ? {
+            ...sstChap,
+            badge: "🌍 Crucial Concept · Board Scoring",
+            icon: Globe,
+          }
+        : null,
+    ].filter(Boolean) as Array<
+      (typeof allChapters)[0] & { badge: string; icon: typeof Atom }
+    >;
   }, [allChapters]);
 
   return (
@@ -884,7 +924,7 @@ function Home() {
                           <Icon className="size-3" />
                           <span>{chapter.subjectCategory}</span>
                         </span>
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
                           {chapter.badge}
                         </span>
                       </div>
@@ -901,11 +941,23 @@ function Home() {
                           {chapter.outcome}
                         </p>
                       </div>
+
+                      {/* Included Lecture Preview */}
+                      {chapter.lessons && chapter.lessons[0] && (
+                        <div className="rounded-xl bg-secondary/60 p-2 text-[11px] flex items-center gap-2 border border-border/50">
+                          <div className="flex size-5 items-center justify-center rounded-full bg-primary/20 text-primary shrink-0">
+                            <Headphones className="size-3" />
+                          </div>
+                          <span className="font-medium text-foreground truncate">
+                            {chapter.lessons[0].title}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span className="flex items-center gap-1 text-primary">
-                        <Headphones className="size-3" /> {chapter.lessonCount} Lectures
+                      <span className="flex items-center gap-1 text-primary font-bold">
+                        <Headphones className="size-3.5" /> {chapter.lessonCount || 1} {chapter.lessonCount === 1 ? "Audio Lecture" : "Audio Lectures"}
                       </span>
                       <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
                         Start Chapter <ArrowRight className="size-3" />
