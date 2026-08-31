@@ -251,7 +251,7 @@ function Home() {
 
             <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
               Learn Class 9–12 Science on your commute, while walking, or before bed. 
-              Story-driven audio lectures prepared under the guidance of Ritesh Sir (21+ Yrs Kota Experience). 
+              Story-driven audio lectures guided by Ritesh Sir — 21+ years of teaching experience, one of the best faculty of Central India. 
               Complete with one-screen summaries and instant-feedback tests in one daily loop.
             </p>
 
@@ -774,7 +774,7 @@ function Home() {
             <p className="text-xs text-muted-foreground">
               While reviewed for quality, AI can occasionally make mistakes. If you find anything, please{" "}
               <a
-                href="https://chat.whatsapp.com/EoYLQlgFRTnAQila8ajGE7"
+                href="https://api.whatsapp.com/message/N35HRFN2XKMKE1?"
                 target="_blank"
                 rel="noreferrer"
                 className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
