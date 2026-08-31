@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Gift } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import brandLogo from "@/assets/easy-padhai-logo.png";
 import { DEFAULT_CLASS_LEVEL } from "@/lib/classes";
+import { REF_STORAGE_KEY } from "@/lib/credits";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -38,10 +40,26 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
     if (!loading && user) navigate({ to: "/dashboard", replace: true });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref") || params.get("referral");
+      if (ref) {
+        const code = ref.trim().toUpperCase();
+        setReferralCode(code);
+        window.localStorage.setItem(REF_STORAGE_KEY, code);
+      } else {
+        const cached = window.localStorage.getItem(REF_STORAGE_KEY);
+        if (cached) setReferralCode(cached);
+      }
+    }
+  }, []);
 
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
@@ -56,6 +74,9 @@ function AuthPage() {
   async function signUp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    if (referralCode.trim()) {
+      window.localStorage.setItem(REF_STORAGE_KEY, referralCode.trim().toUpperCase());
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -74,8 +95,10 @@ function AuthPage() {
     }
   }
 
-
   async function google() {
+    if (referralCode.trim()) {
+      window.localStorage.setItem(REF_STORAGE_KEY, referralCode.trim().toUpperCase());
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -175,6 +198,25 @@ function AuthPage() {
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="referralCode" className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Gift className="size-3 text-primary" /> Referral Code (optional)
+                    </Label>
+                    {referralCode && (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        🎁 +50 credits upon 1st lesson
+                      </span>
+                    )}
+                  </div>
+                  <Input
+                    id="referralCode"
+                    placeholder="e.g. EP-9X42A"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                    className="uppercase tracking-wider font-mono text-xs"
                   />
                 </div>
                 <Button type="submit" className="w-full rounded-full" disabled={busy}>

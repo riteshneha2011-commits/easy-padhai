@@ -17,6 +17,7 @@ import { SiteHeader } from "@/components/site-header";
 import { OnboardingGate } from "@/components/onboarding-gate";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPwaBanner } from "@/components/install-pwa-button";
+import { REF_STORAGE_KEY } from "@/lib/credits";
 
 
 function NotFoundComponent() {
@@ -155,15 +156,29 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then((reg) => {
-          reg.update().catch(() => {});
-        })
-        .catch((err) => {
-          console.warn("ServiceWorker registration failed:", err);
-        });
+    if (typeof window !== "undefined") {
+      // 1. Capture referral code from URL search param if present (?ref=... or ?referral=...)
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const refParam = params.get("ref") || params.get("referral");
+        if (refParam) {
+          window.localStorage.setItem(REF_STORAGE_KEY, refParam.trim().toUpperCase());
+        }
+      } catch {
+        /* storage disabled */
+      }
+
+      // 2. Register Service Worker
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((reg) => {
+            reg.update().catch(() => {});
+          })
+          .catch((err) => {
+            console.warn("ServiceWorker registration failed:", err);
+          });
+      }
     }
   }, []);
 
