@@ -69,12 +69,51 @@ const CHAPTER_MARKETING: Record<
   string,
   { subjectCategory: "Physics" | "Chemistry" | "Biology" | "Mathematics"; hook: string; outcome: string }
 > = {
-  // Science Chapters
+  // Physics Chapters
   "exploration-entering-the-world-of-secondary-science": {
     subjectCategory: "Physics",
     hook: "Science isn't memorizing — it's a method.",
     outcome: "Learn how scientists build models, test predictions, and reason with approximations.",
   },
+  "describing-motion-around-us": {
+    subjectCategory: "Physics",
+    hook: "Speed, velocity, acceleration — not the same thing.",
+    outcome: "Learn to describe motion precisely using scalars, vectors, and real Indian scientific history.",
+  },
+  "how-forces-affect-motion": {
+    subjectCategory: "Physics",
+    hook: "Nothing moves without a reason.",
+    outcome: "Understand force, inertia, and Newton's first law through tug-of-war and everyday examples.",
+  },
+  "work-energy-and-simple-machines": {
+    subjectCategory: "Physics",
+    hook: "Force alone isn't enough — work requires movement.",
+    outcome: "Master work, kinetic & potential energy, and mechanical advantage of simple machines.",
+  },
+  "sound-waves-characteristics-and-applications": {
+    subjectCategory: "Physics",
+    hook: "Vibrations that travel through matter.",
+    outcome: "Understand frequency, amplitude, wavelength, speed of sound, and ultrasound applications.",
+  },
+
+  // Chemistry Chapters
+  "exploring-mixtures-and-their-separation": {
+    subjectCategory: "Chemistry",
+    hook: "Not all mixtures are created equal.",
+    outcome: "Master solutions, solubility, and separation techniques like crystallization with real-world context.",
+  },
+  "journey-inside-the-atom-ncert": {
+    subjectCategory: "Chemistry",
+    hook: "What is matter made of at the deepest level?",
+    outcome: "Understand Thomson, Rutherford, and Bohr models, subatomic particles, and valency.",
+  },
+  "atomic-foundations-of-matter-notes": {
+    subjectCategory: "Chemistry",
+    hook: "From Dalton's postulate to modern molecular formulas.",
+    outcome: "Master laws of chemical combination, mole concept, and atomic mass calculations.",
+  },
+
+  // Biology Chapters
   "cell-the-building-block-of-life": {
     subjectCategory: "Biology",
     hook: "Every living thing starts with one cell.",
@@ -85,20 +124,20 @@ const CHAPTER_MARKETING: Record<
     hook: "Cells team up to get specialized jobs done.",
     outcome: "Compare plant and animal tissues, from xylem and phloem to blood and bone.",
   },
-  "describing-motion-around-us": {
-    subjectCategory: "Physics",
-    hook: "Speed, velocity, acceleration — not the same thing.",
-    outcome: "Learn to describe motion precisely using scalars, vectors, and real Indian scientific history.",
+  "reproduction-how-life-continues": {
+    subjectCategory: "Biology",
+    hook: "How biological blueprints pass from generation to generation.",
+    outcome: "Compare asexual and sexual reproduction modes, human reproductive systems, and lifecycle continuity.",
   },
-  "exploring-mixtures-and-their-separation": {
-    subjectCategory: "Chemistry",
-    hook: "Not all mixtures are created equal.",
-    outcome: "Master solutions, solubility, and separation techniques like crystallization with real-world context.",
+  "patterns-life-diversity-and-classification": {
+    subjectCategory: "Biology",
+    hook: "Millions of species, one unified classification tree.",
+    outcome: "Understand hierarchy of classification, 5-kingdom model, and plant/animal kingdoms.",
   },
-  "how-forces-affect-motion": {
-    subjectCategory: "Physics",
-    hook: "Nothing moves without a reason.",
-    outcome: "Understand force, inertia, and Newton's first law through tug-of-war and everyday examples.",
+  "earth-system-energy-matter-life": {
+    subjectCategory: "Biology",
+    hook: "Interconnected cycles that keep Earth alive.",
+    outcome: "Master biogeochemical cycles, solar energy flow, and ecological balance across Earth's spheres.",
   },
 
   // Mathematics Chapters
@@ -144,6 +183,73 @@ const CHAPTER_MARKETING: Record<
   },
 };
 
+/** Smart dynamic sub-discipline detector for new Science chapters */
+function detectSubjectCategory(
+  slug: string,
+  title: string,
+  parentSubjectName: string,
+  description?: string | null,
+): "Physics" | "Chemistry" | "Biology" | "Mathematics" {
+  const slugKey = slug.toLowerCase().trim();
+  if (CHAPTER_MARKETING[slugKey]) {
+    return CHAPTER_MARKETING[slugKey].subjectCategory;
+  }
+
+  if (parentSubjectName.toLowerCase().includes("math")) {
+    return "Mathematics";
+  }
+
+  const text = `${slug} ${title} ${description ?? ""}`.toLowerCase();
+
+  // Chemistry keywords
+  if (
+    text.includes("atom") ||
+    text.includes("matter") ||
+    text.includes("mixture") ||
+    text.includes("chemical") ||
+    text.includes("reaction") ||
+    text.includes("solution") ||
+    text.includes("compound") ||
+    text.includes("element") ||
+    text.includes("molecule") ||
+    text.includes("separation") ||
+    text.includes("acid") ||
+    text.includes("base") ||
+    text.includes("salt") ||
+    text.includes("electron") ||
+    text.includes("proton") ||
+    text.includes("neutron")
+  ) {
+    return "Chemistry";
+  }
+
+  // Biology keywords
+  if (
+    text.includes("cell") ||
+    text.includes("tissue") ||
+    text.includes("life") ||
+    text.includes("living") ||
+    text.includes("organism") ||
+    text.includes("diversity") ||
+    text.includes("classification") ||
+    text.includes("reproduction") ||
+    text.includes("plant") ||
+    text.includes("animal") ||
+    text.includes("earth as a system") ||
+    text.includes("earth") ||
+    text.includes("ecosystem") ||
+    text.includes("heredity") ||
+    text.includes("bio") ||
+    text.includes("health") ||
+    text.includes("disease")
+  ) {
+    return "Biology";
+  }
+
+  // Physics keywords / default for Science
+  return "Physics";
+}
+
 type FilterCategory = "All" | "Science" | "Physics" | "Chemistry" | "Biology" | "Mathematics";
 
 function Home() {
@@ -156,15 +262,16 @@ function Home() {
   const allChapters = subjects.flatMap((sub) => {
     return sub.chapters.map((chap) => {
       const slugKey = chap.slug.toLowerCase().trim();
+      const detectedCat = detectSubjectCategory(chap.slug, chap.title, sub.name, chap.description);
       const meta = CHAPTER_MARKETING[slugKey] ?? {
-        subjectCategory: sub.name.toLowerCase().includes("math") ? "Mathematics" : "Physics",
+        subjectCategory: detectedCat,
         hook: "Concept clarity without rote memorization.",
         outcome: "Master core principles with real-life intuition and instant MCQ testing.",
       };
       return {
         ...chap,
         parentSubjectName: sub.name,
-        subjectCategory: meta.subjectCategory,
+        subjectCategory: meta.subjectCategory || detectedCat,
         hook: meta.hook,
         outcome: meta.outcome,
       };
