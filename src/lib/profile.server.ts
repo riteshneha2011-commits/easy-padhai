@@ -61,6 +61,17 @@ export async function saveProfileDetailsFor(userId: string, input: ProfileDetail
   return { ok: true };
 }
 
+export async function updateClassLevelFor(userId: string, classLevel: number) {
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      class_level: classLevel,
+    })
+    .eq("id", userId);
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
 /** Admin-only: full picture of one learner — identity, credits, XP, streak and activity. */
 export async function getUserDetailFor(userId: string) {
   const [profile, auth, roles, streak, progress, attempts, unlocks, credits, referrals, badges] =

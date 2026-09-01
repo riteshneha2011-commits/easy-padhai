@@ -136,6 +136,7 @@ function TeachPage() {
   const [selectedManageTestId, setSelectedManageTestId] = useState<string | null>(null);
   const [manageQuestions, setManageQuestions] = useState<any[]>([]);
   const [loadingManageQuestions, setLoadingManageQuestions] = useState(false);
+  const [manageClassFilter, setManageClassFilter] = useState<number | "all">("all");
   const [filterQuizType, setFilterQuizType] = useState<"all" | "lesson" | "chapter">("all");
   const [manageSubjectFilter, setManageSubjectFilter] = useState<string>("all");
   const [editingQuestionState, setEditingQuestionState] = useState<Record<string, any>>({});
@@ -277,18 +278,29 @@ function TeachPage() {
     ? newLessonChapterId
     : (availableChaptersForNewLesson[0]?.id || "");
 
-  const effectiveQSubjectId = qSubjectId || data?.subjects?.[0]?.id || "";
+  const [qClassLevel, setQClassLevel] = useState<number>(9);
+
+  const subjectsForQuiz = useMemo(() => {
+    return data?.subjects?.filter((s) => s.class_level === qClassLevel) || [];
+  }, [data?.subjects, qClassLevel]);
+
+  const effectiveQSubjectId = qSubjectId && subjectsForQuiz.some((s) => s.id === qSubjectId)
+    ? qSubjectId
+    : (subjectsForQuiz[0]?.id || "");
+
   const availableChaptersForQuiz = data?.chapters?.filter((c) => c.subject_id === effectiveQSubjectId) || [];
   const effectiveQChapterId = chapterId && availableChaptersForQuiz.some((c) => c.id === chapterId)
     ? chapterId
     : (availableChaptersForQuiz[0]?.id || "");
-  const activeChapter = data?.chapters?.find((c) => c.id === effectiveQChapterId) ?? data?.chapters?.[0] ?? null;
+  const activeChapter = data?.chapters?.find((c) => c.id === effectiveQChapterId) ?? null;
 
-  const availableLessonsForQuiz = data?.lessons?.filter((l) => l.chapter_id === activeChapter?.id) || [];
+  const availableLessonsForQuiz = activeChapter
+    ? (data?.lessons?.filter((l) => l.chapter_id === activeChapter.id) || [])
+    : [];
   const effectiveQLessonId = qLessonId && availableLessonsForQuiz.some((l) => l.id === qLessonId)
     ? qLessonId
     : (availableLessonsForQuiz[0]?.id || "");
-  const activeLesson = availableLessonsForQuiz.find((l) => l.id === effectiveQLessonId) ?? availableLessonsForQuiz[0] ?? null;
+  const activeLesson = availableLessonsForQuiz.find((l) => l.id === effectiveQLessonId) ?? null;
 
   const activeTest = quizScope === "lesson" && activeLesson
     ? (data?.tests?.find((t: any) => t.lesson_id === activeLesson.id) ?? null)
@@ -1499,24 +1511,48 @@ function TeachPage() {
                 </div>
               </div>
 
-              {/* Hierarchy Selectors: Subject, Chapter, and Lesson */}
-              <div className={`grid gap-3 ${quizScope === "lesson" ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+              {/* Hierarchy Selectors: Class, Subject, Chapter, and Lesson */}
+              <div className={`grid gap-3 ${quizScope === "lesson" ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Class</Label>
+                  <select
+                    value={qClassLevel}
+                    onChange={(e) => {
+                      const lvl = Number(e.target.value);
+                      setQClassLevel(lvl);
+                      setQSubjectId("");
+                      setChapterId("");
+                      setQLessonId("");
+                    }}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+                  >
+                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                      <option key={lvl} value={lvl}>
+                        {classLabel(lvl)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold">Subject</Label>
                   <select
                     value={effectiveQSubjectId}
                     onChange={(e) => {
                       setQSubjectId(e.target.value);
-                      const filtered = data.chapters.filter((c) => c.subject_id === e.target.value);
-                      if (filtered[0]) setChapterId(filtered[0].id);
+                      setChapterId("");
+                      setQLessonId("");
                     }}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {data.subjects.map((s) => (
+                    {subjectsForQuiz.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({classLabel(s.class_level)})
                       </option>
                     ))}
+                    {subjectsForQuiz.length === 0 && (
+                      <option value="">No subjects in {classLabel(qClassLevel)}</option>
+                    )}
                   </select>
                 </div>
 
@@ -1524,7 +1560,10 @@ function TeachPage() {
                   <Label className="text-xs font-semibold">Chapter</Label>
                   <select
                     value={activeChapter?.id ?? ""}
-                    onChange={(e) => setChapterId(e.target.value)}
+                    onChange={(e) => {
+                      setChapterId(e.target.value);
+                      setQLessonId("");
+                    }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-medium"
                   >
                     {availableChaptersForQuiz.length === 0 && (
@@ -1532,7 +1571,7 @@ function TeachPage() {
                     )}
                     {availableChaptersForQuiz.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.order_index}. {c.title}
+                        #{c.order_index} {c.title}
                       </option>
                     ))}
                   </select>
@@ -1560,7 +1599,7 @@ function TeachPage() {
                         const hasQuiz = data.tests.some((t: any) => t.lesson_id === l.id);
                         return (
                           <option key={l.id} value={l.id}>
-                            {l.order_index}. {l.title} {hasQuiz ? "✓ [Quiz live]" : ""}
+                            #{l.order_index} {l.title} {hasQuiz ? "✓ [Quiz live]" : ""}
                           </option>
                         );
                       })}
@@ -2113,53 +2152,104 @@ function TeachPage() {
               </div>
 
               {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border/40 mt-3">
-                <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl">
+              <div className="space-y-3 pt-3 border-t border-border/40 mt-3">
+                {/* Class Filter Tabs */}
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setFilterQuizType("all")}
+                    onClick={() => {
+                      setManageClassFilter("all");
+                      setManageSubjectFilter("all");
+                    }}
                     className={cn(
-                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                      filterQuizType === "all" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                      "rounded-full px-3 py-1 text-xs font-bold transition-all",
+                      manageClassFilter === "all"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    All ({data?.tests?.length ?? 0})
+                    All Classes
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setFilterQuizType("lesson")}
-                    className={cn(
-                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                      filterQuizType === "lesson" ? "bg-card shadow-sm text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    ⚡ Lesson Quizzes ({data?.tests?.filter((t: any) => t.is_lesson_test).length ?? 0})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFilterQuizType("chapter")}
-                    className={cn(
-                      "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                      filterQuizType === "chapter" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    📖 Chapter Tests ({data?.tests?.filter((t: any) => !t.is_lesson_test).length ?? 0})
-                  </button>
+                  {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => {
+                        setManageClassFilter(lvl);
+                        setManageSubjectFilter("all");
+                      }}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-bold transition-all",
+                        manageClassFilter === lvl
+                          ? "bg-primary text-primary-foreground shadow-xs"
+                          : "bg-secondary text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {classLabel(lvl)}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="ml-auto flex items-center gap-2">
-                  <select
-                    value={manageSubjectFilter}
-                    onChange={(e) => setManageSubjectFilter(e.target.value)}
-                    className="h-8 rounded-xl border border-input bg-card px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="all">All Subjects</option>
-                    {data?.subjects?.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({classLabel(s.class_level)})
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setFilterQuizType("all")}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                        filterQuizType === "all" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterQuizType("lesson")}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                        filterQuizType === "lesson" ? "bg-card shadow-sm text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      ⚡ Lesson Quizzes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFilterQuizType("chapter")}
+                      className={cn(
+                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                        filterQuizType === "chapter" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      📖 Chapter Tests
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={manageSubjectFilter}
+                      onChange={(e) => setManageSubjectFilter(e.target.value)}
+                      className="h-8 rounded-xl border border-input bg-card px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      <option value="all">
+                        All Subjects (
+                        {
+                          (manageClassFilter === "all"
+                            ? data?.subjects
+                            : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
+                          )?.length ?? 0
+                        }
+                        )
                       </option>
-                    ))}
-                  </select>
+                      {(manageClassFilter === "all"
+                        ? data?.subjects
+                        : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
+                      )?.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({classLabel(s.class_level)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -2167,6 +2257,11 @@ function TeachPage() {
             <CardContent className="space-y-4">
               {(() => {
                 let filteredTests = data?.tests ?? [];
+                if (manageClassFilter !== "all") {
+                  const classSubjects = new Set((data?.subjects ?? []).filter((s) => s.class_level === manageClassFilter).map((s) => s.id));
+                  const classChapters = new Set((data?.chapters ?? []).filter((c) => classSubjects.has(c.subject_id)).map((c) => c.id));
+                  filteredTests = filteredTests.filter((t: any) => classChapters.has(t.chapter_id));
+                }
                 if (filterQuizType === "lesson") {
                   filteredTests = filteredTests.filter((t: any) => t.is_lesson_test);
                 } else if (filterQuizType === "chapter") {
@@ -2186,6 +2281,7 @@ function TeachPage() {
                         variant="outline"
                         className="rounded-full text-xs font-semibold"
                         onClick={() => {
+                          setManageClassFilter("all");
                           setFilterQuizType("all");
                           setManageSubjectFilter("all");
                         }}
