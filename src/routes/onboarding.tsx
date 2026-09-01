@@ -183,9 +183,8 @@ function OnboardingPage() {
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 {ALL_CLASS_LEVELS.map((c) => (
-                  <option key={c} value={c} disabled={!isClassActive(c)}>
-                    Class {c}
-                    {isClassActive(c) ? "" : " — coming soon"}
+                  <option key={c} value={c}>
+                    Class {c}th
                   </option>
                 ))}
               </select>

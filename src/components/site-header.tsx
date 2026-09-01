@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ClassSwitcher } from "@/components/class-switcher";
 import { getWallet } from "@/lib/credits.functions";
 import { cn } from "@/lib/utils";
 import { soundFx } from "@/lib/sound-effects";
@@ -68,7 +69,7 @@ export function SiteHeader() {
 
       <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link to="/" className="flex items-center gap-2.5">
               <img
                 src={brandMark}
@@ -79,6 +80,8 @@ export function SiteHeader() {
                 Easy Padhai
               </span>
             </Link>
+
+            <ClassSwitcher className="hidden sm:inline-flex" />
 
             <nav className="hidden md:flex items-center gap-1">
               {links.map((item) => (
@@ -208,6 +211,8 @@ export function SiteHeader() {
               </div>
             )}
 
+            <ClassSwitcher className="sm:hidden" />
+
             <button
               onClick={() => setOpen(!open)}
               className="grid size-9 place-items-center rounded-full border border-border/70 text-foreground md:hidden"
@@ -219,7 +224,12 @@ export function SiteHeader() {
 
         {open && (
           <div className="border-t border-border/70 bg-background/95 px-4 py-4 md:hidden">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between pb-3 border-b border-border/50">
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Your Class</span>
+                <ClassSwitcher />
+              </div>
+
               {links.map((item) => (
                 <Link
                   key={item.to}

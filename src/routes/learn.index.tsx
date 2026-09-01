@@ -15,8 +15,13 @@ import {
   Atom,
   Calculator,
   Globe,
+  Clock,
+  MessageCircle,
+  BellRing,
 } from "lucide-react";
 import { getCatalog } from "@/lib/content.functions";
+import { useActiveClass } from "@/hooks/use-active-class";
+import { ClassSwitcher } from "@/components/class-switcher";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +38,7 @@ export const Route = createFileRoute("/learn/")({
       {
         name: "description",
         content:
-          "Browse Class 9 to 12 Science, Maths & Social Science chapters: audio lectures, video explanations, revision summaries and tests.",
+          "Browse Class 9 to 12 Science, Maths, Physics, Chemistry, Biology & Social Science chapters: audio lectures, video explanations, revision summaries and tests.",
       },
       { property: "og:title", content: "Browse Curriculum — Easy Padhai" },
       {
@@ -47,19 +52,36 @@ export const Route = createFileRoute("/learn/")({
 });
 
 function LearnIndex() {
-  const { data: subjects } = useSuspenseQuery(catalogQuery);
+  const { data: allSubjects } = useSuspenseQuery(catalogQuery);
+  const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
 
+  // Filter subjects for active class
+  const classSubjects = useMemo(() => {
+    return allSubjects.filter((s) => s.class_level === activeClass);
+  }, [allSubjects, activeClass]);
+
+  // Check if any chapters exist for this class
+  const totalChaptersInClass = useMemo(() => {
+    return classSubjects.reduce((acc, s) => acc + (s.chapters?.length ?? 0), 0);
+  }, [classSubjects]);
+
+  const isClassComingSoon = totalChaptersInClass === 0;
+
   // Navigation & filter state
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(subjects[0]?.id ?? "");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");
 
-  // Active subject object
+  // Effective subject
   const activeSubject = useMemo(() => {
-    return subjects.find((s) => s.id === selectedSubjectId) ?? subjects[0] ?? null;
-  }, [subjects, selectedSubjectId]);
+    if (selectedSubjectId) {
+      const found = classSubjects.find((s) => s.id === selectedSubjectId);
+      if (found) return found;
+    }
+    return classSubjects[0] ?? null;
+  }, [classSubjects, selectedSubjectId]);
 
   // Chapters under active subject
   const subjectChapters = useMemo(() => {
@@ -79,7 +101,7 @@ function LearnIndex() {
   // Filtered chapters for grid / search
   const filteredGridChapters = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return subjects.flatMap((sub) =>
+    return classSubjects.flatMap((sub) =>
       sub.chapters
         .filter((chap) => {
           if (selectedSubjectId && selectedSubjectId !== "all" && sub.id !== selectedSubjectId) {
@@ -99,7 +121,7 @@ function LearnIndex() {
           classLevel: sub.class_level,
         })),
     );
-  }, [subjects, selectedSubjectId, searchQuery]);
+  }, [classSubjects, selectedSubjectId, searchQuery]);
 
   // Helper icon for subjects
   function getSubjectIcon(name: string) {
@@ -115,49 +137,137 @@ function LearnIndex() {
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12 space-y-8">
       {/* 1. Header Banner */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/60 pb-6">
-        <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-            <GraduationCap className="size-3.5" /> Class 9 Curriculum · Step-by-Step Learning
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              <GraduationCap className="size-3.5" /> {classLabel(activeClass)} Curriculum
+            </div>
+            <ClassSwitcher size="sm" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
             Curriculum Explorer
           </h1>
           <p className="text-sm text-muted-foreground max-w-xl">
-            Choose your subject, select a chapter, and dive into 10–25 minute audio lectures, video lessons, and instant tests.
+            {isClassComingSoon
+              ? `Browse planned subjects for ${classLabel(activeClass)} and get instant alerts when lectures go live.`
+              : `Choose your subject, select a chapter, and dive into 10–25 minute audio lectures, video lessons, and instant tests.`}
           </p>
         </div>
 
-        {/* View Mode Switcher */}
-        <div className="inline-flex items-center rounded-full bg-secondary/80 p-1 self-start md:self-auto border border-border/50">
-          <button
-            type="button"
-            onClick={() => setViewMode("stepper")}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-              viewMode === "stepper"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            🎯 Subject ➔ Chapter ➔ Lessons
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode("grid")}
-            className={cn(
-              "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-              viewMode === "grid"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            📚 All Chapters Grid
-          </button>
-        </div>
+        {/* View Mode Switcher (only if class has chapters) */}
+        {!isClassComingSoon && (
+          <div className="inline-flex items-center rounded-full bg-secondary/80 p-1 self-start md:self-auto border border-border/50">
+            <button
+              type="button"
+              onClick={() => setViewMode("stepper")}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
+                viewMode === "stepper"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              🎯 Subject ➔ Chapter ➔ Lessons
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
+                viewMode === "grid"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              📚 All Chapters Grid
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* If Class has no chapters yet: High-Impact Launching Soon Screen */}
+      {isClassComingSoon && (
+        <div className="space-y-8 py-2">
+          <Card className="relative overflow-hidden rounded-3xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 sm:p-10 shadow-sm">
+            <div className="max-w-2xl space-y-4">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/20 px-3.5 py-1 text-xs font-bold text-primary">
+                <Clock className="size-3.5 animate-spin" /> Recording in Progress
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+                🚀 {classLabel(activeClass)} Audio Library is Launching Soon!
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Story-driven audio lectures, formula cheat-sheets, NCERT solutions and instant chapter quizzes for <strong className="text-foreground">{classLabel(activeClass)}</strong> are being prepared under the expert guidance of <strong>Ritesh Sir</strong> (21+ years of teaching experience).
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <Button asChild size="lg" className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-md">
+                  <a href="https://chat.whatsapp.com/EoYLQlgFRTnAQila8ajGE7" target="_blank" rel="noreferrer">
+                    <BellRing className="size-4" /> Join WhatsApp VIP Alerts
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="rounded-full border-border/80 font-bold gap-2">
+                  <a href={`https://wa.me/917000588028?text=Hi%20Ritesh%20Sir,%20I%20am%20excited%20for%20${encodeURIComponent(classLabel(activeClass))}%20lectures!`} target="_blank" rel="noreferrer">
+                    <MessageCircle className="size-4 text-emerald-600" /> Chat with Ritesh Sir
+                  </a>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => switchClass(9)}
+                  className="rounded-full text-xs font-semibold text-primary hover:underline"
+                >
+                  Explore Class 9th Live Syllabus →
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Planned Subjects Grid for this Class */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <BookOpen className="size-3.5 text-primary" /> Planned Subjects for {classLabel(activeClass)}
+              </h3>
+              <span className="text-xs text-muted-foreground font-semibold">
+                {classSubjects.length} {classSubjects.length === 1 ? "Subject" : "Subjects"} in Curriculum
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {classSubjects.map((sub) => {
+                const SubIcon = getSubjectIcon(sub.name);
+                return (
+                  <Card key={sub.id} className="rounded-3xl border-border/70 p-5 bg-card space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold">
+                        <SubIcon className="size-5" />
+                      </div>
+                      <Badge variant="secondary" className="rounded-full text-[10px] font-bold">
+                        🎙️ In Production
+                      </Badge>
+                    </div>
+                    <div>
+                      <h4 className="font-display text-lg font-bold text-foreground">
+                        {sub.name}
+                      </h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {sub.description || `Comprehensive concepts, audio stories & revision notes for ${classLabel(activeClass)} ${sub.name}.`}
+                      </p>
+                    </div>
+                    <div className="pt-2 border-t border-border/40 text-[11px] font-semibold text-primary flex items-center gap-1">
+                      <Sparkles className="size-3" /> Audio + Notes + MCQs
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 2. MODE A: SEQUENTIAL DROPDOWN NAVIGATION (Subject ➔ Chapter ➔ Lesson) */}
-      {viewMode === "stepper" && (
+      {!isClassComingSoon && viewMode === "stepper" && (
         <div className="space-y-6">
           {/* Cascading Filter Bar */}
           <Card className="rounded-3xl border-border/70 shadow-sm bg-card p-4 sm:p-6">
@@ -171,14 +281,14 @@ function LearnIndex() {
                   Select Subject
                 </label>
                 <select
-                  value={selectedSubjectId}
+                  value={activeSubject?.id ?? ""}
                   onChange={(e) => {
                     setSelectedSubjectId(e.target.value);
                     setSelectedChapterId(""); // Reset chapter on subject change
                   }}
                   className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                 >
-                  {subjects.map((sub) => (
+                  {classSubjects.map((sub) => (
                     <option key={sub.id} value={sub.id}>
                       {sub.name} ({sub.chapters.length} Chapters)
                     </option>
@@ -370,7 +480,7 @@ function LearnIndex() {
       )}
 
       {/* 3. MODE B: ALL CHAPTERS GRID VIEW (Visual Overview & Search) */}
-      {viewMode === "grid" && (
+      {!isClassComingSoon && viewMode === "grid" && (
         <div className="space-y-6">
           {/* Quick Search & Subject Filter Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -387,7 +497,7 @@ function LearnIndex() {
               >
                 All Subjects
               </button>
-              {subjects.map((sub) => (
+              {classSubjects.map((sub) => (
                 <button
                   key={sub.id}
                   type="button"

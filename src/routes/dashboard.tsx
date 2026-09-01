@@ -7,6 +7,8 @@ import { getDashboard } from "@/lib/learn.functions";
 import { getRevisionCounts } from "@/lib/revision.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { levelProgress } from "@/lib/gamify";
+import { useActiveClass } from "@/hooks/use-active-class";
+import { ClassSwitcher } from "@/components/class-switcher";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -116,11 +118,17 @@ function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10 space-y-6 min-w-0 overflow-x-hidden">
-      <div>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight break-words">
-          Hi {data.profile?.full_name?.split(" ")[0] ?? "there"} 👋
-        </h1>
-        <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Here's how your learning is going.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/50">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight break-words">
+            Hi {data.profile?.full_name?.split(" ")[0] ?? "there"} 👋
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Here's how your learning is going.</p>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <span className="text-xs text-muted-foreground font-semibold">Active Class:</span>
+          <ClassSwitcher size="sm" />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 min-w-0 w-full">

@@ -242,26 +242,40 @@ function TeachPage() {
     }
   };
 
+  const [pubClassFilter, setPubClassFilter] = useState<number | "all">("all");
   const [pubSubjectFilter, setPubSubjectFilter] = useState<string>("");
   const [pubChapterFilter, setPubChapterFilter] = useState<string>("");
   const [pubSearch, setPubSearch] = useState<string>("");
   const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
 
+  const [newLessonClass, setNewLessonClass] = useState<number>(9);
   const [newLessonSubjectId, setNewLessonSubjectId] = useState("");
   const [newLessonChapterId, setNewLessonChapterId] = useState("");
   const [newLessonOrder, setNewLessonOrder] = useState<number>(1);
   const [newLessonKey, setNewLessonKey] = useState(0);
 
+  const [newChapterClass, setNewChapterClass] = useState<number>(9);
   const [newChapterSubjectId, setNewChapterSubjectId] = useState("");
   const [newChapterOrder, setNewChapterOrder] = useState<number>(1);
   const [newChapterKey, setNewChapterKey] = useState(0);
 
-  const effectiveLessonSubjectId = newLessonSubjectId || data?.subjects?.[0]?.id || "";
+  const subjectsForNewChapter = useMemo(() => {
+    return data?.subjects?.filter((s) => s.class_level === newChapterClass) || [];
+  }, [data?.subjects, newChapterClass]);
+  const effectiveSubjectId = newChapterSubjectId && subjectsForNewChapter.some((s) => s.id === newChapterSubjectId)
+    ? newChapterSubjectId
+    : (subjectsForNewChapter[0]?.id || data?.subjects?.[0]?.id || "");
+
+  const subjectsForNewLesson = useMemo(() => {
+    return data?.subjects?.filter((s) => s.class_level === newLessonClass) || [];
+  }, [data?.subjects, newLessonClass]);
+  const effectiveLessonSubjectId = newLessonSubjectId && subjectsForNewLesson.some((s) => s.id === newLessonSubjectId)
+    ? newLessonSubjectId
+    : (subjectsForNewLesson[0]?.id || data?.subjects?.[0]?.id || "");
   const availableChaptersForNewLesson = data?.chapters?.filter((c) => c.subject_id === effectiveLessonSubjectId) || [];
   const effectiveChapterId = newLessonChapterId && availableChaptersForNewLesson.some((c) => c.id === newLessonChapterId)
     ? newLessonChapterId
     : (availableChaptersForNewLesson[0]?.id || "");
-  const effectiveSubjectId = newChapterSubjectId || data?.subjects?.[0]?.id || "";
 
   const effectiveQSubjectId = qSubjectId || data?.subjects?.[0]?.id || "";
   const availableChaptersForQuiz = data?.chapters?.filter((c) => c.subject_id === effectiveQSubjectId) || [];
@@ -580,22 +594,43 @@ function TeachPage() {
                 }}
               >
                 <div className="space-y-1.5">
+                  <Label>Class</Label>
+                  <select
+                    value={newChapterClass}
+                    onChange={(e) => {
+                      const cls = Number(e.target.value);
+                      setNewChapterClass(cls);
+                      setNewChapterSubjectId("");
+                    }}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+                  >
+                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                      <option key={lvl} value={lvl}>
+                        {classLabel(lvl)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
                   <Label>Subject</Label>
                   <select
                     name="subject_id"
                     value={effectiveSubjectId}
                     onChange={(e) => setNewChapterSubjectId(e.target.value)}
                     required
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {data.subjects.map((s) => (
+                    {subjectsForNewChapter.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({classLabel(s.class_level)})
                       </option>
                     ))}
+                    {subjectsForNewChapter.length === 0 && (
+                      <option value="">No subjects in {classLabel(newChapterClass)}</option>
+                    )}
                   </select>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Order</Label>
                   <Input
                     name="order_index"
@@ -662,39 +697,61 @@ function TeachPage() {
                 }}
               >
                 <div className="space-y-1.5">
-                  <Label>Subject</Label>
+                  <Label>Class</Label>
                   <select
-                    value={effectiveLessonSubjectId}
+                    value={newLessonClass}
                     onChange={(e) => {
-                      setNewLessonSubjectId(e.target.value);
-                      const filtered = data.chapters.filter((c) => c.subject_id === e.target.value);
-                      if (filtered[0]) setNewLessonChapterId(filtered[0].id);
+                      const cls = Number(e.target.value);
+                      setNewLessonClass(cls);
+                      setNewLessonSubjectId("");
+                      setNewLessonChapterId("");
                     }}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {data.subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} ({classLabel(s.class_level)})
+                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                      <option key={lvl} value={lvl}>
+                        {classLabel(lvl)}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="space-y-1.5">
+                  <Label>Subject</Label>
+                  <select
+                    value={effectiveLessonSubjectId}
+                    onChange={(e) => {
+                      setNewLessonSubjectId(e.target.value);
+                      setNewLessonChapterId("");
+                    }}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
+                  >
+                    {subjectsForNewLesson.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({classLabel(s.class_level)})
+                      </option>
+                    ))}
+                    {subjectsForNewLesson.length === 0 && (
+                      <option value="">No subjects in {classLabel(newLessonClass)}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>Chapter</Label>
                   <select
                     name="chapter_id"
                     value={effectiveChapterId}
                     onChange={(e) => setNewLessonChapterId(e.target.value)}
                     required
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
                     {availableChaptersForNewLesson.length === 0 && (
-                      <option value="">No chapters in this subject</option>
+                      <option value="">No chapters created yet in this subject</option>
                     )}
                     {availableChaptersForNewLesson.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.title}
+                        #{c.order_index} {c.title}
                       </option>
                     ))}
                   </select>
@@ -798,13 +855,14 @@ function TeachPage() {
                       </>
                     )}
                   </Button>
-                  {(pubSubjectFilter || pubChapterFilter || pubSearch) && (
+                  {(pubClassFilter !== "all" || pubSubjectFilter || pubChapterFilter || pubSearch) && (
                     <Button
                       type="button"
                       size="sm"
                       variant="ghost"
                       className="h-8 text-xs text-muted-foreground hover:text-foreground rounded-full"
                       onClick={() => {
+                        setPubClassFilter("all");
                         setPubSubjectFilter("");
                         setPubChapterFilter("");
                         setPubSearch("");
@@ -814,6 +872,45 @@ function TeachPage() {
                     </Button>
                   )}
                 </div>
+              </div>
+
+              {/* Class Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubClassFilter("all");
+                    setPubSubjectFilter("");
+                    setPubChapterFilter("");
+                  }}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-bold transition-all",
+                    pubClassFilter === "all"
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-secondary text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  All Classes
+                </button>
+                {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => {
+                      setPubClassFilter(lvl);
+                      setPubSubjectFilter("");
+                      setPubChapterFilter("");
+                    }}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-bold transition-all",
+                      pubClassFilter === lvl
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-secondary text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {classLabel(lvl)}
+                  </button>
+                ))}
               </div>
 
               {/* Subject & Chapter Filter Dropdowns */}
@@ -830,8 +927,20 @@ function TeachPage() {
                     }}
                     className="h-9 w-full rounded-xl border border-input bg-background px-2.5 text-xs font-medium focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="">All Subjects ({data.subjects.length})</option>
-                    {data.subjects.map((s) => (
+                    <option value="">
+                      All Subjects (
+                      {
+                        (pubClassFilter === "all"
+                          ? data.subjects
+                          : data.subjects.filter((s) => s.class_level === pubClassFilter)
+                        ).length
+                      }
+                      )
+                    </option>
+                    {(pubClassFilter === "all"
+                      ? data.subjects
+                      : data.subjects.filter((s) => s.class_level === pubClassFilter)
+                    ).map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name} ({classLabel(s.class_level)})
                       </option>
@@ -853,6 +962,11 @@ function TeachPage() {
                       {
                         (pubSubjectFilter
                           ? data.chapters.filter((c) => c.subject_id === pubSubjectFilter)
+                          : pubClassFilter !== "all"
+                          ? data.chapters.filter((c) => {
+                              const s = data.subjects.find((sub) => sub.id === c.subject_id);
+                              return s?.class_level === pubClassFilter;
+                            })
                           : data.chapters
                         ).length
                       }
@@ -860,6 +974,11 @@ function TeachPage() {
                     </option>
                     {(pubSubjectFilter
                       ? data.chapters.filter((c) => c.subject_id === pubSubjectFilter)
+                      : pubClassFilter !== "all"
+                      ? data.chapters.filter((c) => {
+                          const s = data.subjects.find((sub) => sub.id === c.subject_id);
+                          return s?.class_level === pubClassFilter;
+                        })
                       : data.chapters
                     ).map((c) => (
                       <option key={c.id} value={c.id}>
@@ -885,7 +1004,11 @@ function TeachPage() {
 
             <CardContent className="space-y-6 pt-4">
               {data.subjects
-                .filter((sub) => (pubSubjectFilter ? sub.id === pubSubjectFilter : true))
+                .filter((sub) => {
+                  if (pubClassFilter !== "all" && sub.class_level !== pubClassFilter) return false;
+                  if (pubSubjectFilter && sub.id !== pubSubjectFilter) return false;
+                  return true;
+                })
                 .map((sub) => {
                   const subChapters = data.chapters
                     .filter((c) => c.subject_id === sub.id)
