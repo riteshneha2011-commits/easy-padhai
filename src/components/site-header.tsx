@@ -68,25 +68,34 @@ export function SiteHeader() {
       )}
 
       <header className="sticky top-0 z-40 w-full border-b border-border/70 bg-background/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 gap-3">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-2.5 sm:px-6 gap-2 sm:gap-3">
           {/* Left: Hamburger Drawer Button, Brand Logo & Class Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <button
               onClick={() => setOpen(true)}
               aria-label="Open Navigation Sidebar"
-              className="grid size-9 place-items-center rounded-xl border border-border/80 bg-secondary/50 text-foreground hover:bg-secondary hover:text-primary transition-all shadow-xs shrink-0"
+              className="grid size-8 sm:size-9 place-items-center rounded-xl border border-border/80 bg-secondary/60 text-foreground hover:bg-secondary hover:text-primary transition-all shadow-xs shrink-0"
               title="Open Navigation Menu"
             >
-              <Menu className="size-5" />
+              <Menu className="size-4 sm:size-5" />
             </button>
 
-            <Link to="/" className="flex items-center gap-2 shrink-0">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <img
                 src={brandMark}
                 alt="Easy Padhai"
-                className="size-8 rounded-xl object-contain shadow-sm shrink-0"
+                className="size-7 sm:size-8 rounded-xl object-contain shadow-sm shrink-0"
               />
-              <span className="font-display text-base sm:text-lg font-bold tracking-tight text-foreground">
+              {/* Stacked on mobile (< sm), Single line on desktop (sm+) */}
+              <div className="flex flex-col sm:hidden leading-none select-none text-left">
+                <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                  Easy
+                </span>
+                <span className="text-xs font-black tracking-tight text-primary">
+                  Padhai
+                </span>
+              </div>
+              <span className="hidden sm:inline font-display text-lg font-bold tracking-tight text-foreground">
                 Easy Padhai
               </span>
             </Link>
@@ -155,12 +164,12 @@ export function SiteHeader() {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   to="/wallet"
-                  className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 sm:px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 shadow-sm transition-colors hover:bg-amber-500/25 shrink-0"
+                  className="flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 sm:px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 shadow-sm transition-colors hover:bg-amber-500/25 shrink-0"
                   title="My Credits Balance"
                 >
                   <Coins className="size-3.5 text-amber-500" />
                   <span>{wallet?.balance ?? profile?.credits ?? 0}</span>
-                  <span className="hidden xs:inline">Credits</span>
+                  <span className="hidden sm:inline">Credits</span>
                 </Link>
 
                 <div
@@ -178,13 +187,13 @@ export function SiteHeader() {
                 {/* Profile Drawer Trigger Avatar */}
                 <button
                   onClick={() => setOpen(true)}
-                  className="flex items-center gap-2 rounded-full border border-border/80 bg-secondary/60 hover:bg-secondary p-1 pr-2.5 transition-all shadow-xs shrink-0"
+                  className="hidden sm:flex items-center gap-2 rounded-full border border-border/80 bg-secondary/60 hover:bg-secondary p-1 pr-2.5 transition-all shadow-xs shrink-0"
                   title="Open Navigation &amp; Profile"
                 >
                   <div className="grid size-7 place-items-center rounded-full bg-primary text-primary-foreground font-bold text-xs">
                     {profile?.full_name ? profile.full_name[0].toUpperCase() : "S"}
                   </div>
-                  <span className="hidden sm:inline text-xs font-bold text-foreground max-w-[85px] truncate">
+                  <span className="text-xs font-bold text-foreground max-w-[85px] truncate">
                     {profile?.full_name?.split(" ")[0] || "Menu"}
                   </span>
                 </button>
@@ -202,7 +211,7 @@ export function SiteHeader() {
                 <div className="hidden sm:inline-flex">
                   <ThemeToggle />
                 </div>
-                <Button asChild size="sm" className="rounded-full shadow-glow font-bold h-8 px-3.5 text-xs">
+                <Button asChild size="sm" className="rounded-full shadow-glow font-bold h-7.5 px-3 text-xs">
                   <Link to="/auth">Sign in</Link>
                 </Button>
               </div>

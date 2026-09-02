@@ -27,13 +27,13 @@ export function ClassSwitcher({ className, size = "sm", showLabel = true }: Clas
           variant="outline"
           size={size}
           className={cn(
-            "h-8.5 inline-flex items-center gap-1.5 rounded-full border-primary/30 bg-primary/5 px-3 text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary shadow-xs",
+            "h-7.5 sm:h-8.5 inline-flex items-center gap-1 sm:gap-1.5 rounded-full border-primary/30 bg-primary/5 px-2 sm:px-3 text-[11px] sm:text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary shadow-xs shrink-0",
             className,
           )}
         >
-          <GraduationCap className="size-3.5 text-primary" />
-          <span>{classLabel(activeClass)}</span>
-          <ChevronDown className="size-3 opacity-70" />
+          <GraduationCap className="size-3.5 text-primary shrink-0" />
+          <span className="truncate">{classLabel(activeClass)}</span>
+          <ChevronDown className="size-3 opacity-70 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 rounded-2xl p-1.5 shadow-xl border-border/80">
