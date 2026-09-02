@@ -55,11 +55,13 @@ function TestPage() {
 
   async function handleSave(questionId: string, selected: number | null) {
     try {
-      await saveToBank({ data: { questionId, source: "manual", selectedIndex: selected } });
+      soundFx.playClick();
       setSaved((s) => ({ ...s, [questionId]: true }));
-      toast.success("Saved to your revision bank");
+      await saveToBank({ data: { questionId, source: "manual", selectedIndex: selected } });
+      toast.success("Saved to your Revision Bank!");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save");
+      setSaved((s) => ({ ...s, [questionId]: false }));
+      toast.error(e instanceof Error ? e.message : "Could not save question");
     }
   }
 
@@ -158,7 +160,7 @@ function TestPage() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-wrap gap-2">
+        <div className="mt-6 flex flex-wrap items-center gap-2">
           <Button
             className="rounded-full"
             onClick={() => {
@@ -169,7 +171,21 @@ function TestPage() {
           >
             Retake test
           </Button>
+          {result.details.some((d) => !d.correct) && (
+            <Button asChild variant="default" className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <Link to="/revision" search={{ tab: "mistakes" }}>
+                <XCircle className="size-4 mr-1.5" />
+                View Mistake Box ({result.details.filter((d) => !d.correct).length})
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline" className="rounded-full">
+            <Link to="/revision" search={{ tab: "bank" }}>
+              <Bookmark className="size-4 mr-1.5" />
+              Open Revision Bank
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" className="rounded-full">
             <Link to="/dashboard">See my progress</Link>
           </Button>
         </div>

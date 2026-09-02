@@ -51,26 +51,34 @@ export async function saveQuestionFor(
 ) {
   const { data: existing } = await supabaseAdmin
     .from("question_saves")
-    .select("id")
+    .select("id, source")
     .eq("user_id", userId)
     .eq("question_id", questionId)
-    .eq("source", source)
     .maybeSingle();
 
   if (existing) {
-    await supabaseAdmin
+    const { error: updErr } = await supabaseAdmin
       .from("question_saves")
-      .update({ selected_index: selectedIndex, resolved_at: null })
+      .update({
+        source,
+        selected_index: selectedIndex,
+        resolved_at: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", existing.id);
+    if (updErr) console.error("Error updating question_saves:", updErr);
     return { saved: true };
   }
 
-  await supabaseAdmin.from("question_saves").insert({
+  const { error: insErr } = await supabaseAdmin.from("question_saves").insert({
     user_id: userId,
     question_id: questionId,
     source,
     selected_index: selectedIndex,
   });
+  if (insErr) {
+    console.error("Error inserting question_saves:", insErr);
+  }
   return { saved: true };
 }
 
@@ -93,6 +101,7 @@ export async function syncMistakesFor(
         .update({ resolved_at: new Date().toISOString() })
         .eq("user_id", userId)
         .eq("question_id", d.id)
+        .eq("source", "mistake")
         .is("resolved_at", null);
     }
   }
@@ -143,13 +152,13 @@ export async function listRevisionFor(userId: string) {
   const lessons = lessonsRes.data ?? [];
   const questions = questionsRes.data ?? [];
 
-  const testIds = [...new Set(questions.map((q) => q.test_id))];
+  const testIds = [...new Set(questions.map((q) => q.test_id).filter(Boolean))];
   const { data: tests } = testIds.length
     ? await supabaseAdmin.from("tests").select("id, title, chapter_id").in("id", testIds)
     : { data: [] as Array<{ id: string; title: string; chapter_id: string }> };
 
   const chapterIds = [
-    ...new Set([...lessons.map((l) => l.chapter_id), ...(tests ?? []).map((t) => t.chapter_id)]),
+    ...new Set([...lessons.map((l) => l.chapter_id), ...(tests ?? []).map((t) => t.chapter_id).filter(Boolean)]),
   ];
   const { data: chapters } = chapterIds.length
     ? await supabaseAdmin.from("chapters").select("id, slug, title").in("id", chapterIds)
@@ -183,11 +192,11 @@ export async function listRevisionFor(userId: string) {
     .map((s) => {
       const q = questionById.get(s.question_id);
       if (!q) return null;
-      const test = testById.get(q.test_id) ?? null;
-      const chapter = test ? chapterById.get(test.chapter_id) ?? null : null;
+      const test = q.test_id ? testById.get(q.test_id) ?? null : null;
+      const chapter = test?.chapter_id ? chapterById.get(test.chapter_id) ?? null : null;
       return {
         id: s.id,
-        source: s.source as QuestionSource,
+        source: (s.source || "mistake") as QuestionSource,
         questionId: q.id,
         prompt: q.prompt,
         options: (q.options ?? []) as string[],

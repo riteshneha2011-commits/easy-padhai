@@ -11,7 +11,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+type TabKey = "again" | "bank" | "mistakes";
+
 export const Route = createFileRoute("/revision")({
+  validateSearch: (search: Record<string, unknown>): { tab?: TabKey } => {
+    const tab = search.tab as TabKey;
+    return {
+      tab: ["again", "bank", "mistakes"].includes(tab) ? tab : undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "My revision — Easy Padhai" },
@@ -32,8 +40,6 @@ export const Route = createFileRoute("/revision")({
   component: RevisionPage,
 });
 
-type TabKey = "again" | "bank" | "mistakes";
-
 const RESOURCE_LABEL: Record<string, string> = {
   lesson: "Whole lesson",
   audio: "Audio",
@@ -44,15 +50,22 @@ const RESOURCE_LABEL: Record<string, string> = {
 
 function RevisionPage() {
   const { user, loading } = useAuth();
+  const search = Route.useSearch();
   const navigate = useNavigate();
   const fetchRevision = useServerFn(listRevision);
   const dropBookmark = useServerFn(removeBookmark);
   const dropQuestion = useServerFn(removeQuestionSave);
-  const [tab, setTab] = useState<TabKey>("again");
+  const [tab, setTab] = useState<TabKey>(search.tab ?? "mistakes");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
   }, [loading, user, navigate]);
+
+  useEffect(() => {
+    if (search.tab && ["again", "bank", "mistakes"].includes(search.tab)) {
+      setTab(search.tab);
+    }
+  }, [search.tab]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["revision", user?.id],
@@ -60,14 +73,27 @@ function RevisionPage() {
     enabled: Boolean(user),
   });
 
+  // Auto-switch tab if default has 0 items but another tab has items
+  useEffect(() => {
+    if (data && !search.tab) {
+      if (data.mistakes.length > 0) {
+        setTab("mistakes");
+      } else if (data.bank.length > 0) {
+        setTab("bank");
+      } else if (data.bookmarks.length > 0) {
+        setTab("again");
+      }
+    }
+  }, [data, search.tab]);
+
   if (!user || isLoading || !data) {
     return <div className="mx-auto max-w-4xl px-4 py-16 text-muted-foreground">Loading your revision…</div>;
   }
 
-  const tabs: Array<{ key: TabKey; label: string; count: number }> = [
-    { key: "again", label: "Visit again", count: data.bookmarks.length },
-    { key: "bank", label: "Revision bank", count: data.bank.length },
-    { key: "mistakes", label: "Mistake box", count: data.mistakes.length },
+  const tabs: Array<{ key: TabKey; label: string; count: number; icon: string }> = [
+    { key: "mistakes", label: "Mistake box", count: data.mistakes.length, icon: "⚠️" },
+    { key: "bank", label: "Revision bank", count: data.bank.length, icon: "💡" },
+    { key: "again", label: "Visit again", count: data.bookmarks.length, icon: "📌" },
   ];
 
   const totalPending =
@@ -85,6 +111,11 @@ function RevisionPage() {
     void refetch();
   }
 
+  function handleTabChange(newTab: TabKey) {
+    setTab(newTab);
+    void navigate({ search: { tab: newTab }, replace: true });
+  }
+
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-10">
       <h1 className="font-display text-3xl font-bold tracking-tight">My revision</h1>
@@ -99,14 +130,18 @@ function RevisionPage() {
           <button
             key={t.key}
             type="button"
-            onClick={() => setTab(t.key)}
+            onClick={() => handleTabChange(t.key)}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all",
               tab === t.key ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {t.label}
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{t.count}</span>
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+            <span className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-bold",
+              tab === t.key ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+            )}>{t.count}</span>
           </button>
         ))}
       </div>
@@ -269,11 +304,17 @@ function QuestionCard({
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button asChild size="sm" variant="outline" className="rounded-full">
-            <Link to="/test/$testId" params={{ testId: item.testId }}>
-              Retake test
-            </Link>
-          </Button>
+          {item.testId ? (
+            <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Link to="/test/$testId" params={{ testId: item.testId }}>
+                Retake test
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Link to="/learn">Browse chapters</Link>
+            </Button>
+          )}
           <Button size="sm" variant="ghost" className="rounded-full" onClick={onRemove}>
             <Trash2 className="size-4" /> {actionLabel}
           </Button>

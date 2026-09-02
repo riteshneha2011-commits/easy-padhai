@@ -281,18 +281,27 @@ function DashboardPage() {
         </CardHeader>
         <CardContent className="space-y-3 min-w-0">
           <div className="flex flex-wrap gap-2 min-w-0">
-            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
-              Visit again · {revision.data?.bookmarks ?? 0}
-            </Badge>
-            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
-              Revision bank · {revision.data?.bank ?? 0}
-            </Badge>
-            <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
-              Mistake box · {revision.data?.mistakes ?? 0}
-            </Badge>
+            <Link to="/revision" search={{ tab: "again" }}>
+              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs cursor-pointer hover:bg-secondary/80 transition-colors">
+                📌 Visit again · {revision.data?.bookmarks ?? 0}
+              </Badge>
+            </Link>
+            <Link to="/revision" search={{ tab: "bank" }}>
+              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs cursor-pointer hover:bg-secondary/80 transition-colors">
+                💡 Revision bank · {revision.data?.bank ?? 0}
+              </Badge>
+            </Link>
+            <Link to="/revision" search={{ tab: "mistakes" }}>
+              <Badge
+                variant={Number(revision.data?.mistakes ?? 0) > 0 ? "destructive" : "secondary"}
+                className="rounded-full px-3 py-1 text-xs cursor-pointer transition-colors"
+              >
+                ⚠️ Mistake box · {revision.data?.mistakes ?? 0}
+              </Badge>
+            </Link>
           </div>
           <Button asChild className="rounded-full text-xs font-semibold">
-            <Link to="/revision">Open revision hub</Link>
+            <Link to="/revision" search={{ tab: "mistakes" }}>Open revision hub</Link>
           </Button>
         </CardContent>
       </Card>
