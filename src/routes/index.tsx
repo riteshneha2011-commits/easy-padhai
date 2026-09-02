@@ -481,7 +481,7 @@ function Home() {
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-sm sm:text-base px-8 h-12">
                 <Link to={user ? "/dashboard" : "/auth"}>
-                  {user ? "Continue learning" : "Start learning free"}
+                  {user ? "Continue learning" : "Start learning completely free"}
                   <ArrowRight className="size-4 ml-1.5" />
                 </Link>
               </Button>
@@ -493,7 +493,7 @@ function Home() {
             {/* Pricing Clarity Strip */}
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-sm">
               <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>Chapter 1 of every subject is 100% free, forever. No credit card required.</span>
+              <span>🎉 100% Completely Free for Now — All Lectures, Notes &amp; Tests for ₹0</span>
             </div>
 
             {/* Confidence Metrics */}
@@ -623,37 +623,37 @@ function Home() {
         </div>
       </section>
 
-      {/* 2.5. DAILY CREDITS & FREE FOREVER PROMISE (Gamified Economy) */}
+      {/* 2.5. DAILY CREDITS & COMPLETELY FREE PROMISE */}
       <section className="mx-auto w-full max-w-6xl px-4">
         <div className="rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-2 text-center md:text-left">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                <Gift className="size-3.5" /> Keep Your Learning 100% Free Forever
+                <Gift className="size-3.5" /> 100% Completely Free for Now
               </div>
               <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground">
-                Visit regularly, learn daily &amp; get credits to keep learning for ₹0!
+                All Chapters, Audio Lectures &amp; Quizzes are Completely Free!
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
-                Easy Padhai rewards consistent students! Complete short daily audio lectures, maintain your study streak, and collect free credits every day to unlock full chapter libraries without spending a single rupee.
+                Easy Padhai is open and completely free for all students. Listen to concept-clearing audio lectures, maintain your daily study streak, and earn XP and badges without paying anything.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
               <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
-                <Coins className="size-5 text-amber-500 mb-1" />
-                <span className="text-xs font-bold text-foreground">Daily Credits</span>
-                <span className="text-[10px] text-muted-foreground">Every Session</span>
+                <Sparkles className="size-5 text-primary mb-1" />
+                <span className="text-xs font-bold text-foreground">100% Free</span>
+                <span className="text-[10px] text-muted-foreground">For Now</span>
               </div>
               <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
                 <Flame className="size-5 text-orange-500 mb-1" />
-                <span className="text-xs font-bold text-foreground">Streak Bonus</span>
-                <span className="text-[10px] text-muted-foreground">+50 XP / Coins</span>
+                <span className="text-xs font-bold text-foreground">Daily Streaks</span>
+                <span className="text-[10px] text-muted-foreground">Keep Learning</span>
               </div>
               <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
-                <Sparkles className="size-5 text-primary mb-1" />
-                <span className="text-xs font-bold text-foreground">Ch-1 Free</span>
-                <span className="text-[10px] text-muted-foreground">Every Subject</span>
+                <Coins className="size-5 text-amber-500 mb-1" />
+                <span className="text-xs font-bold text-foreground">Earn XP</span>
+                <span className="text-[10px] text-muted-foreground">Top Leaderboard</span>
               </div>
             </div>
           </div>
@@ -1052,7 +1052,7 @@ function Home() {
           <div>
             <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12">
               <Link to={user ? "/dashboard" : "/auth"}>
-                {user ? "Go to My Dashboard" : "Start Learning Free Now"}
+                {user ? "Go to My Dashboard" : "Start Learning Completely Free Now"}
                 <ArrowRight className="size-4 ml-1.5" />
               </Link>
             </Button>

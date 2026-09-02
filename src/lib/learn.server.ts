@@ -110,10 +110,10 @@ function detectSubjectCategory(
 }
 
 export async function getDashboardFor(userId: string) {
-  const [profileRes, streakRes, progressRes, attemptsRes, badgesRes, lessonsRes, chaptersRes, subjectsRes] =
+  const [profileRes, streakData, progressRes, attemptsRes, badgesRes, lessonsRes, chaptersRes, subjectsRes] =
     await Promise.all([
       supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle(),
-      supabaseAdmin.from("streaks").select("*").eq("user_id", userId).maybeSingle(),
+      touchStreak(userId, 1),
       supabaseAdmin.from("lesson_progress").select("lesson_id, completed_at").eq("user_id", userId),
       supabaseAdmin
         .from("test_attempts")
@@ -178,7 +178,7 @@ export async function getDashboardFor(userId: string) {
 
   return {
     profile: profileRes.data,
-    streak: streakRes.data,
+    streak: streakData,
     lessonsCompleted: done.size,
     attempts: attemptsRes.data ?? [],
     badges: (badgesRes.data ?? []).map((b) => ({

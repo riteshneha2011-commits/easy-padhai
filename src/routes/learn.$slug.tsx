@@ -270,8 +270,8 @@ function ChapterPage() {
                   </span>
                   <span className="block truncate text-sm font-semibold text-foreground">{lesson.title}</span>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-accent">
-                      {lesson.isFree ? "Free" : "Costs credits"}
+                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      100% Free
                     </span>
                     {lesson.test && (
                       <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
