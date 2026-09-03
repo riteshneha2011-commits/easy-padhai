@@ -108,37 +108,40 @@ export async function getLessonAccessFor(
   if (!lesson || !lesson.published) throw new Error("Lesson not found");
 
   const cost = lessonCost(lesson);
-  const free = await isFreeLesson(lesson);
+  const isFirst = await isFreeLesson(lesson);
 
-  let unlocked = free;
+  let isUnlocked = false;
   let balance = 0;
 
   if (userId) {
     balance = await getBalance(userId);
-    if (!unlocked) {
-      const { data } = await supabaseAdmin
-        .from("lesson_unlocks")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("lesson_id", lessonId)
-        .maybeSingle();
-      unlocked = Boolean(data);
-    }
+    const { data } = await supabaseAdmin
+      .from("lesson_unlocks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId)
+      .maybeSingle();
+    isUnlocked = Boolean(data);
   }
+
+  // First lesson of each chapter: Audio lecture and summary are 100% free!
+  // Subsequent lessons (or premium video/pdf) require credits earned by learning.
+  const audioUnlocked = isFirst || isUnlocked;
+  const videoUnlocked = isUnlocked;
+  const pdfUnlocked = isUnlocked;
+  const locked = !audioUnlocked;
 
   return {
     lessonId,
-    locked: !unlocked,
-    free,
+    locked,
+    free: isFirst,
     cost,
     balance,
-    media: unlocked
-      ? {
-          audio: await signMedia(lesson.audio_url),
-          video: await signMedia(lesson.video_url),
-          pdf: await signMedia(lesson.pdf_url),
-        }
-      : null,
+    media: {
+      audio: audioUnlocked ? await signMedia(lesson.audio_url) : null,
+      video: videoUnlocked ? await signMedia(lesson.video_url) : null,
+      pdf: pdfUnlocked ? await signMedia(lesson.pdf_url) : null,
+    },
   };
 }
 

@@ -270,9 +270,15 @@ function ChapterPage() {
                   </span>
                   <span className="block truncate text-sm font-semibold text-foreground">{lesson.title}</span>
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                      100% Free
-                    </span>
+                    {lesson.isFree ? (
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        🎉 Free Audio Lecture
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                        🪙 Earn Credits to Unlock
+                      </span>
+                    )}
                     {lesson.test && (
                       <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                         <Sparkles className="size-2.5" /> Quiz
@@ -682,10 +688,8 @@ function LessonPanel({
           <h3 className="mt-3 font-display text-base sm:text-lg font-bold">
             Unlock this lesson for {access?.cost ?? 0} credits
           </h3>
-          <p className="mx-auto mt-1 max-w-sm text-xs sm:text-sm text-muted-foreground">
-            Unlock once, keep it forever. You earn {CREDIT_REWARDS.lessonComplete} credits for every lesson
-            you finish, {CREDIT_REWARDS.dailyLogin} for visiting daily and {CREDIT_REWARDS.referral} for each
-            friend you invite.
+          <p className="mx-auto mt-1 max-w-md text-xs sm:text-sm text-muted-foreground">
+            100% Free learning — zero real money charged! The first audio lecture of every chapter is free. To unlock further lectures, earn free credits by visiting daily (+{CREDIT_REWARDS.dailyLogin}), completing tests (+{CREDIT_REWARDS.testSubmitted}), and inviting friends (+{CREDIT_REWARDS.referral})!
           </p>
           {signedIn ? (
             <div className="mt-4 flex flex-col items-center gap-2 w-full">

@@ -3,7 +3,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { DraftQuestion } from "./questions-parse";
 import type { ChapterInput, LessonInput, SubjectInput } from "./admin.server";
 
-export const getAdminCatalog = createServerFn({ method: "GET" })
+export const getAdminCatalog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const admin = await import("./admin.server");

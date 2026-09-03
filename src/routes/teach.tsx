@@ -108,11 +108,26 @@ function TeachPage() {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
   }, [loading, user, navigate]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch: refetchCatalog } = useQuery({
     queryKey: ["admin-catalog"],
     queryFn: () => fetchCatalog(),
     enabled: Boolean(user) && isStaff,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
   });
+
+  const refresh = async () => {
+    await refetchCatalog();
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["admin-catalog"] }),
+      qc.invalidateQueries({ queryKey: ["curriculum"] }),
+      qc.invalidateQueries({ queryKey: ["chapters"] }),
+      qc.invalidateQueries({ queryKey: ["content"] }),
+      qc.invalidateQueries({ queryKey: ["learn"] }),
+      qc.invalidateQueries({ queryKey: ["dashboard"] }),
+    ]);
+  };
 
   const [chapterId, setChapterId] = useState("");
   const [quizScope, setQuizScope] = useState<"chapter" | "lesson">("lesson");
@@ -190,7 +205,7 @@ function TeachPage() {
         },
       });
       toast.success("Question updated successfully! ✅");
-      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+      await refresh();
     } catch (e: any) {
       toast.error(e.message || "Could not save question");
     } finally {
@@ -204,7 +219,7 @@ function TeachPage() {
       await removeRow({ data: { table: "questions", id: qId } });
       toast.success("Question deleted.");
       setManageQuestions((prev) => prev.filter((q) => q.id !== qId));
-      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+      await refresh();
     } catch (e: any) {
       toast.error(e.message || "Could not delete question");
     }
@@ -237,7 +252,7 @@ function TeachPage() {
           difficulty: created.difficulty ?? "medium",
         },
       }));
-      qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+      await refresh();
     } catch (e: any) {
       toast.error(e.message || "Could not add question");
     }
@@ -331,18 +346,6 @@ function TeachPage() {
   if (isLoading || !data) return <Shell>Loading studio…</Shell>;
 
   const chapters = data.chapters;
-
-  const refresh = async () => {
-    await Promise.all([
-      qc.invalidateQueries({ queryKey: ["admin-catalog"] }),
-      qc.invalidateQueries({ queryKey: ["curriculum"] }),
-      qc.invalidateQueries({ queryKey: ["chapters"] }),
-      qc.invalidateQueries({ queryKey: ["content"] }),
-      qc.invalidateQueries({ queryKey: ["learn"] }),
-      qc.invalidateQueries({ queryKey: ["dashboard"] }),
-    ]);
-    await qc.refetchQueries({ queryKey: ["admin-catalog"] });
-  };
 
   async function run(fn: () => Promise<unknown>, message: string) {
     setBusy(true);
@@ -587,11 +590,13 @@ function TeachPage() {
                   const f = new FormData(form);
                   const title = String(f.get("title") ?? "");
                   const slug = String(f.get("slug") ?? "").trim() || slugify(title);
+                  const targetSubjectId = effectiveSubjectId;
+                  const targetClass = newChapterClass;
                   void run(
                     () =>
                       upsertChapter({
                         data: {
-                          subject_id: effectiveSubjectId,
+                          subject_id: targetSubjectId,
                           title,
                           slug,
                           description: String(f.get("description") ?? "") || null,
@@ -600,7 +605,11 @@ function TeachPage() {
                         },
                       }),
                     "Chapter created",
-                  );
+                  ).then(() => {
+                    setPubClassFilter(targetClass);
+                    setPubSubjectFilter(targetSubjectId);
+                    setPubChapterFilter("");
+                  });
                   form.reset();
                   setNewChapterKey((k) => k + 1);
                 }}
@@ -686,11 +695,14 @@ function TeachPage() {
                   e.preventDefault();
                   const form = e.currentTarget as HTMLFormElement;
                   const f = new FormData(form);
+                  const targetClass = newLessonClass;
+                  const targetSubjectId = effectiveLessonSubjectId;
+                  const targetChapterId = effectiveChapterId;
                   void run(
                     () =>
                       upsertLesson({
                         data: {
-                          chapter_id: effectiveChapterId,
+                          chapter_id: targetChapterId,
                           title: String(f.get("title") ?? ""),
                           kind: String(f.get("kind") ?? "audio"),
                           audio_url: String(f.get("audio_url") ?? "") || null,
@@ -703,7 +715,12 @@ function TeachPage() {
                         },
                       }),
                     "Lesson published",
-                  );
+                  ).then(() => {
+                    setPubClassFilter(targetClass);
+                    setPubSubjectFilter(targetSubjectId);
+                    setPubChapterFilter(targetChapterId);
+                    setCollapsedChapters((prev) => ({ ...prev, [targetChapterId]: false }));
+                  });
                   form.reset();
                   setNewLessonKey((k) => k + 1);
                 }}
