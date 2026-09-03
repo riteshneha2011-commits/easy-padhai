@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { getChapter } from "@/lib/content.functions";
 import { completeLesson, getChapterProgress } from "@/lib/learn.functions";
 import { listLessonBookmarks, toggleLessonBookmark } from "@/lib/revision.functions";
-import { getLessonAccess, getPublicLessonAccess, unlockLesson } from "@/lib/credits.functions";
+import { getLessonAccess, getPublicLessonAccess, unlockLesson, getChapterUnlocks } from "@/lib/credits.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudyHeartbeat } from "@/hooks/use-study-heartbeat";
 import { CREDIT_REWARDS } from "@/lib/credits";
@@ -134,6 +134,13 @@ function ChapterPage() {
     enabled: Boolean(user),
   });
 
+  const chapterUnlocksQuery = useQuery({
+    queryKey: ["chapter-unlocks", chapter.id, user?.id],
+    queryFn: () => getChapterUnlocks({ data: { chapterId: chapter.id } }),
+    enabled: Boolean(user),
+  });
+
+  const unlockedLessonIds = new Set(chapterUnlocksQuery.data ?? []);
   const done = new Set(progressQuery.data ?? []);
   const percent = lessons.length ? Math.round((done.size / lessons.length) * 100) : 0;
 
@@ -179,6 +186,7 @@ function ChapterPage() {
     onSuccess: (access) => {
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["lesson-access"] });
+      void queryClient.invalidateQueries({ queryKey: ["chapter-unlocks"] });
       void refresh();
       soundFx.playSuccess();
       toast.success(`Unlocked! −${access.cost} credits · yours forever`);
@@ -248,6 +256,7 @@ function ChapterPage() {
             const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
             const isDone = done.has(lesson.id);
             const isActive = active?.id === lesson.id;
+            const isUnlocked = lesson.isFree || unlockedLessonIds.has(lesson.id);
             return (
               <button
                 key={lesson.id}
@@ -260,9 +269,14 @@ function ChapterPage() {
               >
                 <span className={cn(
                   "grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors",
-                  isActive && "bg-primary text-primary-foreground font-bold"
+                  isActive && "bg-primary text-primary-foreground font-bold",
+                  !isUnlocked && !isActive && "text-amber-500/80"
                 )}>
-                  <meta.icon className="size-4 sm:size-5" />
+                  {isUnlocked ? (
+                    <meta.icon className="size-4 sm:size-5" />
+                  ) : (
+                    <Lock className="size-4 sm:size-5 text-amber-500" />
+                  )}
                 </span>
                 <span className="min-w-0 flex-1 overflow-hidden">
                   <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
@@ -274,9 +288,13 @@ function ChapterPage() {
                       <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
                         🎉 Free Audio Lecture
                       </span>
+                    ) : isUnlocked ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <Check className="size-3" /> Unlocked
+                      </span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                        🪙 Earn Credits to Unlock
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                        🪙 Unlock with Credits
                       </span>
                     )}
                     {lesson.test && (

@@ -53,6 +53,14 @@ export const recordStudySeconds = createServerFn({ method: "POST" })
     return recordStudySecondsFor(context.userId, data.lessonId, data.seconds);
   });
 
+export const getChapterUnlocks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { chapterId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { getChapterUnlocksFor } = await import("./credits.server");
+    return getChapterUnlocksFor(context.userId, data.chapterId);
+  });
+
 export const getReferralLeaderboard = createServerFn({ method: "GET" }).handler(async () => {
   const { getReferralBoard } = await import("./credits.server");
   return getReferralBoard();

@@ -95,6 +95,40 @@ export type LessonAccess = {
   media: { audio: string | null; video: string | null; pdf: string | null } | null;
 };
 
+async function isStaff(userId: string | null): Promise<boolean> {
+  if (!userId) return false;
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .in("role", ["admin", "teacher"])
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function getChapterUnlocksFor(
+  userId: string | null,
+  chapterId: string,
+): Promise<string[]> {
+  if (!userId) return [];
+  const staff = await isStaff(userId);
+  if (staff) {
+    const { data: allLessons } = await supabaseAdmin
+      .from("lessons")
+      .select("id")
+      .eq("chapter_id", chapterId);
+    return (allLessons ?? []).map((l) => l.id);
+  }
+
+  const { data: unlocks } = await supabaseAdmin
+    .from("lesson_unlocks")
+    .select("lesson_id, lessons!inner(chapter_id)")
+    .eq("user_id", userId)
+    .eq("lessons.chapter_id", chapterId);
+
+  return (unlocks ?? []).map((u) => u.lesson_id);
+}
+
 export async function getLessonAccessFor(
   userId: string | null,
   lessonId: string,
@@ -115,13 +149,18 @@ export async function getLessonAccessFor(
 
   if (userId) {
     balance = await getBalance(userId);
-    const { data } = await supabaseAdmin
-      .from("lesson_unlocks")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("lesson_id", lessonId)
-      .maybeSingle();
-    isUnlocked = Boolean(data);
+    const staff = await isStaff(userId);
+    if (staff) {
+      isUnlocked = true;
+    } else {
+      const { data } = await supabaseAdmin
+        .from("lesson_unlocks")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("lesson_id", lessonId)
+        .maybeSingle();
+      isUnlocked = Boolean(data);
+    }
   }
 
   // First lesson of each chapter: Audio lecture and summary are 100% free!
