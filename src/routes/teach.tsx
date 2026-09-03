@@ -27,6 +27,7 @@ import { MediaInput } from "@/components/media-input";
 import { AiAutofill } from "@/components/ai-autofill";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { MathText } from "@/components/markdown-renderer";
 
 import { Button } from "@/components/ui/button";
 
@@ -133,6 +134,8 @@ function TeachPage() {
   const [quizScope, setQuizScope] = useState<"chapter" | "lesson">("lesson");
   const [qLessonId, setQLessonId] = useState("");
   const [drafts, setDrafts] = useState<DraftQuestion[]>([]);
+  const [draftViewMode, setDraftViewMode] = useState<"visual" | "edit">("visual");
+  const [editingDraftIndex, setEditingDraftIndex] = useState<number | null>(null);
   const [raw, setRaw] = useState("");
   const [aiCount, setAiCount] = useState(5);
   const [aiDifficulty, setAiDifficulty] = useState("mixed");
@@ -1948,7 +1951,42 @@ function TeachPage() {
                     You can edit any question, modify options, change the correct answer, or remove questions before publishing.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center rounded-xl bg-secondary/80 p-1 border border-border/60">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftViewMode("visual");
+                        setEditingDraftIndex(null);
+                        soundFx.playClick();
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition-all",
+                        draftViewMode === "visual" && editingDraftIndex === null
+                          ? "bg-card text-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Eye className="size-3.5 text-primary" />
+                      <span>Visual Form (Formulas & Equations)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraftViewMode("edit");
+                        soundFx.playClick();
+                      }}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold transition-all",
+                        draftViewMode === "edit"
+                          ? "bg-card text-foreground shadow-xs"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Edit3 className="size-3.5" />
+                      <span>Edit Fields</span>
+                    </button>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -1964,6 +2002,7 @@ function TeachPage() {
                           difficulty: "medium",
                         },
                       ]);
+                      setEditingDraftIndex(drafts.length);
                       soundFx.playClick();
                     }}
                     className="rounded-full text-xs gap-1.5"
@@ -1988,148 +2027,283 @@ function TeachPage() {
 
               {/* Question List Cards */}
               <div className="space-y-4">
-                {drafts.map((d, i) => (
-                  <Card key={i} className="rounded-2xl border-border/80 bg-card p-4 sm:p-5 space-y-3.5 shadow-xs">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                          {i + 1}
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          Question {i + 1}
-                        </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setDrafts((prev) => prev.filter((_, x) => x !== i));
-                          soundFx.playClick();
-                        }}
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                        title="Remove question"
-                      >
-                        <Trash2 className="size-3.5 mr-1" /> Remove
-                      </Button>
-                    </div>
-
-                    {/* Question Prompt */}
-                    <div className="space-y-1">
-                      <Label className="text-xs font-semibold">Question Statement</Label>
-                      <Textarea
-                        rows={2}
-                        value={d.prompt}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setDrafts((prev) =>
-                            prev.map((item, idx) => (idx === i ? { ...item, prompt: val } : item))
-                          );
-                        }}
-                        placeholder="Enter question statement..."
-                        className="text-xs sm:text-sm font-medium rounded-xl"
-                      />
-                    </div>
-
-                    {/* 4 Options Grid */}
-                    <div className="space-y-2">
-                      <Label className="text-xs font-semibold flex items-center justify-between">
-                        <span>4 Options (Click radio button to mark correct answer)</span>
-                        <span className="text-[11px] text-primary font-bold">
-                          Option {String.fromCharCode(65 + d.correctIndex)} is marked Correct
-                        </span>
-                      </Label>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {d.options.map((opt, optIdx) => (
-                          <div
-                            key={optIdx}
-                            onClick={() => {
-                              setDrafts((prev) =>
-                                prev.map((item, idx) =>
-                                  idx === i ? { ...item, correctIndex: optIdx } : item
-                                )
-                              );
-                            }}
-                            className={`flex items-center gap-2 rounded-xl border p-2.5 transition-all cursor-pointer ${
-                              d.correctIndex === optIdx
-                                ? "border-emerald-500/60 bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                                : "border-border/70 bg-secondary/40"
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name={`correct_${i}`}
-                              checked={d.correctIndex === optIdx}
-                              onChange={() => {
-                                setDrafts((prev) =>
-                                  prev.map((item, idx) =>
-                                    idx === i ? { ...item, correctIndex: optIdx } : item
-                                  )
-                                );
+                {drafts.map((d, i) => {
+                  const isVisual = draftViewMode === "visual" && editingDraftIndex !== i;
+                  return (
+                    <Card key={i} className="rounded-2xl border-border/80 bg-card p-4 sm:p-5 space-y-3.5 shadow-xs">
+                      {/* Top Bar */}
+                      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                            {i + 1}
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Question {i + 1}
+                          </span>
+                          {d.topic && (
+                            <Badge variant="outline" className="text-[11px] font-semibold rounded-full px-2 py-0 border-primary/30 text-primary">
+                              {d.topic}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {isVisual ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingDraftIndex(i);
+                                soundFx.playClick();
                               }}
-                              className="size-4 accent-emerald-600 shrink-0"
+                              className="h-7 px-2.5 text-xs rounded-full gap-1 border-border/80 hover:bg-secondary"
+                              title="Edit question text"
+                            >
+                              <Edit3 className="size-3" />
+                              <span>Edit</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingDraftIndex(null);
+                                soundFx.playClick();
+                              }}
+                              className="h-7 px-2.5 text-xs rounded-full gap-1 border-emerald-500/50 text-emerald-600 bg-emerald-500/10 hover:bg-emerald-500/20 font-bold"
+                              title="Switch to visual preview"
+                            >
+                              <Eye className="size-3" />
+                              <span>Visual</span>
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setDrafts((prev) => prev.filter((_, x) => x !== i));
+                              soundFx.playClick();
+                            }}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive rounded-full"
+                            title="Remove question"
+                          >
+                            <Trash2 className="size-3.5 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      </div>
+
+                      {isVisual ? (
+                        /* Visual Form Mode: Equations & Symbols cleanly rendered */
+                        <div className="space-y-3.5">
+                          {/* Prompt */}
+                          <div className="rounded-xl bg-secondary/30 p-3 sm:p-4 border border-border/50">
+                            <MathText
+                              content={d.prompt || "No question statement entered"}
+                              className="text-sm sm:text-base font-semibold text-foreground leading-relaxed"
                             />
-                            <span className="font-bold text-xs shrink-0 text-muted-foreground">
-                              {String.fromCharCode(65 + optIdx)}.
-                            </span>
-                            <Input
-                              value={opt}
-                              onClick={(e) => e.stopPropagation()}
+                          </div>
+
+                          {/* 4 Options Grid */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between text-xs font-medium text-muted-foreground px-0.5">
+                              <span>4 Options (Click any option to change correct answer)</span>
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                                ✓ Option {String.fromCharCode(65 + d.correctIndex)} is marked Correct
+                              </span>
+                            </div>
+                            <div className="grid gap-2.5 sm:grid-cols-2">
+                              {d.options.map((opt, optIdx) => {
+                                const isCorrect = d.correctIndex === optIdx;
+                                return (
+                                  <div
+                                    key={optIdx}
+                                    onClick={() => {
+                                      setDrafts((prev) =>
+                                        prev.map((item, idx) =>
+                                          idx === i ? { ...item, correctIndex: optIdx } : item
+                                        )
+                                      );
+                                      soundFx.playClick();
+                                    }}
+                                    className={cn(
+                                      "flex items-start gap-2.5 rounded-xl border p-3 transition-all cursor-pointer select-none",
+                                      isCorrect
+                                        ? "border-emerald-500 bg-emerald-500/10 text-foreground ring-1 ring-emerald-500/40 shadow-xs"
+                                        : "border-border/70 bg-card hover:border-border hover:bg-secondary/40 text-foreground"
+                                    )}
+                                  >
+                                    <span
+                                      className={cn(
+                                        "grid size-5.5 shrink-0 place-items-center rounded-full text-xs font-bold mt-0.5",
+                                        isCorrect
+                                          ? "bg-emerald-600 text-white shadow-xs"
+                                          : "bg-secondary text-muted-foreground border border-border/80"
+                                      )}
+                                    >
+                                      {String.fromCharCode(65 + optIdx)}
+                                    </span>
+                                    <div className="flex-1 min-w-0 text-xs sm:text-sm font-medium pt-0.5">
+                                      <MathText content={opt || `(Option ${String.fromCharCode(65 + optIdx)} is empty)`} />
+                                    </div>
+                                    {isCorrect && (
+                                      <CheckCircle2 className="size-4 shrink-0 text-emerald-600 mt-0.5" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Explanation */}
+                          {d.explanation && (
+                            <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-xs sm:text-sm flex items-start gap-1.5">
+                              <span className="font-bold text-primary shrink-0">Explanation / Solution:</span>
+                              <div className="min-w-0 flex-1">
+                                <MathText content={d.explanation} />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* Edit Form Mode: Inputs with live math previews */
+                        <div className="space-y-3.5">
+                          {/* Question Prompt */}
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Question Statement</Label>
+                            <Textarea
+                              rows={2}
+                              value={d.prompt}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 setDrafts((prev) =>
-                                  prev.map((item, idx) =>
-                                    idx === i
-                                      ? {
-                                          ...item,
-                                          options: item.options.map((o, oI) =>
-                                            oI === optIdx ? val : o
-                                          ),
-                                        }
-                                      : item
-                                  )
+                                  prev.map((item, idx) => (idx === i ? { ...item, prompt: val } : item))
                                 );
                               }}
-                              placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                              className="h-8 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
+                              placeholder="Enter question statement (use $...$ for math)..."
+                              className="text-xs sm:text-sm font-medium rounded-xl"
                             />
+                            {(d.prompt.includes("$") || d.prompt.includes("\\")) && (
+                              <div className="rounded-lg bg-secondary/40 p-2 text-xs border border-border/60">
+                                <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-0.5">Live Math Preview:</span>
+                                <MathText content={d.prompt} />
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    {/* Topic & Explanation */}
-                    <div className="grid gap-3 sm:grid-cols-2 pt-1">
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-muted-foreground">Topic Tag</Label>
-                        <Input
-                          value={d.topic ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setDrafts((prev) =>
-                              prev.map((item, idx) => (idx === i ? { ...item, topic: val } : item))
-                            );
-                          }}
-                          placeholder="e.g. Photosynthesis / गति के नियम"
-                          className="h-8 text-xs rounded-xl"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs font-semibold text-muted-foreground">Explanation / Solution</Label>
-                        <Input
-                          value={d.explanation ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setDrafts((prev) =>
-                              prev.map((item, idx) => (idx === i ? { ...item, explanation: val } : item))
-                            );
-                          }}
-                          placeholder="Short explanation for student review..."
-                          className="h-8 text-xs rounded-xl"
-                        />
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                          {/* 4 Options Grid */}
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold flex items-center justify-between">
+                              <span>4 Options (Click radio button to mark correct answer)</span>
+                              <span className="text-[11px] text-primary font-bold">
+                                Option {String.fromCharCode(65 + d.correctIndex)} is marked Correct
+                              </span>
+                            </Label>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {d.options.map((opt, optIdx) => (
+                                <div
+                                  key={optIdx}
+                                  onClick={() => {
+                                    setDrafts((prev) =>
+                                      prev.map((item, idx) =>
+                                        idx === i ? { ...item, correctIndex: optIdx } : item
+                                      )
+                                    );
+                                  }}
+                                  className={`flex flex-col gap-1 rounded-xl border p-2.5 transition-all cursor-pointer ${
+                                    d.correctIndex === optIdx
+                                      ? "border-emerald-500/60 bg-emerald-500/10 ring-1 ring-emerald-500/30"
+                                      : "border-border/70 bg-secondary/40"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="radio"
+                                      name={`correct_${i}`}
+                                      checked={d.correctIndex === optIdx}
+                                      onChange={() => {
+                                        setDrafts((prev) =>
+                                          prev.map((item, idx) =>
+                                            idx === i ? { ...item, correctIndex: optIdx } : item
+                                          )
+                                        );
+                                      }}
+                                      className="size-4 accent-emerald-600 shrink-0"
+                                    />
+                                    <span className="font-bold text-xs shrink-0 text-muted-foreground">
+                                      {String.fromCharCode(65 + optIdx)}.
+                                    </span>
+                                    <Input
+                                      value={opt}
+                                      onClick={(e) => e.stopPropagation()}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setDrafts((prev) =>
+                                          prev.map((item, idx) =>
+                                            idx === i
+                                              ? {
+                                                  ...item,
+                                                  options: item.options.map((o, oI) =>
+                                                    oI === optIdx ? val : o
+                                                  ),
+                                                }
+                                              : item
+                                          )
+                                        );
+                                      }}
+                                      placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                      className="h-8 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
+                                    />
+                                  </div>
+                                  {(opt.includes("$") || opt.includes("\\")) && (
+                                    <div className="text-xs bg-background/80 rounded-md px-2 py-1 ml-6 border border-border/40">
+                                      <MathText content={opt} />
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Topic & Explanation */}
+                          <div className="grid gap-3 sm:grid-cols-2 pt-1">
+                            <div className="space-y-1">
+                              <Label className="text-xs font-semibold text-muted-foreground">Topic Tag</Label>
+                              <Input
+                                value={d.topic ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setDrafts((prev) =>
+                                    prev.map((item, idx) => (idx === i ? { ...item, topic: val } : item))
+                                  );
+                                }}
+                                placeholder="e.g. Photosynthesis / गति के नियम"
+                                className="h-8 text-xs rounded-xl"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs font-semibold text-muted-foreground">Explanation / Solution</Label>
+                              <Input
+                                value={d.explanation ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setDrafts((prev) =>
+                                    prev.map((item, idx) => (idx === i ? { ...item, explanation: val } : item))
+                                  );
+                                }}
+                                placeholder="Short explanation for student review..."
+                                className="h-8 text-xs rounded-xl"
+                              />
+                              {(d.explanation?.includes("$") || d.explanation?.includes("\\")) && (
+                                <div className="text-xs bg-secondary/40 rounded-md px-2 py-1 border border-border/40">
+                                  <MathText content={d.explanation} />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
 
               {/* Save & Publish Action Bar */}
@@ -2505,6 +2679,12 @@ function TeachPage() {
                                         }}
                                         className="text-xs sm:text-sm rounded-xl font-medium"
                                       />
+                                      {(qState.prompt.includes("$") || qState.prompt.includes("\\")) && (
+                                        <div className="rounded-lg bg-secondary/40 p-2 text-xs border border-border/60">
+                                          <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-0.5">Live Math Preview:</span>
+                                          <MathText content={qState.prompt} />
+                                        </div>
+                                      )}
                                     </div>
 
                                     {/* 4 Options Grid */}
@@ -2517,43 +2697,50 @@ function TeachPage() {
                                             <div
                                               key={optIdx}
                                               className={cn(
-                                                "flex items-center gap-2 rounded-xl border p-2 text-xs transition-all",
+                                                "flex flex-col gap-1 rounded-xl border p-2 text-xs transition-all",
                                                 isCorrect
                                                   ? "border-emerald-500 bg-emerald-500/10 dark:bg-emerald-950/30"
                                                   : "border-border/60 bg-secondary/30"
                                               )}
                                             >
-                                              <input
-                                                type="radio"
-                                                name={`correct_manage_${q.id}`}
-                                                checked={isCorrect}
-                                                onChange={() => {
-                                                  setEditingQuestionState((prev) => ({
-                                                    ...prev,
-                                                    [q.id]: { ...prev[q.id], correct_index: optIdx },
-                                                  }));
-                                                }}
-                                                className="size-4 accent-emerald-600 shrink-0"
-                                              />
-                                              <span className="font-bold text-xs shrink-0 text-muted-foreground">
-                                                {String.fromCharCode(65 + optIdx)}.
-                                              </span>
-                                              <Input
-                                                value={opt}
-                                                onChange={(e) => {
-                                                  const val = e.target.value;
-                                                  setEditingQuestionState((prev) => {
-                                                    const currentOpts = [...(prev[q.id]?.options || [])];
-                                                    currentOpts[optIdx] = val;
-                                                    return {
+                                              <div className="flex items-center gap-2">
+                                                <input
+                                                  type="radio"
+                                                  name={`correct_manage_${q.id}`}
+                                                  checked={isCorrect}
+                                                  onChange={() => {
+                                                    setEditingQuestionState((prev) => ({
                                                       ...prev,
-                                                      [q.id]: { ...prev[q.id], options: currentOpts },
-                                                    };
-                                                  });
-                                                }}
-                                                placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                                                className="h-7 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
-                                              />
+                                                      [q.id]: { ...prev[q.id], correct_index: optIdx },
+                                                    }));
+                                                  }}
+                                                  className="size-4 accent-emerald-600 shrink-0"
+                                                />
+                                                <span className="font-bold text-xs shrink-0 text-muted-foreground">
+                                                  {String.fromCharCode(65 + optIdx)}.
+                                                </span>
+                                                <Input
+                                                  value={opt}
+                                                  onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setEditingQuestionState((prev) => {
+                                                      const currentOpts = [...(prev[q.id]?.options || [])];
+                                                      currentOpts[optIdx] = val;
+                                                      return {
+                                                        ...prev,
+                                                        [q.id]: { ...prev[q.id], options: currentOpts },
+                                                      };
+                                                    });
+                                                  }}
+                                                  placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                                                  className="h-7 text-xs bg-background rounded-lg border-0 shadow-none focus-visible:ring-1"
+                                                />
+                                              </div>
+                                              {(opt.includes("$") || opt.includes("\\")) && (
+                                                <div className="text-xs bg-background/80 rounded-md px-2 py-1 ml-6 border border-border/40">
+                                                  <MathText content={opt} />
+                                                </div>
+                                              )}
                                             </div>
                                           );
                                         })}
@@ -2588,9 +2775,14 @@ function TeachPage() {
                                               [q.id]: { ...prev[q.id], explanation: val },
                                             }));
                                           }}
-                                          placeholder="Explanation for student..."
+                                          placeholder="Explanation..."
                                           className="h-7 text-xs rounded-xl"
                                         />
+                                        {(qState.explanation?.includes("$") || qState.explanation?.includes("\\")) && (
+                                          <div className="text-xs bg-secondary/40 rounded-md px-2 py-1 border border-border/40">
+                                            <MathText content={qState.explanation} />
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
                                   </Card>
