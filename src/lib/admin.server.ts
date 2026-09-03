@@ -513,12 +513,32 @@ Return strict JSON: {"summary":"crisp revision summary of this lesson in 60-110 
 export async function createAdminSignedUploadUrl(input: {
   fileName: string;
   folder: string;
+  contentType?: string;
 }) {
+  const { isR2Configured, createR2UploadUrl } = await import("./r2.server");
+  if (isR2Configured()) {
+    try {
+      const r2Res = await createR2UploadUrl(input.fileName, input.folder, input.contentType);
+      return {
+        provider: "r2" as const,
+        uploadUrl: r2Res.uploadUrl,
+        storageRef: r2Res.storageRef,
+        path: r2Res.key,
+        token: undefined,
+      };
+    } catch (err) {
+      console.warn("R2 presigned URL generation failed, falling back to Supabase storage:", err);
+    }
+  }
+
+  // Fallback to Supabase storage
   const ext = input.fileName.includes(".") ? input.fileName.split(".").pop() : "bin";
   const safePath = `${input.folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { data, error } = await supabaseAdmin.storage.from("lesson-media").createSignedUploadUrl(safePath);
   if (error || !data) throw new Error(error?.message || "Failed to generate upload URL");
   return {
+    provider: "supabase" as const,
+    uploadUrl: data.signedUrl,
     path: safePath,
     signedUrl: data.signedUrl,
     token: data.token,

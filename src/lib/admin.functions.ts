@@ -195,7 +195,7 @@ export const autofillLessonMeta = createServerFn({ method: "POST" })
 
 export const getSignedUploadUrlAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { fileName: string; folder: string }) => data)
+  .inputValidator((data: { fileName: string; folder: string; contentType?: string }) => data)
   .handler(async ({ data, context }) => {
     const admin = await import("./admin.server");
     await admin.assertStaff(context.supabase, context.userId);

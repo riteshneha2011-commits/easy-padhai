@@ -118,26 +118,43 @@ export function MediaInput({
             }
 
             setStatusMsg("Getting secure upload token...");
-            const { path, token, storageRef } = await getUploadUrl({
+            const uploadInfo = await getUploadUrl({
               data: {
                 fileName: file.name,
                 folder: resolvedFolder,
+                contentType: file.type || undefined,
               },
             });
 
+            if (uploadInfo.provider === "r2" && uploadInfo.uploadUrl) {
+              setStatusMsg("Uploading directly to Cloudflare R2 CDN...");
+              const res = await fetch(uploadInfo.uploadUrl, {
+                method: "PUT",
+                headers: {
+                  "Content-Type": file.type || "application/octet-stream",
+                },
+                body: file,
+              });
+              if (!res.ok) {
+                const errText = await res.text().catch(() => "");
+                throw new Error(`R2 upload failed (${res.status}): ${errText || res.statusText}`);
+              }
+              setValue(uploadInfo.storageRef);
+              toast.success("File uploaded to Cloudflare R2 CDN! ⚡");
+            } else {
+              setStatusMsg("Uploading directly to storage...");
+              const { error } = await supabase.storage.from(LESSON_BUCKET).uploadToSignedUrl(
+                uploadInfo.path,
+                uploadInfo.token || "",
+                file,
+                { contentType: file.type || "application/octet-stream" }
+              );
 
-            setStatusMsg("Uploading directly to storage...");
-            const { error } = await supabase.storage.from(LESSON_BUCKET).uploadToSignedUrl(
-              path,
-              token,
-              file,
-              { contentType: file.type || "application/octet-stream" }
-            );
+              if (error) throw error;
 
-            if (error) throw error;
-
-            setValue(storageRef);
-            toast.success("File uploaded and linked successfully!");
+              setValue(uploadInfo.storageRef);
+              toast.success("File uploaded and linked successfully!");
+            }
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Upload failed", { id: "compress-toast" });
           } finally {

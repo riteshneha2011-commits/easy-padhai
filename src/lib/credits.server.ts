@@ -185,14 +185,19 @@ export async function getLessonAccessFor(
 }
 
 const STORAGE_PREFIX = "storage://";
+const R2_PREFIX = "r2://";
 const LESSON_BUCKET = "lesson-media";
 
 /**
- * Uploaded files live in a private bucket that learners cannot read directly.
- * Once access is verified server-side we hand back a short-lived signed URL.
+ * Uploaded files live in Cloudflare R2 CDN or private Supabase bucket.
+ * Resolves to high-speed CDN URL or signed URL.
  */
 async function signMedia(value: string | null) {
   if (!value) return null;
+  if (value.startsWith(R2_PREFIX)) {
+    const { resolveR2Url } = await import("./r2.server");
+    return resolveR2Url(value);
+  }
   if (!value.startsWith(STORAGE_PREFIX)) return value;
   const { data } = await supabaseAdmin.storage
     .from(LESSON_BUCKET)
