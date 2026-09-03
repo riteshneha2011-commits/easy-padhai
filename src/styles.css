@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -284,5 +285,73 @@
   padding: 0.15rem 0.35rem;
   border-radius: 0.375rem;
   color: var(--primary);
+}
+
+/* Responsive Tables for Easy Padhai */
+.easy-markdown .table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.easy-markdown table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.easy-markdown th {
+  background-color: var(--secondary);
+  color: var(--foreground);
+  font-weight: 700;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+.easy-markdown td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--foreground);
+  vertical-align: top;
+}
+
+.easy-markdown tr:last-child td {
+  border-bottom: none;
+}
+
+.easy-markdown tr:hover td {
+  background-color: var(--secondary);
+  opacity: 0.95;
+}
+
+/* KaTeX mathematical equations styling */
+.easy-markdown .katex-display-wrapper {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background-color: var(--secondary);
+  border-radius: 0.875rem;
+  border: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.easy-markdown .katex {
+  font-size: 1.08em;
+  text-rendering: auto;
+}
+
+.easy-markdown .katex-display {
+  margin: 0.25rem 0 !important;
 }
 

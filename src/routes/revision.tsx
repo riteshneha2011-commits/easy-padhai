@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MathText } from "@/components/markdown-renderer";
 import { cn } from "@/lib/utils";
 
 type TabKey = "again" | "bank" | "mistakes";
@@ -279,7 +280,9 @@ function QuestionCard({
           )}
         </div>
 
-        <p className="font-semibold">{item.prompt}</p>
+        <div className="font-semibold text-foreground">
+          <MathText content={item.prompt} />
+        </div>
 
         <div className="space-y-1.5 text-sm">
           {item.options.map((opt, oi) => (
@@ -291,16 +294,16 @@ function QuestionCard({
                 oi === item.selectedIndex && oi !== item.correctIndex && "bg-destructive/10 text-destructive",
               )}
             >
-              {opt}
+              <MathText content={opt} />
             </div>
           ))}
         </div>
 
         {item.explanation && (
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">Why: </span>
-            {item.explanation}
-          </p>
+          <div className="text-sm text-muted-foreground flex items-start gap-1">
+            <span className="font-semibold text-foreground shrink-0">Why: </span>
+            <MathText content={item.explanation} />
+          </div>
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">

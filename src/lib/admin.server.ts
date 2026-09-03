@@ -387,6 +387,10 @@ Rules:
 3. Provide a clear, educational 1-2 sentence explanation for why the correct answer is right.
 4. Provide a short relevant topic tag (e.g., "प्रकाश संश्लेषण" / "Photosynthesis").
 5. Never use phrases like "According to the passage" or "In the text above".
+6. MATHEMATICAL FORMULAS & SCIENTIFIC SYMBOLS (KaTeX formatting): Whenever any question, option, or explanation contains math equations, symbols, exponents, powers, or units, ALWAYS use standard LaTeX syntax:
+   - Use \\( ... \\) for inline math (e.g. \\(q = ne\\), \\(e = 1.6 \\times 10^{-19}\\text{ C}\\), \\(E = mc^2\\), \\(\\frac{1}{2}mv^2\\)).
+   - Use \\[ ... \\] for standalone block equations.
+   - Ensure all superscripts, subscripts, fractions, and Greek letters (\\(\\alpha\\), \\(\\beta\\), \\(\\lambda\\), \\(\\Delta\\)) are properly LaTeX-formatted for clean KaTeX rendering.
 
 Return STRICT JSON ONLY matching this format without any surrounding text or markdown formatting:
 {

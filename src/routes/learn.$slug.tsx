@@ -466,41 +466,69 @@ function LessonPanel({
 
   const navigate = useNavigate();
 
-  if (media?.audio || isOfflineReady) {
+  const hasAudioOption = lesson.hasAudio || Boolean(media?.audio) || isOfflineReady;
+  const hasVideoOption = lesson.hasVideo || Boolean(media?.video);
+  const hasSummaryOption = Boolean(lesson.summary);
+  const hasPdfOption = lesson.hasPdf || Boolean(media?.pdf);
+  const hasQuizOption = Boolean(lesson.test);
+
+  if (hasAudioOption) {
     tabs.push({
       key: "audio",
       label: "Audio",
       icon: Headphones,
       hint: "Listen to the lecture",
-      render: () => (
-        <MediaPlayer
-          value={media?.audio || ""}
-          title={lesson.title}
-          kind="audio"
-          lessonId={lesson.id}
-          onActiveChange={onActiveChange}
-        />
-      ),
+      render: () => {
+        if (!media?.audio && !isOfflineReady && accessQuery.isLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
+              <Headphones className="size-8 text-primary animate-pulse" />
+              <span className="text-sm font-semibold">Loading audio lecture…</span>
+            </div>
+          );
+        }
+        return (
+          <MediaPlayer
+            value={media?.audio || ""}
+            title={lesson.title}
+            kind="audio"
+            lessonId={lesson.id}
+            onActiveChange={onActiveChange}
+          />
+        );
+      },
     });
   }
-  if (media?.video) {
+
+  if (hasVideoOption) {
     tabs.push({
       key: "video",
       label: "Video",
       icon: PlayCircle,
       hint: "Watch the explanation",
-      render: () => (
-        <MediaPlayer
-          value={media.video!}
-          title={lesson.title}
-          kind="video"
-          lessonId={lesson.id}
-          onActiveChange={onActiveChange}
-        />
-      ),
+      render: () => {
+        if (!media?.video && accessQuery.isLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
+              <PlayCircle className="size-8 text-primary animate-pulse" />
+              <span className="text-sm font-semibold">Loading video…</span>
+            </div>
+          );
+        }
+        return (
+          <MediaPlayer
+            value={media?.video || ""}
+            title={lesson.title}
+            kind="video"
+            lessonId={lesson.id}
+            onActiveChange={onActiveChange}
+          />
+        );
+      },
     });
   }
-  if (lesson.summary) {
+
+  if (hasSummaryOption) {
     tabs.push({
       key: "summary",
       label: "Summary",
@@ -513,23 +541,35 @@ function LessonPanel({
       ),
     });
   }
-  if (Boolean(media?.pdf)) {
+
+  if (hasPdfOption) {
     tabs.push({
       key: "pdf",
       label: "Notes",
       icon: FileText,
       hint: "Open the PDF notes",
-      render: () => (
-        <MediaPlayer
-          value={media?.pdf || ""}
-          title={lesson.title}
-          kind="pdf"
-          lessonId={lesson.id}
-        />
-      ),
+      render: () => {
+        if (!media?.pdf && accessQuery.isLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
+              <FileText className="size-8 text-primary animate-pulse" />
+              <span className="text-sm font-semibold">Loading PDF notes…</span>
+            </div>
+          );
+        }
+        return (
+          <MediaPlayer
+            value={media?.pdf || ""}
+            title={lesson.title}
+            kind="pdf"
+            lessonId={lesson.id}
+          />
+        );
+      },
     });
   }
-  if (lesson.test) {
+
+  if (hasQuizOption) {
     tabs.push({
       key: "quiz",
       label: "Quick Quiz",
@@ -564,8 +604,20 @@ function LessonPanel({
     });
   }
 
-  const [tabKey, setTabKey] = useState("");
-  const activeTab = tabs.find((t) => t.key === tabKey) ?? tabs[0] ?? null;
+  const defaultTabKey = hasAudioOption
+    ? "audio"
+    : hasVideoOption
+      ? "video"
+      : hasSummaryOption
+        ? "summary"
+        : hasPdfOption
+          ? "pdf"
+          : hasQuizOption
+            ? "quiz"
+            : "";
+
+  const [tabKey, setTabKey] = useState(defaultTabKey);
+  const activeTab = tabs.find((t) => t.key === (tabKey || defaultTabKey)) ?? tabs[0] ?? null;
 
   return (
     <div className="space-y-4 sm:space-y-5 min-w-0 w-full">

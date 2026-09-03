@@ -10,6 +10,7 @@ import { saveQuestion } from "@/lib/revision.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { soundFx } from "@/lib/sound-effects";
 import { VictoryModal } from "@/components/victory-modal";
+import { MathText } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -120,7 +121,7 @@ function TestPage() {
                     <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
                   )}
                   <span>
-                    {i + 1}. {d.prompt}
+                    {i + 1}. <MathText content={d.prompt} />
                   </span>
                 </CardTitle>
               </CardHeader>
@@ -134,14 +135,14 @@ function TestPage() {
                       oi === d.selected && oi !== d.correctIndex && "bg-destructive/10 text-destructive",
                     )}
                   >
-                    {opt}
+                    <MathText content={opt} />
                   </div>
                 ))}
                 {d.explanation && (
-                  <p className="pt-1 text-muted-foreground">
-                    <span className="font-semibold text-foreground">Why: </span>
-                    {d.explanation}
-                  </p>
+                  <div className="pt-1 text-muted-foreground text-sm flex items-start gap-1">
+                    <span className="font-semibold text-foreground shrink-0">Why: </span>
+                    <MathText content={d.explanation} />
+                  </div>
                 )}
                 <div className="pt-2">
                   <Button
@@ -237,7 +238,9 @@ function TestPage() {
       {q && (
         <Card className="mt-4 rounded-3xl">
           <CardHeader>
-            <CardTitle className="text-lg leading-snug">{q.prompt}</CardTitle>
+            <CardTitle className="text-lg leading-snug">
+              <MathText content={q.prompt} />
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {q.options.map((opt, oi) => (
@@ -253,7 +256,7 @@ function TestPage() {
                   answers[q.id] === oi && "border-primary bg-primary/10 font-medium text-primary ring-1 ring-primary/40",
                 )}
               >
-                {opt}
+                <MathText content={opt} />
               </button>
             ))}
           </CardContent>
