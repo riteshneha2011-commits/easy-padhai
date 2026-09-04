@@ -232,7 +232,19 @@ export async function claimDailyLoginFor(userId: string) {
     "Daily visit",
     `daily-${today()}`,
   );
-  return { awarded: result.awarded, balance: result.balance };
+
+  // Maintain and build daily study streak for learner
+  const { touchStreak } = await import("./gamify.server");
+  const streakData = await touchStreak(userId, 1);
+  const streakBonus = await applyStreakLadderFor(userId);
+  const totalBalance = result.balance + streakBonus;
+
+  return {
+    awarded: result.awarded,
+    balance: totalBalance,
+    streak: streakData.current_streak,
+    streakBonus,
+  };
 }
 
 export async function recordStudySecondsFor(userId: string, lessonId: string, seconds: number) {
@@ -269,6 +281,10 @@ export async function recordStudySecondsFor(userId: string, lessonId: string, se
     awarded = newBlocks * CREDIT_REWARDS.studyBlock;
     await awardCredits(userId, awarded, `${newBlocks * 10} min of study time`, `study-${lessonId}-${day}-${blocks}`);
   }
+
+  // Update streak minutes on study
+  const { touchStreak } = await import("./gamify.server");
+  await touchStreak(userId, Math.max(1, Math.round(safe / 60))).catch(() => null);
 
   return { awarded, minutes: Math.floor(total / 60) };
 }
@@ -348,6 +364,9 @@ export async function qualifyReferralFor(userId: string) {
 }
 
 export async function getWalletFor(userId: string) {
+  const { touchStreak } = await import("./gamify.server");
+  const streakData = await touchStreak(userId, 0).catch(() => null);
+
   const [profileRes, eventsRes, referralsRes, streakRes, unlocksRes] = await Promise.all([
     supabaseAdmin.from("profiles").select("credits, referral_code, full_name").eq("id", userId).maybeSingle(),
     supabaseAdmin
@@ -376,7 +395,7 @@ export async function getWalletFor(userId: string) {
     referralCode: profileRes.data?.referral_code ?? null,
     events: eventsRes.data ?? [],
     unlockedCount: (unlocksRes.data ?? []).length,
-    streak: streakRes.data?.current_streak ?? 0,
+    streak: streakData?.current_streak ?? streakRes.data?.current_streak ?? 0,
     earnedFromReferrals: referrals.reduce((sum, r) => sum + (r.credits_awarded ?? 0), 0),
     referrals: referrals.map((r) => ({
       id: r.id,

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startSession } from "@/lib/credits.functions";
 import { getMyProfile } from "@/lib/profile.functions";
 import { REF_STORAGE_KEY } from "@/lib/credits";
+import { soundFx } from "@/lib/sound-effects";
 
 export type AppRole = "admin" | "teacher" | "student";
 
@@ -93,9 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (result?.referral?.attached) {
           toast.success("Referral applied — bonus credits land when you finish your first lesson 🎁");
         }
-        if (result?.awarded) {
-          toast.success(`Daily visit bonus · +${result.awarded} credits`);
-          void qc.invalidateQueries({ queryKey: ["wallet"] });
+        if (result?.streakBonus && result.streakBonus > 0) {
+          soundFx.playSuccess();
+          toast.success(`🔥 ${result.streak}-Day Streak Milestone! +${result.streakBonus} bonus credits! 🎉`);
+        } else if (result?.awarded) {
+          const streakText = result.streak ? ` · 🔥 Day ${result.streak} Streak` : "";
+          toast.success(`Daily visit bonus: +${result.awarded} credits${streakText}`);
         }
         void load(userId);
         void qc.invalidateQueries({ queryKey: ["wallet"] });

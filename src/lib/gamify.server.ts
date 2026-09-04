@@ -28,6 +28,37 @@ function getDaysDifference(currentDateStr: string, pastDateStr: string): number 
   }
 }
 
+function getPreviousDayStr(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Computes true consecutive active days ending on todayStr from daily credit events */
+async function computeConsecutiveDailyStreak(userId: string, todayStr: string): Promise<number> {
+  try {
+    const { data: events } = await supabaseAdmin
+      .from("credit_events")
+      .select("ref_id")
+      .eq("user_id", userId)
+      .like("ref_id", "daily-%")
+      .limit(90);
+
+    const activeDays = new Set((events ?? []).map((e) => e.ref_id.replace("daily-", "")));
+    activeDays.add(todayStr);
+
+    let streak = 0;
+    let checkDay = todayStr;
+    while (activeDays.has(checkDay)) {
+      streak++;
+      checkDay = getPreviousDayStr(checkDay);
+    }
+    return Math.max(streak, 1);
+  } catch {
+    return 1;
+  }
+}
+
 export async function awardXp(userId: string, amount: number, reason: string) {
   if (amount <= 0) return;
   await supabaseAdmin.from("xp_events").insert({ user_id: userId, amount, reason });
@@ -41,7 +72,7 @@ export async function grantBadge(userId: string, code: string) {
 
 export async function touchStreak(userId: string, minutes: number = 5) {
   const today = getTodayDateIST();
-  const safeMinutes = Math.max(minutes, 1);
+  const safeMinutes = Math.max(minutes, 0);
 
   const { data: streak } = await supabaseAdmin
     .from("streaks")
@@ -49,19 +80,27 @@ export async function touchStreak(userId: string, minutes: number = 5) {
     .eq("user_id", userId)
     .maybeSingle();
 
+  // Compute true streak based on actual daily visits history
+  const trueDailyStreak = await computeConsecutiveDailyStreak(userId, today);
+
   if (!streak) {
+    const initialStreak = Math.max(trueDailyStreak, 1);
     const { data: inserted } = await supabaseAdmin
       .from("streaks")
       .insert({
         user_id: userId,
-        current_streak: 1,
-        longest_streak: 1,
+        current_streak: initialStreak,
+        longest_streak: initialStreak,
         last_active_date: today,
         minutes_today: safeMinutes,
       })
       .select()
       .maybeSingle();
-    return inserted ?? { current_streak: 1, longest_streak: 1, last_active_date: today };
+
+    if (initialStreak >= 3) await grantBadge(userId, "streak_3");
+    if (initialStreak >= 7) await grantBadge(userId, "streak_7");
+
+    return inserted ?? { current_streak: initialStreak, longest_streak: initialStreak, last_active_date: today };
   }
 
   const last = streak.last_active_date;
@@ -69,21 +108,26 @@ export async function touchStreak(userId: string, minutes: number = 5) {
   let minutesToday = streak.minutes_today ?? 0;
 
   if (!last) {
-    current = 1;
+    current = Math.max(trueDailyStreak, 1);
     minutesToday = safeMinutes;
   } else {
     const diff = getDaysDifference(today, last);
     if (diff <= 0) {
       // Same day activity: streak is kept, add minutes
       minutesToday += safeMinutes;
-      current = Math.max(current, 1);
+      // If trueDailyStreak is higher than recorded, heal it
+      current = Math.max(current, trueDailyStreak);
     } else if (diff === 1) {
-      // Consecutive day: streak incremented!
-      current = current + 1;
+      // Consecutive day: increment!
+      current = Math.max(current + 1, trueDailyStreak);
       minutesToday = safeMinutes;
     } else {
-      // More than 1 day missed: reset to 1
-      current = 1;
+      // Gap according to last_active_date, check if trueDailyStreak proves user visited
+      if (trueDailyStreak > 1) {
+        current = trueDailyStreak;
+      } else {
+        current = 1;
+      }
       minutesToday = safeMinutes;
     }
   }
