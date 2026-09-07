@@ -814,6 +814,10 @@ function LessonPanel({
       userId
         ? getLessonAccess({ data: { lessonId: lesson.id } })
         : getPublicLessonAccess({ data: { lessonId: lesson.id } }),
+    staleTime: 1000 * 60 * 60, // Keep access & media URL stable for 1 hour
+    gcTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const access = accessQuery.data ?? null;

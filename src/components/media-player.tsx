@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
@@ -65,12 +65,14 @@ function formatTime(seconds: number): string {
 function CustomAudioPlayer({
   src,
   title,
+  lessonId,
   rate,
   onRateChange,
   onActiveChange,
 }: {
   src: string;
   title: string;
+  lessonId?: string;
   rate: number;
   onRateChange: (r: number) => void;
   onActiveChange?: (active: boolean) => void;
@@ -79,8 +81,19 @@ function CustomAudioPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const storageKey = `easypadhai_audio_pos_${encodeURIComponent(src)}`;
+  const currentTimeRef = useRef(0);
+  const isPlayingRef = useRef(false);
+
+  // Clean URL without query tokens so Supabase/R2 signature renewals don't reset playback
+  const cleanSrc = src.split("?")[0];
+  const lastCleanSrcRef = useRef(cleanSrc);
+
+  const storageKey = lessonId
+    ? `easypadhai_audio_pos_${lessonId}`
+    : `easypadhai_audio_pos_${encodeURIComponent(cleanSrc)}`;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -88,11 +101,41 @@ function CustomAudioPlayer({
     audio.playbackRate = rate;
   }, [rate]);
 
+  // Protect against URL query token refreshes resetting current audio playback
+  useEffect(() => {
+    if (lastCleanSrcRef.current === cleanSrc) {
+      return;
+    }
+    // Genuinely a different audio file/lesson
+    lastCleanSrcRef.current = cleanSrc;
+    const audio = audioRef.current;
+    if (audio) {
+      setCurrentTime(0);
+      currentTimeRef.current = 0;
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      setErrorMsg(null);
+    }
+  }, [cleanSrc]);
+
   const handleLoadedMetadata = () => {
     const audio = audioRef.current;
     if (!audio) return;
     setDuration(audio.duration || 0);
+    setIsBuffering(false);
+    setErrorMsg(null);
 
+    // If resuming from a stream reconnect:
+    if (currentTimeRef.current > 0 && Math.abs(audio.currentTime - currentTimeRef.current) > 1) {
+      audio.currentTime = currentTimeRef.current;
+      setCurrentTime(currentTimeRef.current);
+      if (isPlayingRef.current) {
+        audio.play().catch(() => {});
+      }
+      return;
+    }
+
+    // Otherwise restore saved progress from localStorage:
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -100,6 +143,7 @@ function CustomAudioPlayer({
         if (pos > 0 && pos < (audio.duration || 100) - 5) {
           audio.currentTime = pos;
           setCurrentTime(pos);
+          currentTimeRef.current = pos;
         }
       }
     } catch {}
@@ -108,28 +152,135 @@ function CustomAudioPlayer({
   const handleTimeUpdate = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    setCurrentTime(audio.currentTime);
-    if (Math.floor(audio.currentTime) % 5 === 0) {
+    const time = audio.currentTime;
+    setCurrentTime(time);
+    currentTimeRef.current = time;
+    if (Math.floor(time) % 5 === 0) {
       try {
-        localStorage.setItem(storageKey, audio.currentTime.toString());
+        localStorage.setItem(storageKey, time.toString());
       } catch {}
     }
   };
 
-  const togglePlay = () => {
+  const recoverStream = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    const pos = currentTimeRef.current;
+    setIsBuffering(true);
+    setErrorMsg("Reconnecting audio…");
+
+    try {
+      audio.load();
+      if (pos > 0) {
+        audio.currentTime = pos;
+      }
+      if (isPlayingRef.current) {
+        audio.play().then(() => {
+          setIsPlaying(true);
+          setIsBuffering(false);
+          setErrorMsg(null);
+        }).catch(() => {
+          setIsBuffering(false);
+          setErrorMsg("Tap Play to resume");
+        });
+      } else {
+        setIsBuffering(false);
+        setErrorMsg(null);
+      }
+    } catch {
+      setIsBuffering(false);
+      setErrorMsg("Connection issue. Tap Retry.");
+    }
+  }, []);
+
+  const handleAudioError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    console.warn("Audio element error event:", e);
+    const audio = audioRef.current;
+    setIsBuffering(false);
+    const pos = currentTimeRef.current;
+
+    // Automatic stream recovery if playback was in progress
+    if (pos > 0 && audio) {
+      setErrorMsg("Connection hiccup. Reconnecting…");
+      setTimeout(() => {
+        recoverStream();
+      }, 1000);
+    } else {
+      setErrorMsg("Audio stream interrupted. Tap to retry.");
+    }
+  };
+
+  const handleEnded = () => {
+    const audio = audioRef.current;
+    // Guard against premature ended event (e.g. dropped network connection mid-stream)
+    if (audio && duration > 10 && audio.currentTime < duration - 4) {
+      console.warn(`Stream closed prematurely at ${audio.currentTime}s of ${duration}s. Auto-recovering...`);
+      recoverStream();
+      return;
+    }
+
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+    onActiveChange?.(false);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {}
+  };
+
+  const togglePlay = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
     if (isPlaying) {
       audio.pause();
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      onActiveChange?.(false);
     } else {
-      audio.play().catch(() => {});
+      setErrorMsg(null);
+      setIsBuffering(true);
+
+      try {
+        if (audio.error || !audio.src) {
+          audio.load();
+          if (currentTimeRef.current > 0) {
+            audio.currentTime = currentTimeRef.current;
+          }
+        }
+        await audio.play();
+        setIsPlaying(true);
+        isPlayingRef.current = true;
+        onActiveChange?.(true);
+      } catch (err) {
+        console.warn("Play error, attempting stream reload:", err);
+        try {
+          audio.load();
+          if (currentTimeRef.current > 0) {
+            audio.currentTime = currentTimeRef.current;
+          }
+          await audio.play();
+          setIsPlaying(true);
+          isPlayingRef.current = true;
+          onActiveChange?.(true);
+        } catch (finalErr) {
+          console.error("Audio playback recovery failed:", finalErr);
+          setIsPlaying(false);
+          isPlayingRef.current = false;
+          setErrorMsg("Playback issue. Tap to retry.");
+        }
+      } finally {
+        setIsBuffering(false);
+      }
     }
   };
 
   const skip = (delta: number) => {
     const audio = audioRef.current;
     if (!audio) return;
-    audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+    const target = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + delta));
+    audio.currentTime = target;
+    setCurrentTime(target);
+    currentTimeRef.current = target;
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,6 +289,7 @@ function CustomAudioPlayer({
     const target = parseFloat(e.target.value);
     audio.currentTime = target;
     setCurrentTime(target);
+    currentTimeRef.current = target;
   };
 
   return (
@@ -148,20 +300,25 @@ function CustomAudioPlayer({
         preload="metadata"
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
+        onError={handleAudioError}
+        onEnded={handleEnded}
+        onWaiting={() => setIsBuffering(true)}
+        onPlaying={() => {
+          setIsBuffering(false);
+          setIsPlaying(true);
+          isPlayingRef.current = true;
+          setErrorMsg(null);
+        }}
+        onCanPlay={() => setIsBuffering(false)}
         onPlay={() => {
           setIsPlaying(true);
+          isPlayingRef.current = true;
           onActiveChange?.(true);
         }}
         onPause={() => {
           setIsPlaying(false);
+          isPlayingRef.current = false;
           onActiveChange?.(false);
-        }}
-        onEnded={() => {
-          setIsPlaying(false);
-          onActiveChange?.(false);
-          try {
-            localStorage.removeItem(storageKey);
-          } catch {}
         }}
       />
 
@@ -170,10 +327,32 @@ function CustomAudioPlayer({
           <Headphones className="size-5 sm:size-6" />
         </div>
         <div className="min-w-0 flex-1 overflow-hidden">
-          <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">Audio Lecture · M4A / AAC</p>
+          <div className="flex items-center gap-2">
+            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">
+              Audio Lecture · CDN Edge Stream
+            </p>
+            {isBuffering && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
+                <Loader2 className="size-2.5 animate-spin" /> Buffering
+              </span>
+            )}
+          </div>
           <h4 className="truncate text-sm sm:text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300">
+          <span className="truncate">{errorMsg}</span>
+          <button
+            type="button"
+            onClick={recoverStream}
+            className="font-bold underline shrink-0 hover:text-foreground"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Scrubber Progress Bar */}
       <div className="space-y-1.5 w-full">
@@ -208,9 +387,16 @@ function CustomAudioPlayer({
             type="button"
             onClick={togglePlay}
             title={isPlaying ? "Pause" : "Play"}
-            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95 shrink-0"
+            disabled={isBuffering}
+            className="flex size-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95 shrink-0 disabled:opacity-80"
           >
-            {isPlaying ? <Pause className="size-6 fill-current" /> : <Play className="size-6 ml-0.5 fill-current" />}
+            {isBuffering ? (
+              <Loader2 className="size-6 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="size-6 fill-current" />
+            ) : (
+              <Play className="size-6 ml-0.5 fill-current" />
+            )}
           </button>
 
           <button
@@ -416,6 +602,7 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
       <CustomAudioPlayer
         src={source.src}
         title={title}
+        lessonId={lessonId}
         rate={rate}
         onRateChange={setRate}
         onActiveChange={onActiveChange}
