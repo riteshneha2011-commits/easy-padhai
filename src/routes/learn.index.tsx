@@ -444,8 +444,8 @@ function LearnIndex() {
                   {/* Chapter Test Card */}
                   {activeChapter.testId && (
                     <Link
-                      to="/learn/$slug"
-                      params={{ slug: activeChapter.slug }}
+                      to="/test/$testId"
+                      params={{ testId: activeChapter.testId }}
                       className="group block"
                     >
                       <Card className="rounded-2xl border-emerald-500/30 bg-emerald-500/5 p-4 sm:p-5 transition-all hover:border-emerald-500/60 hover:shadow-md flex items-center justify-between gap-4">

@@ -45,7 +45,10 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
         .select("id, chapter_id, title, order_index, kind, duration_minutes, audio_url, video_url, pdf_url, summary")
         .eq("published", true)
         .order("order_index"),
-      supabase.from("tests").select("id, chapter_id").eq("published", true),
+      supabase
+        .from("tests")
+        .select("id, chapter_id, description, questions(id)")
+        .eq("published", true),
     ]);
 
   return (subjects ?? []).map((subject) => ({
@@ -81,8 +84,12 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
           order_index: chapter.order_index,
           lessonCount: ownLessons.length,
           testId:
-            (tests ?? []).find(
-              (t) => t.chapter_id === chapter.id && !t.description?.startsWith("lesson:"),
+            (tests as Array<{ id: string; chapter_id: string; description: string | null; questions?: Array<{ id: string }> }> ?? []).find(
+              (t) =>
+                t.chapter_id === chapter.id &&
+                !t.description?.startsWith("lesson:") &&
+                Array.isArray(t.questions) &&
+                t.questions.length > 0,
             )?.id ?? null,
           lessons: ownLessons,
         };
@@ -111,7 +118,7 @@ export async function fetchChapterBySlug(slug: string) {
       .order("order_index"),
     supabase
       .from("tests")
-      .select("id, title, description, duration_minutes")
+      .select("id, title, description, duration_minutes, questions(id)")
       .eq("chapter_id", chapter.id)
       .eq("published", true),
     supabase
@@ -122,17 +129,45 @@ export async function fetchChapterBySlug(slug: string) {
       .order("order_index"),
   ]);
 
+  type TestRecord = {
+    id: string;
+    title: string;
+    description: string | null;
+    duration_minutes: number | null;
+    questions?: Array<{ id: string }>;
+  };
+
   const list = lessons ?? [];
-  const testsList = allTests ?? [];
+  const testsList = (allTests as TestRecord[] | null) ?? [];
   const firstId = list[0]?.id ?? null;
 
-  // Chapter-level test is the test NOT tagged with a specific lesson:
-  const chapterTest = testsList.find((t) => !t.description?.startsWith("lesson:")) ?? null;
+  // Chapter-level test is the test NOT tagged with a specific lesson AND containing questions:
+  const chapterTestRecord =
+    testsList.find(
+      (t) =>
+        !t.description?.startsWith("lesson:") &&
+        Array.isArray(t.questions) &&
+        t.questions.length > 0,
+    ) ?? null;
+
+  const chapterTest = chapterTestRecord
+    ? {
+        id: chapterTestRecord.id,
+        title: chapterTestRecord.title,
+        duration_minutes: chapterTestRecord.duration_minutes,
+      }
+    : null;
 
   // Media URLs are never sent to the browser here — they are released per lesson
   // by getLessonAccess once the lesson is free or unlocked with credits.
   const safeLessons = list.map(({ audio_url, video_url, pdf_url, ...rest }) => {
-    const lessonTest = testsList.find((t) => t.description?.startsWith(`lesson:${rest.id}`)) ?? null;
+    const lessonTest =
+      testsList.find(
+        (t) =>
+          t.description?.startsWith(`lesson:${rest.id}`) &&
+          Array.isArray(t.questions) &&
+          t.questions.length > 0,
+      ) ?? null;
     return {
       ...rest,
       hasAudio: Boolean(audio_url),
