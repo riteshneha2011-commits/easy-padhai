@@ -60,8 +60,22 @@ async function computeConsecutiveDailyStreak(userId: string, todayStr: string): 
 }
 
 export async function awardXp(userId: string, amount: number, reason: string) {
-  if (amount <= 0) return;
+  if (amount <= 0) return 0;
   await supabaseAdmin.from("xp_events").insert({ user_id: userId, amount, reason });
+
+  const { data: allEvents } = await supabaseAdmin
+    .from("xp_events")
+    .select("amount")
+    .eq("user_id", userId);
+
+  const total = (allEvents ?? []).reduce((sum, e) => sum + (e.amount ?? 0), 0);
+
+  await supabaseAdmin
+    .from("profiles")
+    .update({ total_xp: total })
+    .eq("id", userId);
+
+  return total;
 }
 
 export async function grantBadge(userId: string, code: string) {

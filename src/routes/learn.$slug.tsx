@@ -204,12 +204,16 @@ function ChapterPage() {
     mutationFn: (lessonId: string) => completeLesson({ data: { lessonId } }),
     onSuccess: (result) => {
       progressQuery.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      void queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       void refresh();
       if (result.alreadyDone) {
         toast("Already completed ✓");
       } else {
         soundFx.playSuccess();
-        setVictoryXp(result.xp || 20);
+        setVictoryXp(result.xp || 10);
         setVictoryOpen(true);
       }
     },

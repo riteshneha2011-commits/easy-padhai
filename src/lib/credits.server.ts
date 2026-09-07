@@ -249,44 +249,72 @@ export async function claimDailyLoginFor(userId: string) {
 
 export async function recordStudySecondsFor(userId: string, lessonId: string, seconds: number) {
   const safe = Math.max(0, Math.min(Math.round(seconds), 900));
-  if (safe === 0) return { awarded: 0 };
+  if (safe === 0) return { awarded: 0, totalMinutesToday: 0 };
   const day = today();
 
+  // 1. Record / update study time for this specific lesson today
   const { data: existing } = await supabaseAdmin
     .from("study_time")
-    .select("id, seconds, credited_blocks")
+    .select("id, seconds")
     .eq("user_id", userId)
     .eq("lesson_id", lessonId)
     .eq("day", day)
     .maybeSingle();
 
-  const total = (existing?.seconds ?? 0) + safe;
-  const blocks = Math.floor(total / STUDY_BLOCK_SECONDS);
-  const already = existing?.credited_blocks ?? 0;
-  const newBlocks = Math.max(0, blocks - already);
-
+  const totalLessonSeconds = (existing?.seconds ?? 0) + safe;
   if (existing) {
     await supabaseAdmin
       .from("study_time")
-      .update({ seconds: total, credited_blocks: blocks, updated_at: new Date().toISOString() })
+      .update({ seconds: totalLessonSeconds, updated_at: new Date().toISOString() })
       .eq("id", existing.id);
   } else {
     await supabaseAdmin
       .from("study_time")
-      .insert({ user_id: userId, lesson_id: lessonId, day, seconds: total, credited_blocks: blocks });
+      .insert({ user_id: userId, lesson_id: lessonId, day, seconds: totalLessonSeconds, credited_blocks: 0 });
   }
+
+  // 2. Compute cumulative study seconds for the user TODAY across ALL lessons
+  const { data: todayRows } = await supabaseAdmin
+    .from("study_time")
+    .select("seconds")
+    .eq("user_id", userId)
+    .eq("day", day);
+
+  const cumulativeTodaySeconds = (todayRows ?? []).reduce((sum, r) => sum + (r.seconds ?? 0), 0);
+  const totalBlocksToday = Math.floor(cumulativeTodaySeconds / STUDY_BLOCK_SECONDS);
+
+  // 3. Check how many 10-minute blocks were already rewarded today
+  const { data: creditedEvents } = await supabaseAdmin
+    .from("credit_events")
+    .select("ref_id")
+    .eq("user_id", userId)
+    .like("ref_id", `study-day-${day}-%`);
+
+  const alreadyCreditedBlocks = (creditedEvents ?? []).length;
+  const newBlocks = Math.max(0, totalBlocksToday - alreadyCreditedBlocks);
 
   let awarded = 0;
   if (newBlocks > 0) {
-    awarded = newBlocks * CREDIT_REWARDS.studyBlock;
-    await awardCredits(userId, awarded, `${newBlocks * 10} min of study time`, `study-${lessonId}-${day}-${blocks}`);
+    for (let b = alreadyCreditedBlocks + 1; b <= totalBlocksToday; b++) {
+      const res = await awardCreditsOnce(
+        userId,
+        CREDIT_REWARDS.studyBlock,
+        `Study reward (${b * 10} min learned today)`,
+        `study-day-${day}-${b}`,
+      );
+      awarded += res.awarded;
+    }
   }
 
-  // Update streak minutes on study
+  // 4. Update streak minutes on study
   const { touchStreak } = await import("./gamify.server");
   await touchStreak(userId, Math.max(1, Math.round(safe / 60))).catch(() => null);
 
-  return { awarded, minutes: Math.floor(total / 60) };
+  return {
+    awarded,
+    totalMinutesToday: Math.floor(cumulativeTodaySeconds / 60),
+    secondsUntilNextBlock: STUDY_BLOCK_SECONDS - (cumulativeTodaySeconds % STUDY_BLOCK_SECONDS),
+  };
 }
 
 export async function applyStreakLadderFor(userId: string) {
@@ -368,7 +396,7 @@ export async function getWalletFor(userId: string) {
   const streakData = await touchStreak(userId, 0).catch(() => null);
 
   const [profileRes, eventsRes, referralsRes, streakRes, unlocksRes] = await Promise.all([
-    supabaseAdmin.from("profiles").select("credits, referral_code, full_name").eq("id", userId).maybeSingle(),
+    supabaseAdmin.from("profiles").select("credits, referral_code, full_name, total_xp").eq("id", userId).maybeSingle(),
     supabaseAdmin
       .from("credit_events")
       .select("id, delta, reason, created_at")
@@ -392,6 +420,7 @@ export async function getWalletFor(userId: string) {
 
   return {
     credits: profileRes.data?.credits ?? 0,
+    totalXp: profileRes.data?.total_xp ?? 0,
     referralCode: profileRes.data?.referral_code ?? null,
     events: eventsRes.data ?? [],
     unlockedCount: (unlocksRes.data ?? []).length,
