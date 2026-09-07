@@ -19,8 +19,24 @@ import {
   Download,
   Trash2,
   WifiOff,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { getChapter } from "@/lib/content.functions";
 import { completeLesson, getChapterProgress } from "@/lib/learn.functions";
 import { listLessonBookmarks, toggleLessonBookmark } from "@/lib/revision.functions";
@@ -94,8 +110,7 @@ const KIND_META: Record<string, { icon: typeof Headphones; label: string }> = {
 };
 
 function ChapterPage() {
-
-  const { chapter, lessons, test } = Route.useLoaderData();
+  const { chapter, lessons, test, siblingChapters = [] } = Route.useLoaderData() as any;
   const { user, refresh } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -103,6 +118,25 @@ function ChapterPage() {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(false);
   const [victoryXp, setVictoryXp] = useState(20);
+
+  // Persistent sidebar collapsed state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("easypadhai_learn_sidebar_collapsed") === "true";
+    }
+    return false;
+  });
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("easypadhai_learn_sidebar_collapsed", String(next));
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (chapter && lessons.length > 0) {
@@ -114,7 +148,7 @@ function ChapterPage() {
         subject_id: chapter.subject_id,
         subject_name: chapter.subjects?.name ?? "",
         class_level: chapter.subjects?.class_level ?? 0,
-        lessons: lessons.map((l) => ({
+        lessons: lessons.map((l: Lesson) => ({
           id: l.id,
           chapter_id: l.chapter_id,
           title: l.title,
@@ -144,7 +178,8 @@ function ChapterPage() {
   const done = new Set(progressQuery.data ?? []);
   const percent = lessons.length ? Math.round((done.size / lessons.length) * 100) : 0;
 
-  const activeIndex = lessons.findIndex((l) => l.id === activeId);
+  const activeIndex = lessons.findIndex((l: Lesson) => l.id === activeId);
+  const prevLesson = activeIndex > 0 ? lessons[activeIndex - 1] : null;
   const nextLesson = activeIndex >= 0 && activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
 
   const handleSelectLesson = (lessonId: string) => {
@@ -194,146 +229,498 @@ function ChapterPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const active = lessons.find((l) => l.id === activeId) ?? lessons[0] ?? null;
+  const active = lessons.find((l: Lesson) => l.id === activeId) ?? lessons[0] ?? null;
+
+  const renderChapterSwitcher = () => {
+    if (!siblingChapters || siblingChapters.length <= 1) return null;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-between text-xs font-semibold h-9 px-2.5 bg-card/80 border-border/80 hover:bg-accent/40 rounded-xl"
+          >
+            <span className="truncate flex items-center gap-1.5 text-left">
+              <Layers className="size-3.5 text-primary shrink-0" />
+              <span className="truncate">{chapter.title}</span>
+            </span>
+            <ChevronDown className="size-3 text-muted-foreground shrink-0 ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-64 max-h-72 overflow-y-auto">
+          <DropdownMenuLabel className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+            Chapters in {chapter.subjects?.name ?? "Subject"}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {siblingChapters.map((sc: any) => {
+            const isCurrent = sc.id === chapter.id;
+            return (
+              <DropdownMenuItem asChild key={sc.id} className={cn(isCurrent && "bg-primary/10 font-bold")}>
+                <Link
+                  to="/learn/$slug"
+                  params={{ slug: sc.slug }}
+                  className="w-full flex items-center justify-between text-xs py-1.5 cursor-pointer"
+                >
+                  <span className="truncate">
+                    {sc.order_index + 1}. {sc.title}
+                  </span>
+                  {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-1" />}
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  const renderLessonCard = (lesson: Lesson, index: number, onSelect?: () => void) => {
+    const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
+    const isDone = done.has(lesson.id);
+    const isActive = active?.id === lesson.id;
+    const isUnlocked = lesson.isFree || unlockedLessonIds.has(lesson.id);
+
+    return (
+      <button
+        key={lesson.id}
+        type="button"
+        onClick={() => {
+          handleSelectLesson(lesson.id);
+          onSelect?.();
+        }}
+        className={cn(
+          "flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-border/70 bg-card p-2.5 sm:p-3 text-left transition-all hover:border-primary/50 w-full min-w-0 overflow-hidden text-card-foreground shadow-sm",
+          isActive && "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-md",
+        )}
+      >
+        <span
+          className={cn(
+            "grid size-8 sm:size-9 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors text-xs font-bold",
+            isActive && "bg-primary text-primary-foreground font-bold",
+            !isUnlocked && !isActive && "text-amber-500/80",
+          )}
+        >
+          {isUnlocked ? (
+            <meta.icon className="size-4" />
+          ) : (
+            <Lock className="size-3.5 text-amber-500" />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 overflow-hidden">
+          <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
+            Step {index + 1} · {meta.label}
+          </span>
+          <span className="block truncate text-xs sm:text-sm font-semibold text-foreground">
+            {lesson.title}
+          </span>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {lesson.isFree ? (
+              <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                🎉 Free Audio
+              </span>
+            ) : isUnlocked ? (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <Check className="size-2.5" /> Unlocked
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                🪙 Unlock
+              </span>
+            )}
+            {lesson.test && (
+              <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1 py-0.2 text-[9px] font-bold text-primary">
+                <Sparkles className="size-2" /> Quiz
+              </span>
+            )}
+          </div>
+        </span>
+        {isDone ? (
+          <CheckCircle2 className="size-4 sm:size-5 shrink-0 text-accent" />
+        ) : (
+          <Circle className="size-4 sm:size-5 shrink-0 text-muted-foreground/40" />
+        )}
+      </button>
+    );
+  };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-3 sm:px-6 py-6 sm:py-10 min-w-0">
-      <Link to="/learn" className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground hover:text-foreground">
-        ← All chapters
-      </Link>
-
-      <div className="mt-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold break-words leading-tight text-foreground">{chapter.title}</h1>
-          {chapter.description && (
-            <div className="mt-2 max-w-2xl">
-              <p className={cn("text-xs sm:text-sm text-muted-foreground break-words transition-all", !showFullDesc && "line-clamp-2")}>
-                {chapter.description}
-              </p>
-              {chapter.description.length > 120 && (
-                <button
-                  type="button"
-                  onClick={() => setShowFullDesc((prev) => !prev)}
-                  className="mt-1 text-xs font-semibold text-primary hover:underline inline-flex items-center gap-0.5"
-                >
-                  {showFullDesc ? "Show less ▴" : "Show more ▾"}
-                </button>
-              )}
-            </div>
+    <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 min-w-0">
+      {/* Top Bar for Desktop: Quick navigation & collapse control */}
+      <div className="hidden lg:flex items-center justify-between gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          {sidebarCollapsed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleSidebar}
+              className="inline-flex items-center gap-1.5 rounded-xl h-8 px-2.5 text-xs font-semibold shadow-sm hover:border-primary/50"
+              title="Open Playlist Sidebar"
+            >
+              <PanelLeftOpen className="size-4 text-primary" />
+              <span>Playlist ({lessons.length})</span>
+            </Button>
           )}
+          <Link to="/learn" className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground">
+            ← All chapters
+          </Link>
+          <span className="text-muted-foreground/40">/</span>
+          {chapter.subjects?.name && (
+            <span className="text-xs sm:text-sm font-semibold text-foreground truncate">
+              {chapter.subjects.name}
+            </span>
+          )}
+          <span className="text-muted-foreground/40">/</span>
+          <span className="text-xs sm:text-sm font-semibold text-primary truncate max-w-xs">
+            {chapter.title}
+          </span>
         </div>
+
         {test && (
           <Button
-            size="lg"
-            className="w-full sm:w-auto rounded-full shadow-glow shrink-0 font-semibold"
+            size="sm"
+            variant="outline"
+            className="inline-flex items-center gap-1.5 rounded-full text-xs font-semibold shadow-sm hover:border-primary/50"
             onClick={() =>
               user
                 ? navigate({ to: "/test/$testId", params: { testId: test.id } })
                 : navigate({ to: "/auth" })
             }
           >
-            <Sparkles className="size-4" /> Take Chapter Test
+            <Sparkles className="size-3.5 text-primary" /> Take Chapter Test
           </Button>
         )}
       </div>
 
-      {user && lessons.length > 0 && (
-        <div className="mt-5 max-w-md">
-          <div className="flex justify-between text-xs font-semibold">
-            <span className="text-muted-foreground">Chapter progress</span>
-            <span className="text-primary font-bold">{percent}%</span>
-          </div>
-          <Progress value={percent} className="mt-1.5 h-2" />
-        </div>
-      )}
-
-      <div className="mt-6 sm:mt-8 grid gap-5 sm:gap-6 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)] min-w-0 w-full">
-        <div className="flex flex-col gap-2 min-w-0 w-full">
-          <div className="flex items-center justify-between px-1 pb-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Lectures ({lessons.length})</span>
-          </div>
-          {lessons.map((lesson, index) => {
-            const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
-            const isDone = done.has(lesson.id);
-            const isActive = active?.id === lesson.id;
-            const isUnlocked = lesson.isFree || unlockedLessonIds.has(lesson.id);
-            return (
-              <button
-                key={lesson.id}
-                type="button"
-                onClick={() => handleSelectLesson(lesson.id)}
-                className={cn(
-                  "flex items-center gap-2.5 sm:gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:p-4 text-left transition-all hover:border-primary/50 w-full min-w-0 overflow-hidden text-card-foreground shadow-sm",
-                  isActive && "border-primary bg-primary/10 ring-2 ring-primary/40 shadow-md",
-                )}
-              >
-                <span className={cn(
-                  "grid size-9 sm:size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors",
-                  isActive && "bg-primary text-primary-foreground font-bold",
-                  !isUnlocked && !isActive && "text-amber-500/80"
-                )}>
-                  {isUnlocked ? (
-                    <meta.icon className="size-4 sm:size-5" />
-                  ) : (
-                    <Lock className="size-4 sm:size-5 text-amber-500" />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1 overflow-hidden">
-                  <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">
-                    Step {index + 1} · {meta.label}
-                  </span>
-                  <span className="block truncate text-sm font-semibold text-foreground">{lesson.title}</span>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                    {lesson.isFree ? (
-                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        🎉 Free Audio Lecture
-                      </span>
-                    ) : isUnlocked ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        <Check className="size-3" /> Unlocked
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                        🪙 Unlock with Credits
-                      </span>
-                    )}
-                    {lesson.test && (
-                      <span className="inline-flex items-center gap-0.5 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">
-                        <Sparkles className="size-2.5" /> Quiz
-                      </span>
-                    )}
-                  </div>
-                </span>
-                {isDone ? (
-                  <CheckCircle2 className="size-5 shrink-0 text-accent" />
-                ) : (
-                  <Circle className="size-5 shrink-0 text-muted-foreground/40" />
-                )}
-              </button>
-            );
-          })}
-          {lessons.length === 0 && (
-            <Card className="rounded-2xl p-6 text-sm text-muted-foreground">
-              No lessons published for this chapter yet.
-            </Card>
+      {/* Mobile Sticky Bar & Trigger (Visible only on < lg) */}
+      <div className="lg:hidden flex flex-col gap-2 mb-4">
+        <div className="flex items-center justify-between gap-2">
+          <Link to="/learn" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+            ← Chapters
+          </Link>
+          {chapter.subjects?.name && (
+            <span className="text-[11px] font-semibold text-muted-foreground truncate">
+              {chapter.subjects.name} · Class {chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL}
+            </span>
           )}
         </div>
 
-        {active && (
-          <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-20">
-            <LessonPanel
-              key={active.id}
-              lesson={active}
-              done={done.has(active.id)}
-              pending={complete.isPending}
-              signedIn={Boolean(user)}
-              userId={user?.id ?? null}
-              unlocking={unlock.isPending}
-              onUnlock={() => unlock.mutate(active.id)}
-              onComplete={() => complete.mutate(active.id)}
-            />
-          </Card>
-        )}
+        <button
+          type="button"
+          onClick={() => setMobileDrawerOpen(true)}
+          className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-card border border-border/80 shadow-sm text-left hover:border-primary/50 transition-all active:scale-[0.99]"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+              <Layers className="size-3" />
+              <span>Playlist · Lecture {activeIndex + 1} of {lessons.length}</span>
+            </div>
+            <p className="text-xs font-semibold text-foreground truncate mt-0.5">
+              {active?.title ?? "Select a lecture"}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1.5 rounded-lg shrink-0">
+            Lectures ▾
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Sheet Drawer */}
+      <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
+        <SheetContent side="left" className="w-[85vw] max-w-sm p-4 flex flex-col gap-4 overflow-y-auto">
+          <SheetHeader className="text-left pb-2 border-b border-border/60">
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+                Class {chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL}
+              </span>
+              <span className="text-xs text-muted-foreground font-semibold truncate">
+                {chapter.subjects?.name}
+              </span>
+            </div>
+            <SheetTitle className="text-base font-bold text-foreground mt-1">
+              {chapter.title}
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
+              Choose a lecture or take the chapter test below.
+            </SheetDescription>
+          </SheetHeader>
+
+          {siblingChapters && siblingChapters.length > 1 && (
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Switch Chapter
+              </span>
+              {renderChapterSwitcher()}
+            </div>
+          )}
+
+          {user && lessons.length > 0 && (
+            <div className="rounded-xl bg-secondary/50 p-2.5">
+              <div className="flex justify-between text-xs font-semibold">
+                <span className="text-muted-foreground">Chapter progress</span>
+                <span className="text-primary font-bold">{percent}%</span>
+              </div>
+              <Progress value={percent} className="mt-1.5 h-1.5" />
+            </div>
+          )}
+
+          {test && (
+            <Button
+              size="sm"
+              className="w-full rounded-xl shadow-glow font-semibold"
+              onClick={() => {
+                setMobileDrawerOpen(false);
+                user
+                  ? navigate({ to: "/test/$testId", params: { testId: test.id } })
+                  : navigate({ to: "/auth" });
+              }}
+            >
+              <Sparkles className="size-4 mr-1" /> Take Chapter Test
+            </Button>
+          )}
+
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
+              All Lectures ({lessons.length})
+            </span>
+            {lessons.map((lesson: Lesson, idx: number) =>
+              renderLessonCard(lesson, idx, () => setMobileDrawerOpen(false))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Main Workspace Layout */}
+      <div className="flex gap-5 sm:gap-6 items-start min-w-0 w-full">
+        {/* Desktop Sidebar / Mini-rail */}
+        <aside className="hidden lg:flex flex-col shrink-0 sticky top-20">
+          {sidebarCollapsed ? (
+            /* Mini-Rail (Choti si patti) */
+            <div className="w-[64px] rounded-2xl border border-border/70 bg-card p-2 flex flex-col items-center gap-2 shadow-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleSidebar}
+                title="Expand playlist"
+                className="size-10 rounded-xl hover:bg-primary/10 text-primary"
+              >
+                <PanelLeftOpen className="size-5" />
+              </Button>
+              <div className="w-8 h-px bg-border/80 my-0.5" />
+              <div className="flex flex-col gap-2 overflow-y-auto max-h-[calc(100vh-14rem)] pr-0.5 py-1 scrollbar-none">
+                {lessons.map((lesson: Lesson, index: number) => {
+                  const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
+                  const isDone = done.has(lesson.id);
+                  const isActive = active?.id === lesson.id;
+                  const isUnlocked = lesson.isFree || unlockedLessonIds.has(lesson.id);
+
+                  return (
+                    <button
+                      key={lesson.id}
+                      type="button"
+                      onClick={() => handleSelectLesson(lesson.id)}
+                      title={`Step ${index + 1}: ${lesson.title} (${isUnlocked ? "Available" : "Locked"})`}
+                      className={cn(
+                        "relative group flex size-10 items-center justify-center rounded-xl border border-transparent transition-all shrink-0",
+                        isActive
+                          ? "bg-primary text-primary-foreground font-bold shadow-md ring-2 ring-primary/40"
+                          : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:border-border",
+                      )}
+                    >
+                      {isUnlocked ? (
+                        <meta.icon className="size-4.5" />
+                      ) : (
+                        <Lock className="size-3.5 text-amber-500" />
+                      )}
+                      {isDone && (
+                        <span className="absolute -top-1 -right-1 size-3 bg-emerald-500 rounded-full border-2 border-background flex items-center justify-center">
+                          <Check className="size-2 text-white stroke-[3]" />
+                        </span>
+                      )}
+                      <span
+                        className={cn(
+                          "absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] px-1 font-bold rounded-full",
+                          isActive ? "bg-background text-foreground shadow-xs" : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {test && (
+                <>
+                  <div className="w-8 h-px bg-border/80 my-0.5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() =>
+                      user
+                        ? navigate({ to: "/test/$testId", params: { testId: test.id } })
+                        : navigate({ to: "/auth" })
+                    }
+                    title={`Take Chapter Test: ${test.title}`}
+                    className="size-10 rounded-xl text-primary hover:bg-primary/10"
+                  >
+                    <Sparkles className="size-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            /* Expanded Sidebar */
+            <div className="w-[320px] xl:w-[350px] rounded-2xl border border-border/70 bg-card p-3.5 flex flex-col gap-3 shadow-sm max-h-[calc(100vh-6rem)] overflow-hidden">
+              <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/60">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                      Class {chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL}
+                    </span>
+                    <span className="text-xs font-semibold text-muted-foreground truncate">
+                      {chapter.subjects?.name}
+                    </span>
+                  </div>
+                  <h2 className="text-sm font-bold text-foreground truncate mt-0.5">
+                    {chapter.title}
+                  </h2>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleSidebar}
+                  title="Collapse playlist into mini-rail"
+                  className="size-8 rounded-xl text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <PanelLeftClose className="size-4" />
+                </Button>
+              </div>
+
+              {renderChapterSwitcher()}
+
+              {user && lessons.length > 0 && (
+                <div className="rounded-xl bg-secondary/40 p-2.5">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="text-primary font-bold">{percent}%</span>
+                  </div>
+                  <Progress value={percent} className="mt-1.5 h-1.5" />
+                </div>
+              )}
+
+              {test && (
+                <Button
+                  size="sm"
+                  className="w-full rounded-xl shadow-glow font-semibold text-xs h-9"
+                  onClick={() =>
+                    user
+                      ? navigate({ to: "/test/$testId", params: { testId: test.id } })
+                      : navigate({ to: "/auth" })
+                  }
+                >
+                  <Sparkles className="size-3.5 mr-1" /> Take Chapter Test
+                </Button>
+              )}
+
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0">
+                <div className="flex items-center justify-between px-0.5 pb-0.5">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Lectures ({lessons.length})
+                  </span>
+                </div>
+                {lessons.map((lesson: Lesson, index: number) => renderLessonCard(lesson, index))}
+                {lessons.length === 0 && (
+                  <div className="rounded-xl p-4 text-xs text-muted-foreground text-center">
+                    No lessons published for this chapter yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </aside>
+
+        {/* Main Learning Stage */}
+        <main className="min-w-0 flex-1 flex flex-col gap-4 w-full">
+          {active && (
+            <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-16">
+              <LessonPanel
+                key={active.id}
+                lesson={active}
+                done={done.has(active.id)}
+                pending={complete.isPending}
+                signedIn={Boolean(user)}
+                userId={user?.id ?? null}
+                unlocking={unlock.isPending}
+                onUnlock={() => unlock.mutate(active.id)}
+                onComplete={() => complete.mutate(active.id)}
+              />
+            </Card>
+          )}
+
+          {/* Sequential Navigation Bar */}
+          <div className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-border/60 bg-card/60">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={prevLesson === null}
+              onClick={() => prevLesson && handleSelectLesson(prevLesson.id)}
+              className="rounded-full gap-1 text-xs"
+            >
+              <ChevronLeft className="size-3.5" /> Previous
+            </Button>
+            <span className="text-xs font-semibold text-muted-foreground truncate">
+              Lecture {activeIndex + 1} of {lessons.length}
+            </span>
+            {nextLesson ? (
+              <Button
+                size="sm"
+                onClick={() => handleSelectLesson(nextLesson.id)}
+                className="rounded-full gap-1 text-xs font-semibold"
+              >
+                Next <ChevronRight className="size-3.5" />
+              </Button>
+            ) : test ? (
+              <Button
+                size="sm"
+                onClick={() =>
+                  user
+                    ? navigate({ to: "/test/$testId", params: { testId: test.id } })
+                    : navigate({ to: "/auth" })
+                }
+                className="rounded-full gap-1 text-xs font-semibold shadow-glow"
+              >
+                <Sparkles className="size-3 mr-1" /> Chapter Test
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" disabled className="rounded-full text-xs">
+                Finished 🎉
+              </Button>
+            )}
+          </div>
+
+          {/* About this Chapter Section */}
+          {chapter.description && (
+            <div className="rounded-2xl border border-border/60 bg-card/40 p-4 text-xs sm:text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-foreground text-xs uppercase tracking-wide">
+                  About this Chapter
+                </span>
+                {chapter.description.length > 120 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFullDesc((prev) => !prev)}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    {showFullDesc ? "Show less ▴" : "Show more ▾"}
+                  </button>
+                )}
+              </div>
+              <p className={cn("mt-1.5 text-muted-foreground break-words transition-all leading-relaxed", !showFullDesc && "line-clamp-2")}>
+                {chapter.description}
+              </p>
+            </div>
+          )}
+        </main>
       </div>
 
       <VictoryModal

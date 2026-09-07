@@ -102,7 +102,7 @@ export async function fetchChapterBySlug(slug: string) {
 
   if (!chapter) return null;
 
-  const [{ data: lessons }, { data: allTests }] = await Promise.all([
+  const [{ data: lessons }, { data: allTests }, { data: siblingChapters }] = await Promise.all([
     supabase
       .from("lessons")
       .select("*")
@@ -114,6 +114,12 @@ export async function fetchChapterBySlug(slug: string) {
       .select("id, title, description, duration_minutes")
       .eq("chapter_id", chapter.id)
       .eq("published", true),
+    supabase
+      .from("chapters")
+      .select("id, title, slug, order_index")
+      .eq("subject_id", chapter.subject_id)
+      .eq("published", true)
+      .order("order_index"),
   ]);
 
   const list = lessons ?? [];
@@ -137,7 +143,7 @@ export async function fetchChapterBySlug(slug: string) {
     };
   });
 
-  return { chapter, lessons: safeLessons, test: chapterTest };
+  return { chapter, lessons: safeLessons, test: chapterTest, siblingChapters: siblingChapters ?? [] };
 }
 
 export async function fetchLeaderboard() {
