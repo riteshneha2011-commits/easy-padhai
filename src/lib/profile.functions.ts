@@ -25,6 +25,14 @@ export const updateMyClassLevel = createServerFn({ method: "POST" })
     return updateClassLevelFor(context.userId, data.class_level);
   });
 
+export const updateMyGoal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { goal: string | null }) => data)
+  .handler(async ({ data, context }) => {
+    const { updateGoalFor } = await import("./profile.server");
+    return updateGoalFor(context.userId, data.goal);
+  });
+
 /** Admin-only deep view of a single learner. */
 export const getUserDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -418,10 +418,16 @@ export async function getWalletFor(userId: string) {
     ? await supabaseAdmin.from("profiles").select("id, full_name").in("id", friendIds)
     : { data: [] as { id: string; full_name: string | null }[] };
 
+  let referralCode = profileRes.data?.referral_code ?? null;
+  if (!referralCode) {
+    const { ensureUserReferralCode } = await import("./profile.server");
+    referralCode = await ensureUserReferralCode(userId, profileRes.data?.full_name);
+  }
+
   return {
     credits: profileRes.data?.credits ?? 0,
     totalXp: profileRes.data?.total_xp ?? 0,
-    referralCode: profileRes.data?.referral_code ?? null,
+    referralCode,
     events: eventsRes.data ?? [],
     unlockedCount: (unlocksRes.data ?? []).length,
     streak: streakData?.current_streak ?? streakRes.data?.current_streak ?? 0,

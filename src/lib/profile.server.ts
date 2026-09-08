@@ -19,12 +19,33 @@ export type ProfileDetailsInput = {
 const PROFILE_COLUMNS =
   "id, full_name, class_level, total_xp, credits, referral_code, phone, guardian_phone, school_name, city, state, board, gender, date_of_birth, preferred_language, goal, onboarding_completed, created_at";
 
+export function generateReferralCode(name?: string | null): string {
+  const cleanName = (name || "STUDENT").replace(/[^a-zA-Z]/g, "").slice(0, 5).toUpperCase() || "EP";
+  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `EP-${cleanName}${rand}`;
+}
+
+export async function ensureUserReferralCode(userId: string, fullName?: string | null): Promise<string> {
+  const { data: profile } = await supabaseAdmin.from("profiles").select("referral_code, full_name").eq("id", userId).maybeSingle();
+  if (profile?.referral_code) return profile.referral_code;
+
+  const code = generateReferralCode(fullName || profile?.full_name);
+  await supabaseAdmin.from("profiles").update({ referral_code: code }).eq("id", userId);
+  return code;
+}
+
 export async function getProfileFor(userId: string) {
   const { data } = await supabaseAdmin
     .from("profiles")
     .select(PROFILE_COLUMNS)
     .eq("id", userId)
     .maybeSingle();
+
+  if (data && !data.referral_code) {
+    const code = await ensureUserReferralCode(userId, data.full_name);
+    data.referral_code = code;
+  }
+
   return data;
 }
 
@@ -133,4 +154,14 @@ export async function getUserDetailFor(userId: string) {
     referralsQualified: (referrals.data ?? []).filter((r) => r.status === "qualified").length,
     badges: badges.data ?? [],
   };
+}
+
+export async function updateGoalFor(userId: string, goal: string | null) {
+  const cleaned = clean(goal);
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ goal: cleaned })
+    .eq("id", userId);
+  if (error) throw new Error(error.message);
+  return { goal: cleaned };
 }

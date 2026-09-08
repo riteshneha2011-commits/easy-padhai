@@ -104,11 +104,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         void load(userId);
         void qc.invalidateQueries({ queryKey: ["wallet"] });
         void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["my-profile"] });
       })
       .catch(() => {
         /* non-critical */
       });
   }, [session?.user?.id, load, qc]);
+
+  // Realtime subscription: live updates across all tabs/windows when profile, credits, or streak changes
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`user-sync-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles", filter: `id=eq.${userId}` },
+        (payload) => {
+          if (payload.new && typeof payload.new === "object") {
+            const updated = payload.new as Partial<Profile>;
+            setProfile((prev) => (prev ? { ...prev, ...updated } : (updated as Profile)));
+          }
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+          void qc.invalidateQueries({ queryKey: ["wallet"] });
+          void qc.invalidateQueries({ queryKey: ["my-profile"] });
+          void qc.invalidateQueries({ queryKey: ["leaderboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "streaks", filter: `user_id=eq.${userId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+          void qc.invalidateQueries({ queryKey: ["wallet"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "credit_events", filter: `user_id=eq.${userId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["wallet"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_badges", filter: `user_id=eq.${userId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "lesson_progress", filter: `user_id=eq.${userId}` },
+        () => {
+          void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id, qc]);
 
   const value = useMemo<AuthValue>(
     () => ({
@@ -125,6 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           load(session?.user?.id),
           qc.invalidateQueries({ queryKey: ["wallet"] }),
           qc.invalidateQueries({ queryKey: ["dashboard"] }),
+          qc.invalidateQueries({ queryKey: ["my-profile"] }),
+          qc.invalidateQueries({ queryKey: ["leaderboard"] }),
         ]);
       },
       signOut: async () => {
