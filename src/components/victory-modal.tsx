@@ -58,44 +58,46 @@ export function VictoryModal({
       }}
     >
 
-      <DialogContent className="max-w-sm rounded-3xl bg-background p-6 text-center shadow-2xl">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 animate-bounce">
-          <Trophy className="size-8" />
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-3xl bg-background p-4 sm:p-6 text-center shadow-2xl overflow-hidden box-border">
+        <div className="mx-auto flex size-14 sm:size-16 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 animate-bounce">
+          <Trophy className="size-7 sm:size-8" />
         </div>
 
         <DialogHeader>
-          <DialogTitle className="font-display text-2xl font-bold">{title}</DialogTitle>
+          <DialogTitle className="font-display text-xl sm:text-2xl font-bold break-words">{title}</DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground">{message}</p>
+        <p className="text-xs sm:text-sm text-muted-foreground break-words leading-relaxed">{message}</p>
 
-        <div className="grid grid-cols-3 gap-2 py-2">
-          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-primary/10 p-2.5 text-primary">
-            <Sparkles className="size-4 animate-spin" />
-            <span className="font-display text-xs sm:text-sm font-bold">+{xpEarned} XP</span>
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 py-1.5 w-full min-w-0">
+          <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 rounded-2xl bg-primary/10 p-2 sm:p-2.5 text-primary min-w-0">
+            <Sparkles className="size-3.5 sm:size-4 animate-spin shrink-0" />
+            <span className="font-display text-[11px] sm:text-xs md:text-sm font-bold truncate max-w-full">+{xpEarned} XP</span>
           </div>
-          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-amber-700 dark:text-amber-300">
-            <Coins className="size-4 text-amber-500" />
-            <span className="font-display text-xs sm:text-sm font-bold">+{creditsEarned} Credits</span>
+          <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-2 sm:p-2.5 text-amber-700 dark:text-amber-300 min-w-0">
+            <Coins className="size-3.5 sm:size-4 text-amber-500 shrink-0" />
+            <span className="font-display text-[11px] sm:text-xs md:text-sm font-bold truncate max-w-full">+{creditsEarned} Credits</span>
           </div>
-          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-orange-500/10 p-2.5 text-orange-600">
-            <Flame className="size-4 fill-orange-500" />
-            <span className="font-display text-xs sm:text-sm font-bold">Streak Kept!</span>
+          <div className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 rounded-2xl bg-orange-500/10 p-2 sm:p-2.5 text-orange-600 min-w-0">
+            <Flame className="size-3.5 sm:size-4 fill-orange-500 shrink-0" />
+            <span className="font-display text-[11px] sm:text-xs md:text-sm font-bold truncate max-w-full">Streak Kept!</span>
           </div>
         </div>
 
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 space-y-2 w-full min-w-0">
           {onPlayNext ? (
             <Button
-              className="w-full rounded-full gap-2 py-6 text-base font-semibold shadow-md"
+              className="w-full rounded-full gap-2 py-5 sm:py-6 text-sm sm:text-base font-semibold shadow-md min-w-0 overflow-hidden"
               onClick={onPlayNext}
             >
-              <span>{nextLabel ?? (isTest ? "Explore More Chapters" : "Start Next Lesson")}</span>
-              <ArrowRight className="size-4 animate-pulse" />
+              <span className="truncate min-w-0 flex-1 text-center">
+                {nextLabel ?? (isTest ? "Explore More Chapters" : "Start Next Lesson")}
+              </span>
+              <ArrowRight className="size-4 shrink-0 animate-pulse" />
             </Button>
           ) : (
             <Button
-              className="w-full rounded-full"
+              className="w-full rounded-full min-w-0"
               onClick={onDirectClose}
             >
               Continue
@@ -105,11 +107,11 @@ export function VictoryModal({
           <Button
             type="button"
             variant="outline"
-            className="w-full rounded-full gap-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold text-xs h-10"
+            className="w-full rounded-full gap-2 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold text-xs h-10 min-w-0 overflow-hidden"
             onClick={handleWhatsAppShare}
           >
-            <Share2 className="size-3.5" />
-            <span>Share on WhatsApp 📲</span>
+            <Share2 className="size-3.5 shrink-0" />
+            <span className="truncate">Share on WhatsApp 📲</span>
           </Button>
 
           <Button

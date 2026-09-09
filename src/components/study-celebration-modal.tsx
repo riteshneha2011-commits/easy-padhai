@@ -38,9 +38,9 @@ export function StudyCelebrationModal({
         }
       }}
     >
-      <DialogContent className="max-w-sm rounded-3xl bg-background p-6 text-center shadow-2xl border-amber-500/30">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 animate-bounce">
-          <Coins className="size-8" />
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-sm rounded-3xl bg-background p-5 sm:p-6 text-center shadow-2xl border-amber-500/30 overflow-hidden box-border">
+        <div className="mx-auto flex size-14 sm:size-16 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 animate-bounce">
+          <Coins className="size-7 sm:size-8" />
         </div>
 
         <DialogHeader>
