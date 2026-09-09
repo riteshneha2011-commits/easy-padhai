@@ -51,6 +51,7 @@ import { MediaPlayer } from "@/components/media-player";
 import { downloadLessonForOffline, isLessonOffline, removeOfflineLesson, cacheChapterMeta } from "@/lib/offline-storage";
 
 import { VictoryModal } from "@/components/victory-modal";
+import { StudyCelebrationModal } from "@/components/study-celebration-modal";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
@@ -111,13 +112,14 @@ const KIND_META: Record<string, { icon: typeof Headphones; label: string }> = {
 
 function ChapterPage() {
   const { chapter, lessons, test, siblingChapters = [] } = Route.useLoaderData() as any;
-  const { user, refresh } = useAuth();
+  const { user, refresh, addCreditsAndXp } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(lessons[0]?.id ?? null);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(false);
-  const [victoryXp, setVictoryXp] = useState(20);
+  const [victoryXp, setVictoryXp] = useState(10);
+  const [victoryCredits, setVictoryCredits] = useState(10);
 
   // Persistent sidebar collapsed state
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
@@ -204,18 +206,36 @@ function ChapterPage() {
     mutationFn: (lessonId: string) => completeLesson({ data: { lessonId } }),
     onSuccess: (result) => {
       progressQuery.refetch();
+      if (result.alreadyDone) {
+        toast("Already completed ✓");
+      } else {
+        const awardedCredits = result.credits || 10;
+        const awardedXp = result.xp || 10;
+
+        // 1. Instantly update profile state in real-time (header & UI reflect immediately)
+        addCreditsAndXp(awardedCredits, awardedXp);
+
+        // 2. Optimistically update TanStack Query wallet cache
+        queryClient.setQueriesData({ queryKey: ["wallet"] }, (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            credits: (old.credits ?? 0) + awardedCredits,
+            totalXp: (old.totalXp ?? 0) + awardedXp,
+          };
+        });
+
+        soundFx.playSuccess();
+        setVictoryXp(awardedXp);
+        setVictoryCredits(awardedCredits);
+        setVictoryOpen(true);
+      }
+
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["my-profile"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       void queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       void refresh();
-      if (result.alreadyDone) {
-        toast("Already completed ✓");
-      } else {
-        soundFx.playSuccess();
-        setVictoryXp(result.xp || 10);
-        setVictoryOpen(true);
-      }
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -730,6 +750,7 @@ function ChapterPage() {
       <VictoryModal
         open={victoryOpen}
         xpEarned={victoryXp}
+        creditsEarned={victoryCredits}
         title="Lesson Completed! 🎉"
         message={`Great job on completing "${active?.title ?? "this lesson"}". Keep up the daily learning streak!`}
         nextLabel={nextLesson ? `Next: ${nextLesson.title}` : (test ? "Start Chapter Quiz" : undefined)}
@@ -868,8 +889,6 @@ function LessonPanel({
       toast.error("Could not update revision list");
     },
   });
-
-  useStudyHeartbeat(lesson.id, watching, Boolean(userId) && !locked);
 
   useEffect(() => {
     if (locked) setWatching(false);
@@ -1031,6 +1050,12 @@ function LessonPanel({
 
   const [tabKey, setTabKey] = useState(defaultTabKey);
   const activeTab = tabs.find((t) => t.key === (tabKey || defaultTabKey)) ?? tabs[0] ?? null;
+
+  const currentTabKey = activeTab?.key ?? defaultTabKey;
+  const isReadingNotes = (currentTabKey === "summary" || currentTabKey === "pdf") && (typeof document === "undefined" || document.visibilityState === "visible");
+  const isStudying = watching || isReadingNotes;
+
+  const { celebration, closeCelebration } = useStudyHeartbeat(lesson.id, isStudying, Boolean(userId) && !locked);
 
   return (
     <div className="space-y-4 sm:space-y-5 min-w-0 w-full">
@@ -1202,12 +1227,19 @@ function LessonPanel({
         {signedIn && (
           <VisitAgainButton lessonId={lesson.id} resource={(activeTab?.key ?? "lesson") as string} />
         )}
-        {watching && (
+        {isStudying && (
           <span className="text-xs font-semibold text-accent text-center sm:text-left">
             Counting study time · +{CREDIT_REWARDS.studyBlock} credits every 10 min
           </span>
         )}
       </div>
+
+      <StudyCelebrationModal
+        open={Boolean(celebration?.open)}
+        onClose={closeCelebration}
+        awardedCredits={celebration?.awarded ?? 5}
+        totalMinutesToday={celebration?.totalMinutes ?? 10}
+      />
     </div>
   );
 }

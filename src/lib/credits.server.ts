@@ -249,18 +249,20 @@ export async function claimDailyLoginFor(userId: string) {
 
 export async function recordStudySecondsFor(userId: string, lessonId: string, seconds: number) {
   const safe = Math.max(0, Math.min(Math.round(seconds), 900));
-  if (safe === 0) return { awarded: 0, totalMinutesToday: 0 };
+  if (safe === 0) return { awarded: 0, totalMinutesToday: 0, newBalance: null };
   const day = today();
 
   // 1. Record / update study time for this specific lesson today
-  const { data: existing } = await supabaseAdmin
+  const { data: existingRows } = await supabaseAdmin
     .from("study_time")
     .select("id, seconds")
     .eq("user_id", userId)
     .eq("lesson_id", lessonId)
     .eq("day", day)
-    .maybeSingle();
+    .order("updated_at", { ascending: false })
+    .limit(1);
 
+  const existing = existingRows?.[0] ?? null;
   const totalLessonSeconds = (existing?.seconds ?? 0) + safe;
   if (existing) {
     await supabaseAdmin
@@ -283,19 +285,27 @@ export async function recordStudySecondsFor(userId: string, lessonId: string, se
   const cumulativeTodaySeconds = (todayRows ?? []).reduce((sum, r) => sum + (r.seconds ?? 0), 0);
   const totalBlocksToday = Math.floor(cumulativeTodaySeconds / STUDY_BLOCK_SECONDS);
 
-  // 3. Check how many 10-minute blocks were already rewarded today
+  // 3. Check which 10-minute blocks were already rewarded today
   const { data: creditedEvents } = await supabaseAdmin
     .from("credit_events")
     .select("ref_id")
     .eq("user_id", userId)
     .like("ref_id", `study-day-${day}-%`);
 
-  const alreadyCreditedBlocks = (creditedEvents ?? []).length;
-  const newBlocks = Math.max(0, totalBlocksToday - alreadyCreditedBlocks);
+  const rewardedBlockNumbers = new Set(
+    (creditedEvents ?? [])
+      .map((e) => {
+        const parts = (e.ref_id ?? "").split("-");
+        const num = parseInt(parts[parts.length - 1], 10);
+        return isNaN(num) ? null : num;
+      })
+      .filter((n): n is number => n !== null),
+  );
 
   let awarded = 0;
-  if (newBlocks > 0) {
-    for (let b = alreadyCreditedBlocks + 1; b <= totalBlocksToday; b++) {
+  let latestBalance: number | null = null;
+  for (let b = 1; b <= totalBlocksToday; b++) {
+    if (!rewardedBlockNumbers.has(b)) {
       const res = await awardCreditsOnce(
         userId,
         CREDIT_REWARDS.studyBlock,
@@ -303,6 +313,7 @@ export async function recordStudySecondsFor(userId: string, lessonId: string, se
         `study-day-${day}-${b}`,
       );
       awarded += res.awarded;
+      latestBalance = res.balance;
     }
   }
 
@@ -314,6 +325,7 @@ export async function recordStudySecondsFor(userId: string, lessonId: string, se
     awarded,
     totalMinutesToday: Math.floor(cumulativeTodaySeconds / 60),
     secondsUntilNextBlock: STUDY_BLOCK_SECONDS - (cumulativeTodaySeconds % STUDY_BLOCK_SECONDS),
+    newBalance: latestBalance,
   };
 }
 

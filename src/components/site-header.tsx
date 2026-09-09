@@ -168,7 +168,7 @@ export function SiteHeader() {
                   title="My Credits Balance"
                 >
                   <Coins className="size-3.5 text-amber-500" />
-                  <span>{wallet?.balance ?? profile?.credits ?? 0}</span>
+                  <span>{wallet?.credits ?? profile?.credits ?? 0}</span>
                   <span className="hidden sm:inline">Credits</span>
                 </Link>
 
@@ -283,7 +283,7 @@ export function SiteHeader() {
                       <Coins className="size-3 text-amber-500" /> Balance
                     </span>
                     <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300">
-                      {wallet?.balance ?? profile?.credits ?? 0} Credits
+                      {wallet?.credits ?? profile?.credits ?? 0} Credits
                     </span>
                   </Link>
 

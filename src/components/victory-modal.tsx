@@ -1,6 +1,6 @@
 import { soundFx } from "@/lib/sound-effects";
 import confetti from "canvas-confetti";
-import { Trophy, Flame, Sparkles, ArrowRight, Share2 } from "lucide-react";
+import { Trophy, Flame, Sparkles, ArrowRight, Share2, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -11,6 +11,7 @@ export type VictoryProps = {
   title?: string;
   message?: string;
   xpEarned?: number;
+  creditsEarned?: number;
   nextLabel?: string;
   isTest?: boolean;
 };
@@ -22,6 +23,7 @@ export function VictoryModal({
   title = "Landmark Achieved!",
   message = "You just completed this lesson. Keep the momentum going!",
   xpEarned = 20,
+  creditsEarned = 10,
   nextLabel,
   isTest = false,
 }: VictoryProps) {
@@ -38,8 +40,8 @@ export function VictoryModal({
   const handleWhatsAppShare = () => {
     soundFx.playClick();
     const shareText = isTest
-      ? `🎉 मैंने Easy Padhai पर क्लास 9 का ऑनलाइन टेस्ट पास किया! 🏆\n\nक्या आप मुझसे बेहतर स्कोर कर सकते हैं? अभी फ्री में प्रैक्टिस करें:\n👉 https://ep.studytube.co.in/learn`
-      : `🔥 मैंने Easy Padhai पर नया लेक्चर पूरा किया और +${xpEarned} XP कमाए! 🚀\n\nक्लास 9 से 12 की ऑडियो व वीडियो पढ़ाई फ्री में शुरू करें:\n👉 https://ep.studytube.co.in/learn`;
+      ? `🎉 मैंने Easy Padhai पर ऑनलाइन टेस्ट पास किया और +${xpEarned} XP कमाए! 🏆\n\nक्या आप मुझसे बेहतर स्कोर कर सकते हैं? अभी फ्री में प्रैक्टिस करें:\n👉 https://ep.studytube.co.in/learn`
+      : `🔥 मैंने Easy Padhai पर नया लेक्चर पूरा किया और +${xpEarned} XP व +${creditsEarned} Credits कमाए! 🚀\n\nक्लास 9 से 12 की ऑडियो व वीडियो पढ़ाई फ्री में शुरू करें:\n👉 https://ep.studytube.co.in/learn`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
     window.open(url, "_blank");
   };
@@ -67,14 +69,18 @@ export function VictoryModal({
 
         <p className="text-sm text-muted-foreground">{message}</p>
 
-        <div className="grid grid-cols-2 gap-2.5 py-1.5">
-          <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-primary/10 px-3 py-2 text-primary">
+        <div className="grid grid-cols-3 gap-2 py-2">
+          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-primary/10 p-2.5 text-primary">
             <Sparkles className="size-4 animate-spin" />
-            <span className="font-display text-sm font-bold">+{xpEarned} XP</span>
+            <span className="font-display text-xs sm:text-sm font-bold">+{xpEarned} XP</span>
           </div>
-          <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-orange-500/10 px-3 py-2 text-orange-600">
-            <Flame className="size-4" />
-            <span className="font-display text-sm font-bold">Streak Kept!</span>
+          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-amber-700 dark:text-amber-300">
+            <Coins className="size-4 text-amber-500" />
+            <span className="font-display text-xs sm:text-sm font-bold">+{creditsEarned} Credits</span>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-orange-500/10 p-2.5 text-orange-600">
+            <Flame className="size-4 fill-orange-500" />
+            <span className="font-display text-xs sm:text-sm font-bold">Streak Kept!</span>
           </div>
         </div>
 

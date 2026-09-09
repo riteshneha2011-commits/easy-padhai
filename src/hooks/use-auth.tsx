@@ -32,6 +32,7 @@ type AuthValue = {
   isStaff: boolean;
   isAdmin: boolean;
   refresh: () => Promise<void>;
+  addCreditsAndXp: (deltaCredits: number, deltaXp: number) => void;
   signOut: () => Promise<void>;
 };
 
@@ -168,6 +169,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [session?.user?.id, qc]);
 
+  const addCreditsAndXp = useCallback((deltaCredits: number, deltaXp: number) => {
+    setProfile((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        credits: (prev.credits ?? 0) + deltaCredits,
+        total_xp: (prev.total_xp ?? 0) + deltaXp,
+      };
+    });
+  }, []);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      load(session?.user?.id),
+      qc.invalidateQueries({ queryKey: ["wallet"] }),
+      qc.invalidateQueries({ queryKey: ["dashboard"] }),
+      qc.invalidateQueries({ queryKey: ["my-profile"] }),
+      qc.invalidateQueries({ queryKey: ["leaderboard"] }),
+    ]);
+  }, [load, session?.user?.id, qc]);
+
   const value = useMemo<AuthValue>(
     () => ({
       loading,
@@ -178,21 +200,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       roles,
       isStaff: roles.includes("admin") || roles.includes("teacher"),
       isAdmin: roles.includes("admin"),
-      refresh: async () => {
-        await Promise.all([
-          load(session?.user?.id),
-          qc.invalidateQueries({ queryKey: ["wallet"] }),
-          qc.invalidateQueries({ queryKey: ["dashboard"] }),
-          qc.invalidateQueries({ queryKey: ["my-profile"] }),
-          qc.invalidateQueries({ queryKey: ["leaderboard"] }),
-        ]);
-      },
+      refresh,
+      addCreditsAndXp,
       signOut: async () => {
         bootstrapped.current = null;
         await supabase.auth.signOut();
       },
     }),
-    [loading, session, profile, roles, load, qc],
+    [loading, session, profile, roles, refresh, addCreditsAndXp],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
