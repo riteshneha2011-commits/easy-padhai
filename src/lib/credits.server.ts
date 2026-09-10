@@ -163,11 +163,19 @@ export async function getLessonAccessFor(
     }
   }
 
-  // First lesson of each chapter: Audio lecture and summary are 100% free!
-  // Subsequent lessons (or premium video/pdf) require credits earned by learning.
+  // Educational YouTube embeds are public educational resources and always playable.
+  const isYouTube = Boolean(
+    lesson.video_url &&
+      (lesson.video_url.includes("youtu.be") ||
+        lesson.video_url.includes("youtube.com"))
+  );
+
+  // First lesson of each chapter: Audio lecture, video, summary, and PDF notes are 100% free!
+  // YouTube videos are public educational content and always playable.
+  // Subsequent lessons require credits earned by learning.
   const audioUnlocked = isFirst || isUnlocked;
-  const videoUnlocked = isUnlocked;
-  const pdfUnlocked = isUnlocked;
+  const videoUnlocked = isFirst || isUnlocked || isYouTube;
+  const pdfUnlocked = isFirst || isUnlocked;
   const locked = !audioUnlocked;
 
   return {

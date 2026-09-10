@@ -919,6 +919,13 @@ function LessonPanel({
             </div>
           );
         }
+        if (locked && !media?.audio && !isOfflineReady) {
+          return (
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
+              Please unlock this lesson above using your credits to listen to the audio lecture.
+            </div>
+          );
+        }
         return (
           <MediaPlayer
             value={media?.audio || ""}
@@ -944,6 +951,13 @@ function LessonPanel({
             <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
               <PlayCircle className="size-8 text-primary animate-pulse" />
               <span className="text-sm font-semibold">Loading video…</span>
+            </div>
+          );
+        }
+        if (locked && !media?.video) {
+          return (
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
+              Please unlock this lesson above using your credits to watch the video lecture.
             </div>
           );
         }
@@ -986,6 +1000,13 @@ function LessonPanel({
             <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
               <FileText className="size-8 text-primary animate-pulse" />
               <span className="text-sm font-semibold">Loading PDF notes…</span>
+            </div>
+          );
+        }
+        if (locked && !media?.pdf) {
+          return (
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
+              Please unlock this lesson above using your credits to view the PDF notes.
             </div>
           );
         }

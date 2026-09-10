@@ -424,26 +424,51 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
   const [failed, setFailed] = useState(false);
   const [isOfflineSource, setIsOfflineSource] = useState(false);
   const [rate, setRate] = useState(1);
+  const [isCheckingOffline, setIsCheckingOffline] = useState(() =>
+    Boolean(lessonId && !value && (kind === "audio" || kind === "pdf")),
+  );
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
 
   useEffect(() => {
     let alive = true;
 
+    // Direct external URL available immediately
+    if (!stored && value) {
+      setUrl(value);
+      setIsOfflineSource(false);
+      setFailed(false);
+      setIsCheckingOffline(false);
+      return;
+    }
+
     const checkOfflineFirst = async () => {
       if (lessonId && (kind === "audio" || kind === "pdf")) {
-        const offlineUrl = await getOfflineMediaUrl(lessonId, kind);
-        if (offlineUrl && alive) {
-          setUrl(offlineUrl);
-          setIsOfflineSource(true);
-          setFailed(false);
-          return true;
+        try {
+          const offlineUrl = await getOfflineMediaUrl(lessonId, kind);
+          if (offlineUrl && alive) {
+            setUrl(offlineUrl);
+            setIsOfflineSource(true);
+            setFailed(false);
+            setIsCheckingOffline(false);
+            return true;
+          }
+        } catch {
+          // offline lookup failed or not available
         }
+      }
+      if (alive) {
+        setIsCheckingOffline(false);
       }
       return false;
     };
 
     void checkOfflineFirst().then((hasOffline) => {
       if (hasOffline || !alive) return;
+
+      if (!value) {
+        setUrl(null);
+        return;
+      }
 
       if (!stored) {
         setUrl(value);
@@ -484,16 +509,20 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
   }, [rate, url]);
 
   if (!value && !url) {
-    if (lessonId) {
+    if (isCheckingOffline) {
       return (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground py-4">
           <Loader2 className="size-4 animate-spin" /> Loading offline media…
         </p>
       );
     }
     return (
       <div className="rounded-2xl border border-border/80 bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
-        No document or notes file attached to this lesson.
+        {kind === "video"
+          ? "No video lecture attached to this lesson."
+          : kind === "audio"
+            ? "No audio lecture attached to this lesson."
+            : "No document or notes file attached to this lesson."}
       </div>
     );
   }
