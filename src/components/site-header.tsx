@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck, Download, WifiOff, Gift, Users, Sparkles } from "lucide-react";
+import { Coins, Flame, LogOut, Menu, X, BookOpen, LayoutDashboard, RotateCcw, Wallet as WalletIcon, ShieldCheck, Download, WifiOff, Gift, Users, Sparkles, Trophy } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -152,6 +152,18 @@ export function SiteHeader() {
               )}
             >
               🎁 Invite &amp; Earn
+            </Link>
+            <Link
+              to="/leaderboard"
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5",
+                pathname.startsWith("/leaderboard")
+                  ? "bg-primary/15 text-primary font-bold"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              <Trophy className="size-3.5 text-amber-500" />
+              <span>Leaderboard</span>
             </Link>
           </nav>
 
@@ -384,7 +396,7 @@ export function SiteHeader() {
                     pathname.startsWith("/leaderboard") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <Flame className="size-4 text-amber-500" />
+                  <Trophy className="size-4 text-amber-500" />
                   Leaderboard &amp; Badges
                 </Link>
               </div>
