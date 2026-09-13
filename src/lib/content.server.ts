@@ -173,7 +173,7 @@ export async function fetchChapterBySlug(slug: string) {
       hasAudio: Boolean(audio_url),
       hasVideo: Boolean(video_url),
       hasPdf: Boolean(pdf_url),
-      isFree: rest.id === firstId || (!audio_url && !video_url && !pdf_url),
+      isFree: rest.id === firstId,
       test: lessonTest ? { id: lessonTest.id, title: lessonTest.title, duration_minutes: lessonTest.duration_minutes } : null,
     };
   });

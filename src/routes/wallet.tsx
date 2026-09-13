@@ -172,8 +172,8 @@ function WalletPage() {
             <Row label="Invite a friend" value={`+${CREDIT_REWARDS.referral}`} />
             <Row label="Streak bonuses (day 3/7/14/30)" value="+20 to +250" />
             <div className="mt-3 border-t border-border/70 pt-3 text-xs text-muted-foreground">
-              Costs — audio {CREDIT_COSTS.audio}, video {CREDIT_COSTS.video}, notes {CREDIT_COSTS.pdf}.
-              Summaries, tests and the first lesson of every chapter are free. {data.unlockedCount} lessons
+              Cost — {CREDIT_COSTS.lesson} credits per lecture unlock (gives full access to audio, video, notes, summary & quiz).
+              Lecture 1 of every chapter is 100% free. {data.unlockedCount} lessons
               unlocked so far.
             </div>
           </CardContent>

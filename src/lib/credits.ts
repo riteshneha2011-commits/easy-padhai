@@ -1,9 +1,10 @@
 /** Single place to retune the whole credit economy. */
 
 export const CREDIT_COSTS = {
-  audio: 5,
+  lesson: 10,
+  audio: 10,
   video: 10,
-  pdf: 5,
+  pdf: 10,
   summary: 0,
 } as const;
 
@@ -27,21 +28,16 @@ export const STREAK_LADDER = [
   { day: 30, credits: 250 },
 ] as const;
 
-/** Credits needed to open a whole lesson (all of its resources). */
-export function lessonCost(lesson: {
+/** Credits needed to open a whole lesson (all of its resources: audio, video, notes, summary, quiz). */
+export function lessonCost(_lesson?: {
   audio_url?: string | null;
   video_url?: string | null;
   pdf_url?: string | null;
   hasAudio?: boolean;
   hasVideo?: boolean;
   hasPdf?: boolean;
-}) {
-  const audio = lesson.hasAudio ?? Boolean(lesson.audio_url);
-  const video = lesson.hasVideo ?? Boolean(lesson.video_url);
-  const pdf = lesson.hasPdf ?? Boolean(lesson.pdf_url);
-  return (
-    (audio ? CREDIT_COSTS.audio : 0) + (video ? CREDIT_COSTS.video : 0) + (pdf ? CREDIT_COSTS.pdf : 0)
-  );
+}): number {
+  return CREDIT_COSTS.lesson; // Flat 10 credits per lecture unlock
 }
 
 export function nextStreakMilestone(current: number) {

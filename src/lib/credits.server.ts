@@ -73,9 +73,8 @@ export async function getBalance(userId: string) {
 }
 
 
-/** Free lessons: the first published lesson of each chapter, and summary-only lessons. */
-async function isFreeLesson(lesson: { id: string; chapter_id: string; audio_url: string | null; video_url: string | null; pdf_url: string | null }) {
-  if (!lesson.audio_url && !lesson.video_url && !lesson.pdf_url) return true;
+/** Free lessons: strictly the first published lesson of each chapter. */
+async function isFreeLesson(lesson: { id: string; chapter_id: string }) {
   const { data: first } = await supabaseAdmin
     .from("lessons")
     .select("id")
@@ -163,20 +162,13 @@ export async function getLessonAccessFor(
     }
   }
 
-  // Educational YouTube embeds are public educational resources and always playable.
-  const isYouTube = Boolean(
-    lesson.video_url &&
-      (lesson.video_url.includes("youtu.be") ||
-        lesson.video_url.includes("youtube.com"))
-  );
-
-  // First lesson of each chapter: Audio lecture, video, summary, and PDF notes are 100% free!
-  // YouTube videos are public educational content and always playable.
-  // Subsequent lessons require credits earned by learning.
-  const audioUnlocked = isFirst || isUnlocked;
-  const videoUnlocked = isFirst || isUnlocked || isYouTube;
-  const pdfUnlocked = isFirst || isUnlocked;
-  const locked = !audioUnlocked;
+  // First lesson of each chapter: 100% free (Audio, Video, Notes, Quiz, Summary).
+  // Subsequent lessons (Lecture 2 onwards): completely locked until unlocked with credits (10 credits unlocks all).
+  const isAccessible = isFirst || isUnlocked;
+  const audioUnlocked = isAccessible;
+  const videoUnlocked = isAccessible;
+  const pdfUnlocked = isAccessible;
+  const locked = !isAccessible;
 
   return {
     lessonId,

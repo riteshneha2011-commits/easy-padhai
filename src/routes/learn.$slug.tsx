@@ -921,8 +921,30 @@ function LessonPanel({
         }
         if (locked && !media?.audio && !isOfflineReady) {
           return (
-            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
-              Please unlock this lesson above using your credits to listen to the audio lecture.
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-3">
+              <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Headphones className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-bold text-foreground">Audio Lecture Locked</p>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
+                  Unlock this lecture for 10 credits to listen to the complete explanation anytime, anywhere.
+                </p>
+              </div>
+              {signedIn ? (
+                <Button
+                  size="sm"
+                  className="rounded-full shadow-glow font-bold gap-1.5"
+                  onClick={onUnlock}
+                  disabled={unlocking || accessQuery.isLoading}
+                >
+                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                </Button>
+              ) : (
+                <Button asChild size="sm" className="rounded-full font-bold">
+                  <Link to="/auth">Sign in to Unlock</Link>
+                </Button>
+              )}
             </div>
           );
         }
@@ -956,8 +978,30 @@ function LessonPanel({
         }
         if (locked && !media?.video) {
           return (
-            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
-              Please unlock this lesson above using your credits to watch the video lecture.
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-3">
+              <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <PlayCircle className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-bold text-foreground">Video Lecture Locked</p>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
+                  Unlock this lecture for 10 credits to watch the complete step-by-step video lecture.
+                </p>
+              </div>
+              {signedIn ? (
+                <Button
+                  size="sm"
+                  className="rounded-full shadow-glow font-bold gap-1.5"
+                  onClick={onUnlock}
+                  disabled={unlocking || accessQuery.isLoading}
+                >
+                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                </Button>
+              ) : (
+                <Button asChild size="sm" className="rounded-full font-bold">
+                  <Link to="/auth">Sign in to Unlock</Link>
+                </Button>
+              )}
             </div>
           );
         }
@@ -979,12 +1023,69 @@ function LessonPanel({
       key: "summary",
       label: "Summary",
       icon: BookOpen,
-      hint: "Revise the key points — always free",
-      render: () => (
-        <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs">
-          <MarkdownRenderer content={lesson.summary || ""} />
-        </div>
-      ),
+      hint: locked ? "Quick overview & key concept preview" : "Revise the key points",
+      render: () => {
+        if (!locked) {
+          return (
+            <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs">
+              <MarkdownRenderer content={lesson.summary || ""} />
+            </div>
+          );
+        }
+
+        // Option 2: Smart Teaser
+        const paragraphs = (lesson.summary || "").split(/\n\n+/).filter(Boolean);
+        const teaserParagraph = paragraphs[0] || lesson.summary?.slice(0, 250) || "";
+        const remainingParagraphs =
+          paragraphs.slice(1, 3).join("\n\n") ||
+          "Key formulas, definitions, step-by-step explanations, exam tips, and detailed conceptual takeaways are covered in the full lecture notes and summary.";
+
+        return (
+          <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs space-y-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary mb-3">
+                <BookOpen className="size-3" /> Lecture Preview
+              </span>
+              <MarkdownRenderer content={teaserParagraph} />
+            </div>
+
+            <div className="relative pt-2">
+              <div className="select-none blur-[5px] opacity-40 pointer-events-none line-clamp-4 text-sm leading-relaxed">
+                <p>{remainingParagraphs}</p>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent flex flex-col items-center justify-center text-center p-4">
+                <div className="rounded-2xl border border-primary/25 bg-background/95 backdrop-blur-md p-4 sm:p-5 shadow-lg max-w-md w-full flex flex-col items-center gap-2.5">
+                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                    <Lock className="size-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm sm:text-base text-foreground">
+                      Unlock Full Notes & Summary
+                    </h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Get full notes, audio, video lecture & quiz for 10 credits
+                    </p>
+                  </div>
+                  {signedIn ? (
+                    <Button
+                      size="sm"
+                      className="rounded-full shadow-glow font-bold gap-1.5 px-5"
+                      onClick={onUnlock}
+                      disabled={unlocking || accessQuery.isLoading}
+                    >
+                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                    </Button>
+                  ) : (
+                    <Button asChild size="sm" className="rounded-full font-bold">
+                      <Link to="/auth">Sign in to Unlock</Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      },
     });
   }
 
@@ -1005,8 +1106,30 @@ function LessonPanel({
         }
         if (locked && !media?.pdf) {
           return (
-            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 text-center text-sm text-muted-foreground">
-              Please unlock this lesson above using your credits to view the PDF notes.
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-3">
+              <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <FileText className="size-6" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-base font-bold text-foreground">PDF Notes Locked</p>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
+                  Unlock this lecture for 10 credits to view and read downloadable PDF study notes.
+                </p>
+              </div>
+              {signedIn ? (
+                <Button
+                  size="sm"
+                  className="rounded-full shadow-glow font-bold gap-1.5"
+                  onClick={onUnlock}
+                  disabled={unlocking || accessQuery.isLoading}
+                >
+                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                </Button>
+              ) : (
+                <Button asChild size="sm" className="rounded-full font-bold">
+                  <Link to="/auth">Sign in to Unlock</Link>
+                </Button>
+              )}
             </div>
           );
         }
@@ -1027,33 +1150,67 @@ function LessonPanel({
       key: "quiz",
       label: "Quick Quiz",
       icon: Sparkles,
-      hint: "Test this lecture's concepts with 3-5 MCQs",
-      render: () => (
-        <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-4 shadow-sm">
-          <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
-            <Sparkles className="size-6" />
+      hint: locked ? "Unlock this lecture to take the quiz" : "Test this lecture's concepts with 3-5 MCQs",
+      render: () => {
+        if (locked) {
+          return (
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-4 shadow-sm">
+              <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                <Lock className="size-6 text-amber-500" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                  Quiz Locked
+                </h4>
+                <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                  Unlock this lecture for 10 credits to test your understanding with interactive MCQs and earn XP!
+                </p>
+              </div>
+              {signedIn ? (
+                <Button
+                  size="lg"
+                  className="rounded-full shadow-glow font-bold gap-2 px-8"
+                  onClick={onUnlock}
+                  disabled={unlocking || accessQuery.isLoading}
+                >
+                  <Unlock className="size-4" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                </Button>
+              ) : (
+                <Button asChild size="lg" className="rounded-full font-bold gap-2 px-8">
+                  <Link to="/auth">Sign in to Unlock</Link>
+                </Button>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-4 shadow-sm">
+            <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-md">
+              <Sparkles className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display text-lg sm:text-xl font-bold text-foreground">
+                {lesson.test?.title || "Lesson Quick Quiz"}
+              </h4>
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+                Test your understanding of this lecture immediately with interactive MCQs.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              className="rounded-full shadow-glow font-bold gap-2 px-8"
+              onClick={() =>
+                userId
+                  ? navigate({ to: "/test/$testId", params: { testId: lesson.test!.id } })
+                  : navigate({ to: "/auth" })
+              }
+            >
+              <Sparkles className="size-4" /> Start Lesson Quiz
+            </Button>
           </div>
-          <div className="space-y-1">
-            <h4 className="font-display text-lg sm:text-xl font-bold text-foreground">
-              {lesson.test?.title || "Lesson Quick Quiz"}
-            </h4>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-              Test your understanding of this lecture immediately with interactive MCQs.
-            </p>
-          </div>
-          <Button
-            size="lg"
-            className="rounded-full shadow-glow font-bold gap-2 px-8"
-            onClick={() =>
-              userId
-                ? navigate({ to: "/test/$testId", params: { testId: lesson.test!.id } })
-                : navigate({ to: "/auth" })
-            }
-          >
-            <Sparkles className="size-4" /> Start Lesson Quiz
-          </Button>
-        </div>
-      ),
+        );
+      },
     });
   }
 
@@ -1094,14 +1251,19 @@ function LessonPanel({
             <Button
               size="sm"
               variant="outline"
-              onClick={() =>
+              onClick={() => {
+                if (locked) {
+                  setTabKey("quiz");
+                  toast.info("Please unlock this lecture (10 credits) to take the quiz.");
+                  return;
+                }
                 userId
                   ? navigate({ to: "/test/$testId", params: { testId: lesson.test!.id } })
-                  : navigate({ to: "/auth" })
-              }
+                  : navigate({ to: "/auth" });
+              }}
               className="rounded-full text-xs font-bold h-8 gap-1.5 border-primary/50 text-primary hover:bg-primary/10"
             >
-              <Sparkles className="size-3.5" />
+              {locked ? <Lock className="size-3.5 text-amber-500" /> : <Sparkles className="size-3.5" />}
               <span>Take Quiz</span>
             </Button>
           )}
@@ -1193,19 +1355,19 @@ function LessonPanel({
 
       {locked && (
         <div className="rounded-2xl sm:rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:p-6 text-center min-w-0">
-          <span className="mx-auto grid size-10 sm:size-12 place-items-center rounded-2xl bg-primary/15 text-primary">
+          <span className="mx-auto grid size-10 sm:size-12 place-items-center rounded-2xl bg-primary/15 text-amber-500">
             <Lock className="size-5 sm:size-6" />
           </span>
           <h3 className="mt-3 font-display text-base sm:text-lg font-bold">
-            Unlock this lesson for {access?.cost ?? 0} credits
+            Unlock this lecture for {access?.cost ?? 10} credits
           </h3>
           <p className="mx-auto mt-1 max-w-md text-xs sm:text-sm text-muted-foreground">
-            100% Free learning — zero real money charged! The first audio lecture of every chapter is free. To unlock further lectures, earn free credits by visiting daily (+{CREDIT_REWARDS.dailyLogin}), completing tests (+{CREDIT_REWARDS.testSubmitted}), and inviting friends (+{CREDIT_REWARDS.referral})!
+            100% Free learning — zero real money charged! Lecture 1 of every chapter is completely free. Unlocking this lecture unlocks everything: Audio, Video, Full Notes, Summary, and Quick Quiz!
           </p>
           {signedIn ? (
             <div className="mt-4 flex flex-col items-center gap-2 w-full">
-              <Button className="w-full sm:w-auto rounded-full" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
-                <Unlock className="size-4" /> Unlock for {access?.cost ?? 0} credits
+              <Button className="w-full sm:w-auto rounded-full font-bold shadow-glow" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
+                <Unlock className="size-4" /> Unlock All Resources · {access?.cost ?? 10} credits
               </Button>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                 <Coins className="size-3.5" /> Balance: {access?.balance ?? 0} credits ·{" "}
@@ -1215,7 +1377,7 @@ function LessonPanel({
               </span>
             </div>
           ) : (
-            <Button asChild className="mt-4 w-full sm:w-auto rounded-full">
+            <Button asChild className="mt-4 w-full sm:w-auto rounded-full font-bold">
               <Link to="/auth">Sign in — get {CREDIT_REWARDS.welcome} free credits</Link>
             </Button>
           )}
