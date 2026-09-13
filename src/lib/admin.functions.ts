@@ -152,11 +152,7 @@ export const getPeople = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const admin = await import("./admin.server");
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden: admin access required");
+    await admin.assertAdmin(context.supabase, context.userId);
     return admin.listPeople();
   });
 
@@ -165,11 +161,7 @@ export const updateUserRole = createServerFn({ method: "POST" })
   .inputValidator((data: { userId: string; role: "admin" | "teacher" | "student" }) => data)
   .handler(async ({ data, context }) => {
     const admin = await import("./admin.server");
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) throw new Error("Forbidden: admin access required");
+    await admin.assertAdmin(context.supabase, context.userId);
     return admin.setUserRole(data.userId, data.role);
   });
 

@@ -38,11 +38,8 @@ export const getUserDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { userId: string }) => data)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (isAdmin !== true) throw new Error("Forbidden: admin access required");
+    const { assertAdmin } = await import("./admin.server");
+    await assertAdmin(context.supabase, context.userId);
     const { getUserDetailFor } = await import("./profile.server");
     return getUserDetailFor(data.userId);
   });

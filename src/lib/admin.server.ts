@@ -3,11 +3,79 @@ import type { DraftQuestion } from "./questions-parse";
 import { DEFAULT_CLASS_LEVEL } from "@/lib/classes";
 
 export async function assertStaff(
-  supabase: { rpc: (fn: "is_staff", args: { _user_id: string }) => PromiseLike<{ data: unknown }> },
+  supabase: any,
   userId: string,
 ) {
-  const { data } = await supabase.rpc("is_staff", { _user_id: userId });
-  if (data !== true) throw new Error("Forbidden: teacher or admin access required");
+  if (!userId) throw new Error("Forbidden: teacher or admin access required");
+
+  // 1. Authoritative check via supabaseAdmin (bypasses RLS and token freshness latency)
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .in("role", ["admin", "teacher"])
+    .maybeSingle();
+
+  if (roleRow) return;
+
+  // 2. Auto-heal / provision owner accounts if user is one of the verified owner emails
+  const { ensureOwnerAdmin } = await import("./owner.server");
+  const ownerResult = await ensureOwnerAdmin(userId).catch(() => ({ granted: false }));
+  if (ownerResult?.granted) return;
+
+  // 3. Fallback to RPC check via service role
+  try {
+    const { data: rpcAdmin } = await supabaseAdmin.rpc("is_staff", { _user_id: userId });
+    if (rpcAdmin === true) return;
+  } catch {
+    /* ignore */
+  }
+
+  // 4. Scoped client RPC fallback
+  if (supabase && typeof supabase.rpc === "function") {
+    try {
+      const { data: rpcClient } = await supabase.rpc("is_staff", { _user_id: userId });
+      if (rpcClient === true) return;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  throw new Error("Forbidden: teacher or admin access required");
+}
+
+export async function assertAdmin(
+  supabase: any,
+  userId: string,
+) {
+  if (!userId) throw new Error("Forbidden: admin access required");
+
+  // 1. Authoritative check via supabaseAdmin
+  const { data: roleRow } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (roleRow) return;
+
+  // 2. Auto-heal / provision owner accounts
+  const { ensureOwnerAdmin } = await import("./owner.server");
+  const ownerResult = await ensureOwnerAdmin(userId).catch(() => ({ granted: false }));
+  if (ownerResult?.granted) return;
+
+  // 3. Scoped client RPC fallback
+  if (supabase && typeof supabase.rpc === "function") {
+    try {
+      const { data: rpcClient } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      if (rpcClient === true) return;
+    } catch {
+      /* ignore */
+    }
+  }
+
+  throw new Error("Forbidden: admin access required");
 }
 
 export async function fetchAdminCatalog() {
