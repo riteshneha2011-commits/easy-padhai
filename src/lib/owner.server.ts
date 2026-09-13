@@ -1,13 +1,10 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
-/** The owner accounts that always get admin and teacher roles. */
-export const OWNER_EMAILS = [
-  "ritesh.bhopal@gmail.com",
-  "agarwalriteshai@gmail.com",
-];
+/** The single owner account that always gets admin and teacher roles. */
+export const OWNER_EMAIL = "ritesh.bhopal@gmail.com";
 
 /**
- * Grants admin and teacher roles to the owner accounts, but only when the email on the
+ * Grants admin and teacher roles to the owner account, but only when the email on the
  * verified auth record matches. Safe to call on session start or authorization check.
  */
 export async function ensureOwnerAdmin(userId: string) {
@@ -17,7 +14,7 @@ export async function ensureOwnerAdmin(userId: string) {
   const user = data.user;
   const email = (user.email ?? "").toLowerCase();
   const verified = Boolean(user.email_confirmed_at);
-  if (!verified || !OWNER_EMAILS.includes(email)) return { granted: false };
+  if (!verified || email !== OWNER_EMAIL) return { granted: false };
 
   const { data: existing } = await supabaseAdmin
     .from("user_roles")
