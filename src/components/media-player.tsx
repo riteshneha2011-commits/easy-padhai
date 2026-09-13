@@ -13,6 +13,8 @@ type Props = {
   lessonId?: string;
   /** Reports whether the student is actively watching/listening (drives study credits). */
   onActiveChange?: (active: boolean) => void;
+  /** Reports when the student has listened/watched enough to verify learning (>=70% or completion). */
+  onVerified?: () => void;
 };
 
 
@@ -69,6 +71,7 @@ function CustomAudioPlayer({
   rate,
   onRateChange,
   onActiveChange,
+  onVerified,
 }: {
   src: string;
   title: string;
@@ -76,6 +79,7 @@ function CustomAudioPlayer({
   rate: number;
   onRateChange: (r: number) => void;
   onActiveChange?: (active: boolean) => void;
+  onVerified?: () => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -155,6 +159,9 @@ function CustomAudioPlayer({
     const time = audio.currentTime;
     setCurrentTime(time);
     currentTimeRef.current = time;
+    if (duration > 0 && time / duration >= 0.7) {
+      onVerified?.();
+    }
     if (Math.floor(time) % 5 === 0) {
       try {
         localStorage.setItem(storageKey, time.toString());
@@ -222,6 +229,7 @@ function CustomAudioPlayer({
     setIsPlaying(false);
     isPlayingRef.current = false;
     onActiveChange?.(false);
+    onVerified?.();
     try {
       localStorage.removeItem(storageKey);
     } catch {}
@@ -418,7 +426,7 @@ function CustomAudioPlayer({
 }
 
 /** Plays external links (YouTube/Vimeo/Drive/direct files) or uploaded storage files, with offline IndexedDB sandbox support. */
-export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Props) {
+export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVerified }: Props) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
   const [failed, setFailed] = useState(false);
@@ -599,7 +607,19 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
     const isAudioEmbed = kind === "audio";
     return (
       <div className="space-y-2">
-        {kind !== "pdf" && <ActiveReporter onActiveChange={onActiveChange} />}
+        {kind !== "pdf" && (
+          <ActiveReporter
+            onActiveChange={(active) => {
+              onActiveChange?.(active);
+              if (active) {
+                const timer = setTimeout(() => {
+                  onVerified?.();
+                }, 45000);
+                return () => clearTimeout(timer);
+              }
+            }}
+          />
+        )}
         <div
           className={cn(
             "w-full overflow-hidden rounded-2xl bg-secondary",
@@ -635,6 +655,7 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
         rate={rate}
         onRateChange={setRate}
         onActiveChange={onActiveChange}
+        onVerified={onVerified}
       />
     );
   }
@@ -650,7 +671,16 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange }: Pr
           className="size-full"
           onPlay={() => onActiveChange?.(true)}
           onPause={() => onActiveChange?.(false)}
-          onEnded={() => onActiveChange?.(false)}
+          onTimeUpdate={(e) => {
+            const vid = e.currentTarget;
+            if (vid.duration > 0 && vid.currentTime / vid.duration >= 0.7) {
+              onVerified?.();
+            }
+          }}
+          onEnded={() => {
+            onActiveChange?.(false);
+            onVerified?.();
+          }}
           onLoadedMetadata={(e) => {
             e.currentTarget.playbackRate = rate;
           }}

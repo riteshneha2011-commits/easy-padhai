@@ -15,11 +15,34 @@ export async function completeLessonFor(userId: string, lessonId: string) {
 
   const { data: lesson } = await supabaseAdmin
     .from("lessons")
-    .select("id, chapter_id, duration_minutes")
+    .select("id, chapter_id, duration_minutes, order_index")
     .eq("id", lessonId)
     .maybeSingle();
 
   if (!lesson) throw new Error("Lesson not found");
+
+  // Verify access: Lesson 1 of chapter is free; Lesson 2 onwards must be unlocked
+  const { data: firstLesson } = await supabaseAdmin
+    .from("lessons")
+    .select("id")
+    .eq("chapter_id", lesson.chapter_id)
+    .eq("published", true)
+    .order("order_index")
+    .limit(1);
+
+  const isFirst = (firstLesson ?? [])[0]?.id === lesson.id;
+  if (!isFirst) {
+    const { data: unlocked } = await supabaseAdmin
+      .from("lesson_unlocks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId)
+      .maybeSingle();
+
+    if (!unlocked) {
+      throw new Error("Please unlock this lecture (10 credits) before marking it complete.");
+    }
+  }
 
   await supabaseAdmin.from("lesson_progress").insert({ user_id: userId, lesson_id: lessonId });
   await awardXp(userId, 10, "Lesson completed");

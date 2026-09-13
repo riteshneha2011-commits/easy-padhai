@@ -91,6 +91,7 @@ export type LessonAccess = {
   free: boolean;
   cost: number;
   balance: number;
+  quizPassed?: boolean;
   media: { audio: string | null; video: string | null; pdf: string | null } | null;
 };
 
@@ -170,12 +171,38 @@ export async function getLessonAccessFor(
   const pdfUnlocked = isAccessible;
   const locked = !isAccessible;
 
+  let quizPassed = false;
+  if (userId) {
+    const { data: testObj } = await supabaseAdmin
+      .from("tests")
+      .select("id")
+      .eq("chapter_id", lesson.chapter_id)
+      .like("description", `lesson:${lessonId}%`)
+      .maybeSingle();
+
+    if (testObj) {
+      const { data: attempt } = await supabaseAdmin
+        .from("test_attempts")
+        .select("id, score, total")
+        .eq("user_id", userId)
+        .eq("test_id", testObj.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (attempt && attempt.total > 0 && attempt.score / attempt.total >= 0.5) {
+        quizPassed = true;
+      }
+    }
+  }
+
   return {
     lessonId,
     locked,
     free: isFirst,
     cost,
     balance,
+    quizPassed,
     media: {
       audio: audioUnlocked ? await signMedia(lesson.audio_url) : null,
       video: videoUnlocked ? await signMedia(lesson.video_url) : null,

@@ -898,6 +898,36 @@ function LessonPanel({
     if (locked) setWatching(false);
   }, [locked]);
 
+  // Proof of learning verification state (Audio listened, Video watched, Quiz passed, or active study)
+  const [isVerified, setIsVerified] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(`easypadhai_verified_${lesson.id}`) === "true";
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (access?.quizPassed) {
+      setIsVerified(true);
+      try {
+        localStorage.setItem(`easypadhai_verified_${lesson.id}`, "true");
+      } catch {}
+    }
+  }, [access?.quizPassed, lesson.id]);
+
+  const handleVerified = useCallback((source?: string) => {
+    setIsVerified((prev) => {
+      if (!prev) {
+        soundFx.playSuccess();
+        toast.success("Learning verified! You can now mark this lecture complete ✓");
+      }
+      return true;
+    });
+    try {
+      localStorage.setItem(`easypadhai_verified_${lesson.id}`, "true");
+    } catch {}
+  }, [lesson.id]);
+
   const tabs: ResourceTab[] = [];
 
   const navigate = useNavigate();
@@ -959,6 +989,7 @@ function LessonPanel({
             kind="audio"
             lessonId={lesson.id}
             onActiveChange={onActiveChange}
+            onVerified={() => handleVerified("audio")}
           />
         );
       },
@@ -1016,6 +1047,7 @@ function LessonPanel({
             kind="video"
             lessonId={lesson.id}
             onActiveChange={onActiveChange}
+            onVerified={() => handleVerified("video")}
           />
         );
       },
@@ -1437,21 +1469,66 @@ function LessonPanel({
         )
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-t border-border/70 pt-4 w-full">
-        {signedIn ? (
-          <Button className="w-full sm:w-auto rounded-full" disabled={pending || done} onClick={onComplete}>
-            {done ? "Completed ✓" : `Mark complete · +10 XP · +${CREDIT_REWARDS.lessonComplete} credits`}
-          </Button>
-        ) : (
-          <Button asChild className="w-full sm:w-auto rounded-full">
-            <Link to="/auth">Sign in to track progress</Link>
-          </Button>
-        )}
-        {signedIn && (
-          <VisitAgainButton lessonId={lesson.id} resource={(activeTab?.key ?? "lesson") as string} />
-        )}
-        {isStudying && (
-          <span className="text-xs font-semibold text-accent text-center sm:text-left">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-border/70 pt-4 w-full">
+        <div className="flex flex-wrap items-center gap-2">
+          {!signedIn ? (
+            <Button asChild className="w-full sm:w-auto rounded-full font-semibold">
+              <Link to="/auth">Sign in to track progress</Link>
+            </Button>
+          ) : locked ? (
+            <Button
+              className="w-full sm:w-auto rounded-full font-bold shadow-glow gap-1.5"
+              disabled={unlocking || accessQuery.isLoading}
+              onClick={onUnlock}
+            >
+              <Unlock className="size-4 text-amber-300" />
+              <span>Unlock Lecture to Learn (+10 XP · +10 Credits)</span>
+            </Button>
+          ) : done ? (
+            <Button
+              variant="secondary"
+              className="w-full sm:w-auto rounded-full gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 cursor-default"
+              disabled
+            >
+              <Check className="size-4 stroke-[3]" />
+              <span>Completed ✓</span>
+            </Button>
+          ) : isVerified ? (
+            <Button
+              className="w-full sm:w-auto rounded-full font-bold shadow-glow bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-6 animate-pulse"
+              disabled={pending}
+              onClick={onComplete}
+            >
+              <Check className="size-4 stroke-[3]" />
+              <span>Mark Complete · +10 XP · +{CREDIT_REWARDS.lessonComplete} Credits</span>
+            </Button>
+          ) : (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto rounded-full text-xs sm:text-sm font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/5 hover:bg-amber-500/10 gap-1.5"
+                onClick={() =>
+                  toast.info(
+                    "To complete this lecture, please listen to the audio (70%+), watch the video, or pass the Quick Quiz!"
+                  )
+                }
+              >
+                <Lock className="size-3.5 text-amber-500" />
+                <span>Study to Complete (Audio, Video, or Quiz)</span>
+              </Button>
+              <span className="text-[11px] text-muted-foreground">
+                Listen audio, watch video, or pass quiz to verify understanding
+              </span>
+            </div>
+          )}
+
+          {signedIn && !locked && (
+            <VisitAgainButton lessonId={lesson.id} resource={(activeTab?.key ?? "lesson") as string} />
+          )}
+        </div>
+
+        {isStudying && !locked && (
+          <span className="text-xs font-semibold text-accent text-center sm:text-right">
             Counting study time · +{CREDIT_REWARDS.studyBlock} credits every 10 min
           </span>
         )}
