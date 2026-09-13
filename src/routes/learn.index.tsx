@@ -56,9 +56,17 @@ function LearnIndex() {
   const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
 
-  // Filter subjects for active class
+  // Filter subjects for active class, prioritizing subjects with available content
   const classSubjects = useMemo(() => {
-    return allSubjects.filter((s) => s.class_level === activeClass);
+    const subjects = allSubjects.filter((s) => s.class_level === activeClass);
+    return [...subjects].sort((a, b) => {
+      const aLessons = a.chapters?.reduce((acc, c) => acc + (c.lessonCount ?? c.lessons?.length ?? 0), 0) ?? 0;
+      const bLessons = b.chapters?.reduce((acc, c) => acc + (c.lessonCount ?? c.lessons?.length ?? 0), 0) ?? 0;
+      const aHas = (a.chapters?.length ?? 0) > 0 && aLessons > 0 ? 1 : 0;
+      const bHas = (b.chapters?.length ?? 0) > 0 && bLessons > 0 ? 1 : 0;
+      if (aHas !== bHas) return bHas - aHas; // subjects with active content first
+      return (a.order_index ?? 0) - (b.order_index ?? 0);
+    });
   }, [allSubjects, activeClass]);
 
   // Check if any chapters exist for this class

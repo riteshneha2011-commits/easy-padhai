@@ -94,7 +94,16 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
           lessons: ownLessons,
         };
       }),
-  }));
+  }))
+  .sort((a, b) => {
+    if (a.class_level !== b.class_level) return a.class_level - b.class_level;
+    const aLessons = a.chapters.reduce((sum, ch) => sum + ch.lessonCount, 0);
+    const bLessons = b.chapters.reduce((sum, ch) => sum + ch.lessonCount, 0);
+    const aHas = a.chapters.length > 0 && aLessons > 0 ? 1 : 0;
+    const bHas = b.chapters.length > 0 && bLessons > 0 ? 1 : 0;
+    if (aHas !== bHas) return bHas - aHas; // subjects with active lessons first
+    return (a.order_index ?? 0) - (b.order_index ?? 0);
+  });
 }
 
 export async function fetchChapterBySlug(slug: string) {

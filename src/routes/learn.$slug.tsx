@@ -112,7 +112,7 @@ const KIND_META: Record<string, { icon: typeof Headphones; label: string }> = {
 
 function ChapterPage() {
   const { chapter, lessons, test, siblingChapters = [] } = Route.useLoaderData() as any;
-  const { user, refresh, addCreditsAndXp } = useAuth();
+  const { user, profile, refresh, addCreditsAndXp } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(lessons[0]?.id ?? null);
@@ -674,6 +674,7 @@ function ChapterPage() {
                 pending={complete.isPending}
                 signedIn={Boolean(user)}
                 userId={user?.id ?? null}
+                userCredits={profile?.credits ?? 0}
                 unlocking={unlock.isPending}
                 onUnlock={() => unlock.mutate(active.id)}
                 onComplete={() => complete.mutate(active.id)}
@@ -775,6 +776,7 @@ function LessonPanel({
   pending,
   signedIn,
   userId,
+  userCredits,
   unlocking,
   onUnlock,
   onComplete,
@@ -784,6 +786,7 @@ function LessonPanel({
   pending: boolean;
   signedIn: boolean;
   userId: string | null;
+  userCredits: number;
   unlocking: boolean;
   onUnlock: () => void;
   onComplete: () => void;
@@ -848,6 +851,7 @@ function LessonPanel({
   const access = accessQuery.data ?? null;
   const media = access?.media ?? null;
   const locked = access ? access.locked : !lesson.isFree;
+  const currentBalance = userCredits > 0 ? userCredits : (access?.balance ?? 0);
 
   const queryClient = useQueryClient();
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -1033,54 +1037,90 @@ function LessonPanel({
           );
         }
 
-        // Option 2: Smart Teaser
-        const paragraphs = (lesson.summary || "").split(/\n\n+/).filter(Boolean);
-        const teaserParagraph = paragraphs[0] || lesson.summary?.slice(0, 250) || "";
-        const remainingParagraphs =
-          paragraphs.slice(1, 3).join("\n\n") ||
-          "Key formulas, definitions, step-by-step explanations, exam tips, and detailed conceptual takeaways are covered in the full lecture notes and summary.";
+        // Option 2: Smart Teaser (Guaranteed visible core concept preview + separate unlock card)
+        const rawLines = (lesson.summary || "").split("\n").map((l) => l.trim()).filter(Boolean);
+        const bodyLines: string[] = [];
+        let headingText = "";
+        for (const line of rawLines) {
+          if (line.startsWith("#")) {
+            if (!headingText) {
+              headingText = line.replace(/^#+\s*/, "");
+            }
+          } else {
+            bodyLines.push(line);
+            if (bodyLines.length >= 3) break;
+          }
+        }
+
+        const previewTitle = headingText || lesson.title;
+        const previewContent =
+          bodyLines.length > 0
+            ? bodyLines.join("\n\n")
+            : (lesson.summary?.slice(0, 250) || "In this lecture, fundamental concepts, key definitions, practical examples, and core formulas are systematically covered.");
+
+        const blurredSnippet =
+          "• Step-by-step problem derivations and solved board exam questions.\n• Key takeaways, memory tricks, and high-scoring formula summary.\n• Comprehensive conceptual points for rapid revision.";
 
         return (
-          <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs space-y-4">
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/10 text-primary mb-3">
-                <BookOpen className="size-3" /> Lecture Preview
-              </span>
-              <MarkdownRenderer content={teaserParagraph} />
+          <div className="rounded-2xl bg-card border border-border/70 p-4 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs space-y-4">
+            {/* 1. Guaranteed Visible Concept Preview (2-3 lines) */}
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary/15 text-primary">
+                  <BookOpen className="size-3" /> Core Concept Preview
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground truncate">
+                  {previewTitle}
+                </span>
+              </div>
+              <div className="text-xs sm:text-sm text-foreground/90 leading-relaxed pt-1">
+                <MarkdownRenderer content={previewContent} />
+              </div>
             </div>
 
-            <div className="relative pt-2">
-              <div className="select-none blur-[5px] opacity-40 pointer-events-none line-clamp-4 text-sm leading-relaxed">
-                <p>{remainingParagraphs}</p>
+            {/* 2. Blurred Notes Teaser + Unlock Card (Completely separate block, cannot overlap preview) */}
+            <div className="relative rounded-2xl border border-border/60 bg-secondary/20 p-5 sm:p-6 overflow-hidden flex flex-col items-center justify-center text-center min-h-[190px]">
+              {/* Blurred background notes text */}
+              <div className="absolute inset-0 p-5 select-none blur-[6px] opacity-35 pointer-events-none text-xs sm:text-sm leading-relaxed text-foreground">
+                <p>{blurredSnippet}</p>
+                <p className="mt-2">{blurredSnippet}</p>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/80 to-transparent flex flex-col items-center justify-center text-center p-4">
-                <div className="rounded-2xl border border-primary/25 bg-background/95 backdrop-blur-md p-4 sm:p-5 shadow-lg max-w-md w-full flex flex-col items-center gap-2.5">
-                  <div className="size-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                    <Lock className="size-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-sm sm:text-base text-foreground">
-                      Unlock Full Notes & Summary
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Get full notes, audio, video lecture & quiz for 10 credits
-                    </p>
-                  </div>
-                  {signedIn ? (
+
+              {/* Gradient overlay to ensure text contrast */}
+              <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/70 to-background/50" />
+
+              {/* Centered Unlock Card */}
+              <div className="relative z-10 flex flex-col items-center gap-2.5 max-w-sm w-full py-1">
+                <div className="size-9 sm:size-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shadow-xs">
+                  <Lock className="size-4 sm:size-5 text-amber-500" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm sm:text-base text-foreground">
+                    Unlock Full Summary & Notes
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Audio, Video, Notes & Quiz all unlock together
+                  </p>
+                </div>
+                {signedIn ? (
+                  <div className="flex flex-col items-center gap-1.5 mt-1 w-full">
                     <Button
                       size="sm"
-                      className="rounded-full shadow-glow font-bold gap-1.5 px-5"
+                      className="rounded-full shadow-glow font-bold gap-1.5 px-6"
                       onClick={onUnlock}
                       disabled={unlocking || accessQuery.isLoading}
                     >
                       <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
                     </Button>
-                  ) : (
-                    <Button asChild size="sm" className="rounded-full font-bold">
-                      <Link to="/auth">Sign in to Unlock</Link>
-                    </Button>
-                  )}
-                </div>
+                    <span className="text-[11px] font-semibold text-muted-foreground">
+                      Balance: {currentBalance} credits
+                    </span>
+                  </div>
+                ) : (
+                  <Button asChild size="sm" className="rounded-full font-bold px-6 mt-1">
+                    <Link to="/auth">Sign in to Unlock</Link>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1370,7 +1410,7 @@ function LessonPanel({
                 <Unlock className="size-4" /> Unlock All Resources · {access?.cost ?? 10} credits
               </Button>
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                <Coins className="size-3.5" /> Balance: {access?.balance ?? 0} credits ·{" "}
+                <Coins className="size-3.5" /> Balance: {currentBalance} credits ·{" "}
                 <Link to="/wallet" className="text-primary underline-offset-4 hover:underline">
                   earn more
                 </Link>
