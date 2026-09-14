@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play } from "lucide-react";
+import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play, Download, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
 import { classifyMedia, PLAYBACK_RATES } from "@/lib/media";
@@ -568,7 +568,9 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
   if (source.mode === "pdf-embed" || kind === "pdf") {
     const pdfSrc = source.mode === "pdf-embed" ? source.src : url;
     const directSrc = source.mode === "pdf-embed" ? source.directUrl : url;
+    const isBlobUrl = Boolean(directSrc?.startsWith("blob:"));
     const embedUrl =
+      pdfSrc &&
       pdfSrc.startsWith("http") &&
       !pdfSrc.includes("drive.google.com") &&
       !pdfSrc.includes("docs.google.com")
@@ -577,27 +579,88 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
 
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2 px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
             <FileText className="size-4 text-primary" />
-            <span className="truncate max-w-[240px] sm:max-w-md">{title || "PDF Notes"}</span>
+            <span className="truncate max-w-[200px] sm:max-w-md font-semibold text-foreground">
+              {title || "PDF Notes"}
+            </span>
+            {isOfflineSource && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                100% Offline
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
-              <a href={directSrc} target="_blank" rel="noreferrer">
-                <ExternalLink className="size-3.5" /> Open full page
-              </a>
-            </Button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {directSrc && (
+              <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 rounded-xl font-semibold">
+                <a href={directSrc} download={`${title || "Lesson-Notes"}.pdf`}>
+                  <Download className="size-3.5" /> Save to Device
+                </a>
+              </Button>
+            )}
+            {directSrc && (
+              <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+                <a href={directSrc} target="_blank" rel="noreferrer">
+                  <ExternalLink className="size-3.5" /> Fullscreen
+                </a>
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="w-full h-[72vh] min-h-[500px] overflow-hidden rounded-2xl border bg-background shadow-sm relative">
-          <iframe
-            src={embedUrl}
-            title={title || "PDF Document"}
-            className="size-full border-0"
-            allow="fullscreen"
-          />
+        <div className="w-full h-[72vh] min-h-[460px] overflow-hidden rounded-2xl border bg-background shadow-sm relative flex flex-col items-center justify-center">
+          {isBlobUrl ? (
+            <>
+              {/* Desktop native PDF reader embed */}
+              <object
+                data={directSrc}
+                type="application/pdf"
+                className="size-full hidden sm:block"
+              >
+                <iframe
+                  src={embedUrl}
+                  title={title || "PDF Document"}
+                  className="size-full border-0"
+                  allow="fullscreen"
+                />
+              </object>
+
+              {/* Mobile friendly offline card (mobile browsers block blob iframes) */}
+              <div className="sm:hidden flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-sm">
+                <div className="size-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center shadow-xs">
+                  <FileText className="size-8" />
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-base text-foreground leading-snug">
+                    {title || "PDF Notes"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Your offline PDF notes are ready. Tap below to read comfortably in fullscreen or open in your device's PDF reader.
+                  </p>
+                </div>
+                <div className="flex flex-col w-full gap-2.5 pt-1">
+                  <Button asChild size="lg" className="rounded-full shadow-glow font-bold gap-2 w-full">
+                    <a href={directSrc} target="_blank" rel="noreferrer">
+                      <BookOpen className="size-4" /> Open Fullscreen Reader
+                    </a>
+                  </Button>
+                  <Button asChild variant="outline" size="sm" className="rounded-full font-semibold gap-1.5 w-full">
+                    <a href={directSrc} download={`${title || "Lesson-Notes"}.pdf`}>
+                      <Download className="size-3.5" /> Save PDF File
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <iframe
+              src={embedUrl}
+              title={title || "PDF Document"}
+              className="size-full border-0"
+              allow="fullscreen"
+            />
+          )}
         </div>
       </div>
     );

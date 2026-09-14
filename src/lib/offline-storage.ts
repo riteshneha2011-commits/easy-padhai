@@ -108,8 +108,18 @@ export async function getOfflineMediaUrl(
   try {
     const data = await getOfflineLesson(lessonId);
     if (!data) return null;
-    const blob = type === "audio" ? data.audio_blob : data.pdf_blob;
+    let blob = type === "audio" ? data.audio_blob : data.pdf_blob;
+    if (!blob) {
+      if (type === "pdf" && data.kind === "pdf" && data.audio_blob) {
+        blob = data.audio_blob;
+      } else if (type === "audio" && data.kind !== "pdf" && data.pdf_blob) {
+        blob = data.pdf_blob;
+      }
+    }
     if (!blob) return null;
+    if (type === "pdf" && blob.type !== "application/pdf") {
+      blob = new Blob([await blob.arrayBuffer()], { type: "application/pdf" });
+    }
     return URL.createObjectURL(blob);
   } catch {
     return null;
@@ -175,15 +185,16 @@ export async function downloadLessonForOffline(
 
   if (audioUrl) {
     try {
-      const finalAudioUrl = isStorageRef(audioUrl) ? await resolveMediaUrl(audioUrl) : audioUrl;
+      const finalAudioUrl = await resolveMediaUrl(audioUrl);
       if (finalAudioUrl) {
         const res = await fetch(finalAudioUrl);
-        if (!res.ok) throw new Error("Audio download failed");
+        if (!res.ok) throw new Error(`Audio download failed (HTTP ${res.status})`);
         audioBlob = await res.blob();
         totalBytes += audioBlob.size;
       }
     } catch (err) {
-      console.warn("Could not download audio stream:", err);
+      console.error("Could not download audio stream:", err);
+      throw new Error("Could not download audio file. Please check your connection.");
     }
   }
 
@@ -191,16 +202,19 @@ export async function downloadLessonForOffline(
 
   if (pdfUrl) {
     try {
-      const finalPdfUrl = isStorageRef(pdfUrl) ? await resolveMediaUrl(pdfUrl) : pdfUrl;
+      const finalPdfUrl = await resolveMediaUrl(pdfUrl);
       if (finalPdfUrl) {
         const res = await fetch(finalPdfUrl);
-        if (res.ok) {
-          pdfBlob = await res.blob();
-          totalBytes += pdfBlob.size;
-        }
+        if (!res.ok) throw new Error(`PDF download failed (HTTP ${res.status})`);
+        const rawBlob = await res.blob();
+        pdfBlob = rawBlob.type === "application/pdf"
+          ? rawBlob
+          : new Blob([await rawBlob.arrayBuffer()], { type: "application/pdf" });
+        totalBytes += pdfBlob.size;
       }
     } catch (err) {
-      console.warn("Could not download PDF stream:", err);
+      console.error("Could not download PDF stream:", err);
+      throw new Error("Could not download PDF file. Please check your connection.");
     }
   }
 

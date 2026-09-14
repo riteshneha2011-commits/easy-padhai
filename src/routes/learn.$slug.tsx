@@ -813,17 +813,34 @@ function LessonPanel({
     setIsDownloading(true);
     setDownloadProgress(15);
     try {
+      let audioToDownload = media?.audio ?? null;
+      let pdfToDownload = media?.pdf ?? null;
+
+      // If media hasn't loaded yet, fetch access first
+      if (!audioToDownload && !pdfToDownload) {
+        setDownloadProgress(25);
+        const freshAccess = userId
+          ? await getLessonAccess({ data: { lessonId: lesson.id } })
+          : await getPublicLessonAccess({ data: { lessonId: lesson.id } });
+        audioToDownload = freshAccess?.media?.audio ?? null;
+        pdfToDownload = freshAccess?.media?.pdf ?? null;
+      }
+
+      if (!audioToDownload && !pdfToDownload) {
+        throw new Error("No media file available to download for this lesson.");
+      }
+
       await downloadLessonForOffline(
         lesson,
-        media?.audio ?? null,
-        media?.pdf ?? null,
+        audioToDownload,
+        pdfToDownload,
         (pct) => setDownloadProgress(pct),
       );
       setIsOfflineReady(true);
       soundFx.playSuccess();
       toast.success("Lesson saved in-app for 100% offline access! 📥");
-    } catch {
-      toast.error("Could not download for offline.");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not download for offline.");
     } finally {
       setIsDownloading(false);
     }
@@ -1168,7 +1185,7 @@ function LessonPanel({
       icon: FileText,
       hint: "Open the PDF notes",
       render: () => {
-        if (!media?.pdf && accessQuery.isLoading) {
+        if (!media?.pdf && !isOfflineReady && accessQuery.isLoading) {
           return (
             <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-secondary/30 text-muted-foreground animate-pulse space-y-2">
               <FileText className="size-8 text-primary animate-pulse" />
@@ -1176,7 +1193,7 @@ function LessonPanel({
             </div>
           );
         }
-        if (locked && !media?.pdf) {
+        if (locked && !media?.pdf && !isOfflineReady) {
           return (
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-3">
               <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">

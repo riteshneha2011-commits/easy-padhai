@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { soundFx } from "@/lib/sound-effects";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/offline")({
   head: () => ({
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/offline")({
 function OfflinePage() {
   const [lessons, setLessons] = useState<OfflineLessonData[]>([]);
   const [activeLesson, setActiveLesson] = useState<OfflineLessonData | null>(null);
+  const [activeTab, setActiveTab] = useState<"audio" | "pdf">("audio");
   const [usage, setUsage] = useState<{ formatted: string; count: number }>({ formatted: "0 MB", count: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +45,16 @@ function OfflinePage() {
   useEffect(() => {
     void loadOfflineData();
   }, []);
+
+  useEffect(() => {
+    if (activeLesson) {
+      if (activeLesson.kind === "pdf" || (!activeLesson.audio_blob && Boolean(activeLesson.pdf_blob))) {
+        setActiveTab("pdf");
+      } else {
+        setActiveTab("audio");
+      }
+    }
+  }, [activeLesson?.id]);
 
   const handleDelete = async (lessonId: string, title: string) => {
     soundFx.playClick();
@@ -192,12 +204,39 @@ function OfflinePage() {
                 )}
               </div>
 
+              {/* If both audio and pdf exist, show tab pills */}
+              {activeLesson.audio_blob && activeLesson.pdf_blob && (
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-secondary/60 w-fit">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("audio")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                      activeTab === "audio" ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Headphones className="size-3.5" /> Audio Lecture
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("pdf")}
+                    className={cn(
+                      "px-3 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5",
+                      activeTab === "pdf" ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <FileText className="size-3.5" /> PDF Notes
+                  </button>
+                </div>
+              )}
+
               {/* Offline Media Player */}
               <div className="rounded-2xl bg-secondary/40 p-3 sm:p-4 border border-border/60 min-w-0 overflow-hidden">
                 <MediaPlayer
+                  key={`${activeLesson.id}-${activeTab}`}
                   value=""
                   title={activeLesson.title}
-                  kind={activeLesson.kind === "pdf" ? "pdf" : "audio"}
+                  kind={activeTab}
                   lessonId={activeLesson.id}
                 />
               </div>
