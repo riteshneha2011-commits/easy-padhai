@@ -475,28 +475,22 @@ export async function submitPublicAttempt(input: {
 
   // 3. Find or provision learner profile (Lead Capture)
   let profileId: string | null = null;
+  let isRegisteredUser = false;
 
   // Check if profile exists with this phone
   const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
-    .select("id, credits, total_xp")
+    .select("id, credits, total_xp, onboarding_completed")
     .eq("phone", cleanPhone)
     .maybeSingle();
 
   if (existingProfile) {
     profileId = existingProfile.id;
-    // Add 50 bonus credits + 100 XP
-    await supabaseAdmin
-      .from("profiles")
-      .update({
-        credits: (existingProfile.credits || 0) + 50,
-        total_xp: (existingProfile.total_xp || 0) + 100,
-      })
-      .eq("id", profileId);
+    isRegisteredUser = Boolean(existingProfile.onboarding_completed);
   } else {
     // Create guest auth user and profile
     const dummyEmail = `student_${cleanPhone}@easypadhai.guest`;
-    const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authUser } = await supabaseAdmin.auth.admin.createUser({
       email: dummyEmail,
       phone: `+91${cleanPhone}`,
       phone_confirm: true,
@@ -511,20 +505,82 @@ export async function submitPublicAttempt(input: {
 
     if (authUser?.user) {
       profileId = authUser.user.id;
-      // Ensure profile row
+      // Ensure initial guest profile with 0 base credits (bonus will be added based on score)
       await supabaseAdmin.from("profiles").upsert({
         id: profileId,
         full_name: cleanName,
         phone: cleanPhone,
         class_level: challenge.classLevel || 10,
-        credits: 150, // 100 base + 50 bonus challenge credits
-        total_xp: 100,
+        credits: 0,
+        total_xp: 0,
         onboarding_completed: false,
       });
     }
   }
 
-  // 4. Save attempt in test_attempts
+  // 4. Anti-Farming: Check if this user/phone has already claimed rewards for this challenge
+  let alreadyClaimed = false;
+  if (profileId) {
+    const { data: priorAttempts } = await supabaseAdmin
+      .from("test_attempts")
+      .select("id")
+      .eq("test_id", challenge.id)
+      .eq("user_id", profileId)
+      .limit(1);
+
+    if (priorAttempts && priorAttempts.length > 0) {
+      alreadyClaimed = true;
+    }
+  }
+
+  // 5. Performance-Based Reward Calculation
+  const percent = Math.round((score / Math.max(total, 1)) * 100);
+  let potentialCredits = 0;
+  let potentialXp = 5; // minimum participation XP
+
+  if (percent >= 80) {
+    potentialCredits = 10; // 1 full lecture unlock reward
+    potentialXp = 30;
+  } else if (percent >= 50) {
+    potentialCredits = 5;
+    potentialXp = 15;
+  } else {
+    potentialCredits = 0;
+    potentialXp = 5;
+  }
+
+  let actualCreditsAwarded = 0;
+  let actualXpAwarded = 0;
+
+  if (!alreadyClaimed && profileId) {
+    actualCreditsAwarded = potentialCredits;
+    actualXpAwarded = potentialXp;
+
+    // Fetch fresh profile state to update
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("credits, total_xp, onboarding_completed")
+      .eq("id", profileId)
+      .single();
+
+    if (prof) {
+      let nextCredits = (prof.credits || 0) + actualCreditsAwarded;
+      // Unregistered guest cap: Maximum 20 bonus credits until full registration/verification
+      if (!prof.onboarding_completed && nextCredits > 20) {
+        nextCredits = 20;
+      }
+
+      await supabaseAdmin
+        .from("profiles")
+        .update({
+          credits: nextCredits,
+          total_xp: (prof.total_xp || 0) + actualXpAwarded,
+        })
+        .eq("id", profileId);
+    }
+  }
+
+  // 6. Save attempt in test_attempts
   if (profileId) {
     await supabaseAdmin.from("test_attempts").insert({
       test_id: challenge.id,
@@ -537,13 +593,15 @@ export async function submitPublicAttempt(input: {
         student_name: cleanName,
         phone: cleanPhone,
         time_taken_seconds: timeTakenSeconds,
+        already_claimed: alreadyClaimed,
+        credits_awarded: actualCreditsAwarded,
+        xp_awarded: actualXpAwarded,
         answers,
       },
     });
   }
 
-  // 5. Compute percentile
-  const percent = Math.round((score / Math.max(total, 1)) * 100);
+  // 7. Compute percentile
   const percentile = percent >= 80 ? 92 : percent >= 60 ? 78 : percent >= 40 ? 54 : 35;
 
   return {
@@ -555,8 +613,11 @@ export async function submitPublicAttempt(input: {
     chapterTitle: challenge.chapterTitle,
     chapterSlug: challenge.chapterSlug,
     code,
-    bonusCreditsAwarded: 50,
-    bonusXpAwarded: 100,
+    bonusCreditsAwarded: actualCreditsAwarded,
+    bonusXpAwarded: actualXpAwarded,
+    alreadyClaimed,
+    isRegisteredUser,
+    urgencyHours: 48,
     review,
   };
 }

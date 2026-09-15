@@ -14,13 +14,16 @@ import {
   Coins, 
   ChevronDown, 
   ChevronUp,
-  AlertCircle
+  AlertCircle,
+  UserCheck,
+  Edit2
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { getPublicChallengeFn, submitPublicAttemptFn } from "@/lib/challenges.functions";
 import { generateStudentShareText } from "@/lib/viral-copy";
 import { soundFx } from "@/lib/sound-effects";
+import { useAuth } from "@/hooks/use-auth";
 import { MathText } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -40,7 +43,7 @@ export const Route = createFileRoute("/c/$code")({
       { property: "og:title", content: "2-Minute Brain Challenge — Easy Padhai" },
       {
         property: "og:description",
-        content: "Take the 2-minute challenge and earn 50 free study credits on Easy Padhai!",
+        content: "Take the 2-minute challenge and earn 1 free lecture unlock on Easy Padhai!",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -53,6 +56,7 @@ type AttemptResult = Awaited<ReturnType<typeof submitPublicAttemptFn>>;
 
 function ChallengeRunnerPage() {
   const { code } = Route.useParams();
+  const { user, profile } = useAuth();
   const fetchChallenge = useServerFn(getPublicChallengeFn);
   const submitAttempt = useServerFn(submitPublicAttemptFn);
 
@@ -60,11 +64,24 @@ function ChallengeRunnerPage() {
   const [step, setStep] = useState<"gate" | "quiz" | "result">("gate");
   const [studentName, setStudentName] = useState("");
   const [phone, setPhone] = useState("");
+  const [isEditingGuestInfo, setIsEditingGuestInfo] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [showReview, setShowReview] = useState(false);
+
+  // Auto-fill logged-in student info
+  useEffect(() => {
+    if (profile) {
+      if (profile.full_name && !studentName) {
+        setStudentName(profile.full_name);
+      }
+      if (profile.phone && !phone) {
+        setPhone(profile.phone);
+      }
+    }
+  }, [profile]);
 
   // Timer
   const [timeLeft, setTimeLeft] = useState(120);
@@ -194,6 +211,8 @@ function ChallengeRunnerPage() {
   // STEP 1: GATE / REGISTRATION SCREEN
   // ==========================================
   if (step === "gate") {
+    const isAlreadyLoggedIn = Boolean(user && profile?.phone && !isEditingGuestInfo);
+
     return (
       <div className="mx-auto flex min-h-[85vh] w-full max-w-lg flex-col justify-center px-4 py-8">
         <Card className="overflow-hidden rounded-3xl border-primary/20 shadow-xl">
@@ -220,54 +239,87 @@ function ChallengeRunnerPage() {
                 <p className="text-muted-foreground">Speed Test</p>
               </div>
               <div>
-                <p className="font-semibold text-primary">+50 Credits</p>
-                <p className="text-muted-foreground">Free Bonus</p>
+                <p className="font-semibold text-primary">+10 Credits</p>
+                <p className="text-muted-foreground">1 Lesson Unlock</p>
               </div>
             </div>
 
-            <div className="space-y-4 pt-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Your Full Name / आपका नाम
-                </label>
-                <Input
-                  placeholder="e.g. Rahul Sharma"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  className="rounded-xl"
-                  autoFocus
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  WhatsApp Number / व्हाट्सएप नंबर
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-10 items-center rounded-xl bg-secondary px-3 text-sm font-medium text-muted-foreground">
-                    +91
+            {/* If Student is already logged in, show seamless one-click play card */}
+            {isAlreadyLoggedIn ? (
+              <div className="space-y-4 pt-2">
+                <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 text-center space-y-1">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary">
+                    <UserCheck className="h-4 w-4" />
+                    <span>Logged In Account</span>
                   </div>
+                  <p className="text-base font-bold text-foreground">
+                    {profile?.full_name || "Learner"}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-mono">
+                    +91 {profile?.phone}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingGuestInfo(true)}
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                    Change number
+                  </button>
+                </div>
+
+                <Button
+                  onClick={handleStart}
+                  className="w-full rounded-2xl py-6 text-base font-semibold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
+                >
+                  Start Challenge 🚀
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4 pt-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Your Full Name / आपका नाम
+                  </label>
                   <Input
-                    type="tel"
-                    maxLength={10}
-                    placeholder="10 digit number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                    placeholder="e.g. Rahul Sharma"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
                     className="rounded-xl"
+                    autoFocus
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  🔒 Results, Rank & 50 Bonus study credits will be linked to this number.
-                </p>
-              </div>
 
-              <Button
-                onClick={handleStart}
-                className="w-full rounded-2xl py-6 text-base font-semibold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
-              >
-                Start Challenge 🚀
-              </Button>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    WhatsApp Number / व्हाट्सएप नंबर
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-10 items-center rounded-xl bg-secondary px-3 text-sm font-medium text-muted-foreground">
+                      +91
+                    </div>
+                    <Input
+                      type="tel"
+                      maxLength={10}
+                      placeholder="10 digit number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ""))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    🔒 Results, Rank & Free study credits will be linked to this number.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleStart}
+                  className="w-full rounded-2xl py-6 text-base font-semibold shadow-lg shadow-primary/25 transition-all hover:scale-[1.02]"
+                >
+                  Start Challenge 🚀
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -433,11 +485,30 @@ function ChallengeRunnerPage() {
               </div>
             </div>
 
-            {/* Bonus Reward Badge */}
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-4 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-              <Coins className="h-4 w-4" />
-              <span>+{result.bonusCreditsAwarded} Study Credits & +{result.bonusXpAwarded} XP credited to your number!</span>
-            </div>
+            {/* Dynamic Reward Banner */}
+            {result.alreadyClaimed ? (
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Practice Mode Complete (Credits already claimed for this quiz)</span>
+              </div>
+            ) : result.bonusCreditsAwarded > 0 ? (
+              <div className="mt-5 space-y-2">
+                <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-4 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                  <Coins className="h-4 w-4" />
+                  <span>+{result.bonusCreditsAwarded} Study Credits (1 Free Lesson!) & +{result.bonusXpAwarded} XP earned!</span>
+                </div>
+                {!result.isRegisteredUser && (
+                  <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 font-medium">
+                    ⏳ 48-Hour Guarantee: Log in or sign up with this number to permanently lock in your credits!
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-muted-foreground">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span>+{result.bonusXpAwarded} Participation XP · Score 50%+ to earn lesson unlock credits!</span>
+              </div>
+            )}
           </div>
 
           <CardContent className="space-y-4 p-6 pt-2">
