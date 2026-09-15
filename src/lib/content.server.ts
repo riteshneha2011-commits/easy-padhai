@@ -1,4 +1,5 @@
 import { createPublicClient } from "./db.server";
+import { parseLessonSchedule } from "./schedule";
 
 export type CatalogLesson = {
   id: string;
@@ -11,6 +12,8 @@ export type CatalogLesson = {
   hasVideo: boolean;
   hasPdf: boolean;
   hasSummary: boolean;
+  scheduled_at?: string | null;
+  isScheduled?: boolean;
 };
 
 export type CatalogChapter = {
@@ -63,18 +66,23 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
         const ownLessons = (lessons ?? [])
           .filter((l) => l.chapter_id === chapter.id)
           .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
-          .map((l) => ({
-            id: l.id,
-            chapter_id: l.chapter_id,
-            title: l.title,
-            order_index: l.order_index ?? 0,
-            kind: l.kind ?? "concept",
-            duration_minutes: l.duration_minutes ?? null,
-            hasAudio: Boolean(l.audio_url),
-            hasVideo: Boolean(l.video_url),
-            hasPdf: Boolean(l.pdf_url),
-            hasSummary: Boolean(l.summary),
-          }));
+          .map((l) => {
+            const sched = parseLessonSchedule(l.summary);
+            return {
+              id: l.id,
+              chapter_id: l.chapter_id,
+              title: l.title,
+              order_index: l.order_index ?? 0,
+              kind: l.kind ?? "concept",
+              duration_minutes: l.duration_minutes ?? null,
+              hasAudio: Boolean(l.audio_url),
+              hasVideo: Boolean(l.video_url),
+              hasPdf: Boolean(l.pdf_url),
+              hasSummary: Boolean(sched.cleanSummary),
+              scheduled_at: sched.scheduledAt,
+              isScheduled: sched.isScheduled,
+            };
+          });
 
         return {
           id: chapter.id,
@@ -177,12 +185,16 @@ export async function fetchChapterBySlug(slug: string) {
           Array.isArray(t.questions) &&
           t.questions.length > 0,
       ) ?? null;
+    const sched = parseLessonSchedule(rest.summary);
     return {
       ...rest,
+      summary: sched.cleanSummary,
+      scheduled_at: sched.scheduledAt,
+      isScheduled: sched.isScheduled,
       hasAudio: Boolean(audio_url),
       hasVideo: Boolean(video_url),
       hasPdf: Boolean(pdf_url),
-      isFree: rest.id === firstId,
+      isFree: rest.id === firstId && !sched.isScheduled,
       test: lessonTest ? { id: lessonTest.id, title: lessonTest.title, duration_minutes: lessonTest.duration_minutes } : null,
     };
   });

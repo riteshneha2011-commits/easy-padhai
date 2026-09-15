@@ -65,7 +65,10 @@ import {
   FileText,
   Search,
   Filter,
+  Clock,
+  Calendar,
 } from "lucide-react";
+import { formatScheduleDate, isScheduleInFuture } from "@/lib/schedule";
 
 
 export const Route = createFileRoute("/teach")({
@@ -272,6 +275,8 @@ function TeachPage() {
   const [newLessonChapterId, setNewLessonChapterId] = useState("");
   const [newLessonOrder, setNewLessonOrder] = useState<number>(1);
   const [newLessonKey, setNewLessonKey] = useState(0);
+  const [newLessonPublishMode, setNewLessonPublishMode] = useState<"immediate" | "schedule" | "draft">("immediate");
+  const [newLessonScheduledAt, setNewLessonScheduledAt] = useState<string>("");
 
   const [newChapterClass, setNewChapterClass] = useState<number>(9);
   const [newChapterSubjectId, setNewChapterSubjectId] = useState("");
@@ -712,6 +717,14 @@ function TeachPage() {
                   const targetClass = newLessonClass;
                   const targetSubjectId = effectiveLessonSubjectId;
                   const targetChapterId = effectiveChapterId;
+                  const isDraft = newLessonPublishMode === "draft";
+                  const scheduledAt =
+                    newLessonPublishMode === "schedule" && newLessonScheduledAt ? newLessonScheduledAt : null;
+                  const successMsg = scheduledAt
+                    ? `Lesson scheduled for ${formatScheduleDate(scheduledAt)}`
+                    : isDraft
+                    ? "Lesson saved as draft"
+                    : "Lesson published";
                   void run(
                     () =>
                       upsertLesson({
@@ -725,15 +738,18 @@ function TeachPage() {
                           summary: String(f.get("summary") ?? "") || null,
                           duration_minutes: Number(f.get("duration_minutes") ?? 10),
                           order_index: newLessonOrder,
-                          published: true,
+                          published: !isDraft,
+                          scheduled_at: scheduledAt,
                         },
                       }),
-                    "Lesson published",
+                    successMsg,
                   ).then(() => {
                     setPubClassFilter(targetClass);
                     setPubSubjectFilter(targetSubjectId);
                     setPubChapterFilter(targetChapterId);
                     setCollapsedChapters((prev) => ({ ...prev, [targetChapterId]: false }));
+                    setNewLessonPublishMode("immediate");
+                    setNewLessonScheduledAt("");
                   });
                   form.reset();
                   setNewLessonKey((k) => k + 1);
@@ -853,8 +869,96 @@ function TeachPage() {
                     className="rounded-xl text-sm"
                   />
                 </div>
+
+                <div className="space-y-2 sm:col-span-2 rounded-2xl border border-border/60 bg-muted/20 p-3.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold text-xs flex items-center gap-1.5">
+                      <Clock className="size-3.5 text-primary" /> Release Schedule & Visibility
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">Control when learners can access this lecture</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setNewLessonPublishMode("immediate")}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer",
+                        newLessonPublishMode === "immediate"
+                          ? "border-primary bg-primary/10 text-primary font-semibold shadow-xs ring-1 ring-primary/30"
+                          : "border-border/60 bg-background/50 text-muted-foreground hover:bg-muted/40",
+                      )}
+                    >
+                      <span className="text-base mb-0.5">🟢</span>
+                      <span>Publish Now</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewLessonPublishMode("schedule");
+                        if (!newLessonScheduledAt) {
+                          // Default to tomorrow 10:00 AM local time
+                          const d = new Date();
+                          d.setDate(d.getDate() + 1);
+                          d.setHours(10, 0, 0, 0);
+                          const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                          setNewLessonScheduledAt(localIso);
+                        }
+                      }}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer",
+                        newLessonPublishMode === "schedule"
+                          ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold shadow-xs ring-1 ring-amber-500/30"
+                          : "border-border/60 bg-background/50 text-muted-foreground hover:bg-muted/40",
+                      )}
+                    >
+                      <span className="text-base mb-0.5">⏳</span>
+                      <span>Schedule Later</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewLessonPublishMode("draft")}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-medium transition-all cursor-pointer",
+                        newLessonPublishMode === "draft"
+                          ? "border-zinc-500 bg-zinc-500/10 text-foreground font-semibold shadow-xs ring-1 ring-zinc-500/30"
+                          : "border-border/60 bg-background/50 text-muted-foreground hover:bg-muted/40",
+                      )}
+                    >
+                      <span className="text-base mb-0.5">📝</span>
+                      <span>Save as Draft</span>
+                    </button>
+                  </div>
+
+                  {newLessonPublishMode === "schedule" && (
+                    <div className="mt-2.5 pt-2 border-t border-border/50 space-y-1.5 animate-in fade-in duration-200">
+                      <Label className="text-xs font-medium flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <Calendar className="size-3.5" /> Select Release Date & Time
+                      </Label>
+                      <Input
+                        type="datetime-local"
+                        value={newLessonScheduledAt}
+                        onChange={(e) => setNewLessonScheduledAt(e.target.value)}
+                        required={newLessonPublishMode === "schedule"}
+                        className="rounded-xl bg-background"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Students will see an "Upcoming Lecture" countdown card until this time, after which the video/audio unlocks automatically.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
                 <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
-                  Publish lesson
+                  {newLessonPublishMode === "schedule" ? (
+                    <>
+                      <Clock className="size-4 mr-1.5" /> Schedule Lecture
+                    </>
+                  ) : newLessonPublishMode === "draft" ? (
+                    "Save as Draft"
+                  ) : (
+                    "Publish Lesson"
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -1313,6 +1417,21 @@ function TeachPage() {
                                                 <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize">
                                                   {l.kind}
                                                 </Badge>
+                                                {(!l.published || (l as any).published === false) && (
+                                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-zinc-500/40 text-zinc-500">
+                                                    Draft
+                                                  </Badge>
+                                                )}
+                                                {(l as any).scheduled_at && isScheduleInFuture((l as any).scheduled_at) && (
+                                                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 text-[10px] py-0 px-1.5 font-semibold flex items-center gap-1">
+                                                    <Clock className="size-2.5" /> Scheduled: {formatScheduleDate((l as any).scheduled_at)}
+                                                  </Badge>
+                                                )}
+                                                {(l as any).scheduled_at && !isScheduleInFuture((l as any).scheduled_at) && (
+                                                  <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[10px] py-0 px-1.5 font-semibold flex items-center gap-1">
+                                                    <CheckCircle2 className="size-2.5" /> Released
+                                                  </Badge>
+                                                )}
                                                 {l.audio_url && (
                                                   <span title="Audio available">
                                                     <Headphones className="size-3 text-primary" />
@@ -1361,26 +1480,29 @@ function TeachPage() {
                                                 className="mt-3 grid gap-3 border-t border-border/40 pt-3 sm:grid-cols-2"
                                                 onSubmit={(e) => {
                                                   e.preventDefault();
-                                                  const f = new FormData(e.currentTarget);
-                                                  void run(
-                                                    () =>
-                                                      upsertLesson({
-                                                        data: {
-                                                          id: l.id,
-                                                          chapter_id: String(f.get("chapter_id") ?? l.chapter_id),
-                                                          title: String(f.get("title") ?? l.title),
-                                                          kind: String(f.get("kind") ?? l.kind),
-                                                          audio_url: String(f.get("audio_url") ?? l.audio_url ?? "") || null,
-                                                          video_url: String(f.get("video_url") ?? l.video_url ?? "") || null,
-                                                          pdf_url: String(f.get("pdf_url") ?? l.pdf_url ?? "") || null,
-                                                          summary: String(f.get("summary") ?? l.summary ?? "") || null,
-                                                          duration_minutes: Number(f.get("duration_minutes") ?? l.duration_minutes),
-                                                          order_index: Number(f.get("order_index") ?? l.order_index),
-                                                          published: (f.get("published") as string) === "on",
-                                                        },
-                                                      }),
-                                                    "Lesson updated",
-                                                  );
+                                                   const f = new FormData(e.currentTarget);
+                                                   const schedVal = String(f.get("scheduled_at") ?? "").trim();
+                                                   const scheduledAt = schedVal ? new Date(schedVal).toISOString() : null;
+                                                   void run(
+                                                     () =>
+                                                       upsertLesson({
+                                                         data: {
+                                                           id: l.id,
+                                                           chapter_id: String(f.get("chapter_id") ?? l.chapter_id),
+                                                           title: String(f.get("title") ?? l.title),
+                                                           kind: String(f.get("kind") ?? l.kind),
+                                                           audio_url: String(f.get("audio_url") ?? l.audio_url ?? "") || null,
+                                                           video_url: String(f.get("video_url") ?? l.video_url ?? "") || null,
+                                                           pdf_url: String(f.get("pdf_url") ?? l.pdf_url ?? "") || null,
+                                                           summary: String(f.get("summary") ?? l.summary ?? "") || null,
+                                                           duration_minutes: Number(f.get("duration_minutes") ?? l.duration_minutes),
+                                                           order_index: Number(f.get("order_index") ?? l.order_index),
+                                                           published: (f.get("published") as string) === "on",
+                                                           scheduled_at: scheduledAt,
+                                                         },
+                                                       }),
+                                                     "Lesson updated",
+                                                   );
                                                   setEditLesson(null);
                                                 }}
                                               >
@@ -1454,14 +1576,42 @@ function TeachPage() {
                                                     defaultValue={l.order_index}
                                                   />
                                                 </div>
-                                                <label className="flex items-center gap-2 text-sm sm:col-span-2">
-                                                  <input
-                                                    type="checkbox"
-                                                    name="published"
-                                                    defaultChecked={l.published}
-                                                  />
-                                                  Published
-                                                </label>
+                                                 <div className="space-y-1.5 sm:col-span-2 rounded-xl border border-border/60 bg-muted/20 p-2.5">
+                                                   <div className="flex items-center justify-between">
+                                                     <Label className="text-xs font-semibold flex items-center gap-1">
+                                                       <Clock className="size-3 text-primary" /> Scheduled Release (Optional)
+                                                     </Label>
+                                                     {(l as any).scheduled_at && (
+                                                       <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                                                         {isScheduleInFuture((l as any).scheduled_at) ? "Upcoming: " : "Released: "}
+                                                         {formatScheduleDate((l as any).scheduled_at)}
+                                                       </span>
+                                                     )}
+                                                   </div>
+                                                   <Input
+                                                     type="datetime-local"
+                                                     name="scheduled_at"
+                                                     defaultValue={
+                                                       (l as any).scheduled_at
+                                                         ? new Date(new Date((l as any).scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000)
+                                                             .toISOString()
+                                                             .slice(0, 16)
+                                                         : ""
+                                                     }
+                                                     className="rounded-xl text-xs bg-background"
+                                                   />
+                                                   <p className="text-[10px] text-muted-foreground">
+                                                     Leave blank to release immediately. If set to a future date/time, students see a countdown card and media remains locked.
+                                                   </p>
+                                                 </div>
+                                                 <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                                                   <input
+                                                     type="checkbox"
+                                                     name="published"
+                                                     defaultChecked={l.published}
+                                                   />
+                                                   Published
+                                                 </label>
                                                 <Button
                                                   type="submit"
                                                   disabled={busy}

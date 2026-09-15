@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { DraftQuestion } from "./questions-parse";
 import { DEFAULT_CLASS_LEVEL } from "@/lib/classes";
+import { parseLessonSchedule, injectLessonSchedule } from "./schedule";
 
 export async function assertStaff(
   supabase: any,
@@ -95,7 +96,15 @@ export async function fetchAdminCatalog() {
   return {
     subjects: subjects ?? [],
     chapters: chapters ?? [],
-    lessons: lessons ?? [],
+    lessons: (lessons ?? []).map((l) => {
+      const parsed = parseLessonSchedule(l.summary);
+      return {
+        ...l,
+        summary: parsed.cleanSummary,
+        scheduled_at: parsed.scheduledAt,
+        isScheduled: parsed.isScheduled,
+      };
+    }),
     tests: (tests ?? []).map((t) => {
       const isLesson = t.description?.startsWith("lesson:") ?? false;
       const lessonId = isLesson ? t.description?.slice(7).split("|")[0]?.trim() ?? null : null;
@@ -148,16 +157,25 @@ export type LessonInput = {
   duration_minutes?: number;
   order_index?: number;
   published?: boolean;
+  scheduled_at?: string | null;
 };
 
 export async function upsertLesson(input: LessonInput) {
+  const { scheduled_at, ...rest } = input;
+  const enrichedSummary = injectLessonSchedule(rest.summary, scheduled_at);
   const { data, error } = await supabaseAdmin
     .from("lessons")
-    .upsert({ ...input, id: input.id ?? undefined })
+    .upsert({ ...rest, summary: enrichedSummary, id: rest.id ?? undefined })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
-  return data;
+  const parsed = parseLessonSchedule(data.summary);
+  return {
+    ...data,
+    summary: parsed.cleanSummary,
+    scheduled_at: parsed.scheduledAt,
+    isScheduled: parsed.isScheduled,
+  };
 }
 
 export type SubjectInput = {

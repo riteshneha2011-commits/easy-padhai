@@ -6,6 +6,7 @@ import {
   STUDY_BLOCK_SECONDS,
   lessonCost,
 } from "./credits";
+import { parseLessonSchedule, formatScheduleDate } from "./schedule";
 
 /** Learner-local day (IST) so the daily bonus rolls over at midnight in India. */
 function today() {
@@ -92,6 +93,9 @@ export type LessonAccess = {
   cost: number;
   balance: number;
   quizPassed?: boolean;
+  isScheduled?: boolean;
+  scheduledAt?: string | null;
+  isStaffPreview?: boolean;
   media: { audio: string | null; video: string | null; pdf: string | null } | null;
 };
 
@@ -135,21 +139,22 @@ export async function getLessonAccessFor(
 ): Promise<LessonAccess> {
   const { data: lesson } = await supabaseAdmin
     .from("lessons")
-    .select("id, chapter_id, audio_url, video_url, pdf_url, published")
+    .select("id, chapter_id, audio_url, video_url, pdf_url, published, summary")
     .eq("id", lessonId)
     .maybeSingle();
 
   if (!lesson || !lesson.published) throw new Error("Lesson not found");
 
+  const sched = parseLessonSchedule(lesson.summary);
   const cost = lessonCost(lesson);
   const isFirst = await isFreeLesson(lesson);
 
   let isUnlocked = false;
   let balance = 0;
+  const staff = userId ? await isStaff(userId) : false;
 
   if (userId) {
     balance = await getBalance(userId);
-    const staff = await isStaff(userId);
     if (staff) {
       isUnlocked = true;
     } else {
@@ -163,9 +168,25 @@ export async function getLessonAccessFor(
     }
   }
 
+  // If lecture is scheduled for future release and caller is not a teacher/admin:
+  if (sched.isScheduled && !staff) {
+    return {
+      lessonId,
+      locked: true,
+      free: false,
+      cost,
+      balance,
+      quizPassed: false,
+      isScheduled: true,
+      scheduledAt: sched.scheduledAt,
+      isStaffPreview: false,
+      media: null,
+    };
+  }
+
   // First lesson of each chapter: 100% free (Audio, Video, Notes, Quiz, Summary).
   // Subsequent lessons (Lecture 2 onwards): completely locked until unlocked with credits (10 credits unlocks all).
-  const isAccessible = isFirst || isUnlocked;
+  const isAccessible = (isFirst && !sched.isScheduled) || isUnlocked;
   const audioUnlocked = isAccessible;
   const videoUnlocked = isAccessible;
   const pdfUnlocked = isAccessible;
@@ -199,10 +220,13 @@ export async function getLessonAccessFor(
   return {
     lessonId,
     locked,
-    free: isFirst,
+    free: isFirst && !sched.isScheduled,
     cost,
     balance,
     quizPassed,
+    isScheduled: sched.isScheduled,
+    scheduledAt: sched.scheduledAt,
+    isStaffPreview: sched.isScheduled && staff,
     media: {
       audio: audioUnlocked ? await signMedia(lesson.audio_url) : null,
       video: videoUnlocked ? await signMedia(lesson.video_url) : null,
@@ -234,6 +258,10 @@ async function signMedia(value: string | null) {
 
 export async function unlockLessonFor(userId: string, lessonId: string) {
   const access = await getLessonAccessFor(userId, lessonId);
+  if (access.isScheduled) {
+    const formattedDate = formatScheduleDate(access.scheduledAt);
+    throw new Error(`This lecture is scheduled to release on ${formattedDate}. It cannot be unlocked early.`);
+  }
   if (!access.locked) return access;
 
   if (access.balance < access.cost) {
