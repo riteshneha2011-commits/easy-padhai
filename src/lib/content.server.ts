@@ -199,6 +199,7 @@ export async function fetchLeaderboard(userId?: string | null) {
     supabaseAdmin
       .from("profiles")
       .select("id, full_name, total_xp, class_level")
+      .eq("onboarding_completed", true)
       .order("total_xp", { ascending: false })
       .limit(25),
     supabaseAdmin
@@ -224,6 +225,7 @@ export async function fetchLeaderboard(userId?: string | null) {
       const { count } = await supabaseAdmin
         .from("profiles")
         .select("*", { count: "exact", head: true })
+        .eq("onboarding_completed", true)
         .gt("total_xp", myProfile.total_xp ?? 0);
 
       userRank = {
