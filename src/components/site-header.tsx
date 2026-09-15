@@ -443,12 +443,17 @@ export function SiteHeader() {
                       to="/admin"
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                        "flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
                         pathname.startsWith("/admin") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                       )}
                     >
-                      <ShieldCheck className="size-4 text-emerald-500" />
-                      Admin Panel (Students &amp; Roles)
+                      <div className="flex items-center gap-3">
+                        <ShieldCheck className="size-4 text-emerald-500" />
+                        Admin &amp; Growth Hub
+                      </div>
+                      <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
+                        ⚡ Quizzes &amp; Leads
+                      </span>
                     </Link>
                   )}
                 </div>

@@ -413,8 +413,19 @@ function TeachPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight">Studio</h1>
-      <p className="mt-1 text-muted-foreground">Publish content and build tests for {ACTIVE_CLASS_LABEL}.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Studio</h1>
+          <p className="mt-1 text-muted-foreground">Publish content and build tests for {ACTIVE_CLASS_LABEL}.</p>
+        </div>
+        {user && (
+          <Button asChild className="rounded-full shadow-sm">
+            <Link to="/admin">
+              ⚡ Challenges &amp; Growth Hub &rarr;
+            </Link>
+          </Button>
+        )}
+      </div>
 
       <Tabs defaultValue="content" className="mt-6">
         <TabsList className="rounded-full flex-wrap h-auto gap-1 p-1 bg-secondary/80">
