@@ -487,49 +487,49 @@ function ChallengeRunnerPage() {
 
             {/* Dynamic Reward Banner */}
             {result.alreadyClaimed ? (
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-muted-foreground">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>Practice Mode Complete (Credits already claimed for this quiz)</span>
+              <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-4 py-2 text-xs font-semibold text-muted-foreground max-w-full text-center">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                <span>Practice Mode Complete (Credits already claimed)</span>
               </div>
             ) : result.bonusCreditsAwarded > 0 ? (
               <div className="mt-5 space-y-2">
-                <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-4 py-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                  <Coins className="h-4 w-4" />
+                <div className="inline-flex items-center justify-center gap-2 rounded-full bg-amber-500/15 px-4 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 max-w-full text-center">
+                  <Coins className="h-4 w-4 shrink-0" />
                   <span>+{result.bonusCreditsAwarded} Study Credits (1 Free Lesson!) & +{result.bonusXpAwarded} XP earned!</span>
                 </div>
                 {!result.isRegisteredUser && (
-                  <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 font-medium">
+                  <p className="text-[11px] text-amber-600/90 dark:text-amber-400/90 font-medium px-2 text-center">
                     ⏳ 48-Hour Guarantee: Log in or sign up with this number to permanently lock in your credits!
                   </p>
                 )}
               </div>
             ) : (
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-muted-foreground">
-                <Sparkles className="h-4 w-4 text-primary" />
+              <div className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-secondary px-4 py-2 text-xs font-semibold text-muted-foreground max-w-full text-center">
+                <Sparkles className="h-4 w-4 shrink-0 text-primary" />
                 <span>+{result.bonusXpAwarded} Participation XP · Score 50%+ to earn lesson unlock credits!</span>
               </div>
             )}
           </div>
 
-          <CardContent className="space-y-4 p-6 pt-2">
+          <CardContent className="space-y-3 p-4 sm:p-6 pt-2">
             {/* Action 1: Viral WhatsApp Share */}
             <Button
               onClick={handleWhatsAppShare}
-              className="w-full rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white py-6 text-base font-semibold shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
+              className="w-full rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white h-auto min-h-[50px] py-3 px-4 text-sm sm:text-base font-semibold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] whitespace-normal text-center"
             >
-              <Share2 className="h-5 w-5" />
-              <span>Challenge Your Friends on WhatsApp 📲</span>
+              <Share2 className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
+              <span>Challenge Friends on WhatsApp 📲</span>
             </Button>
 
             {/* Action 2: Conversion CTA to Core App */}
             <Button
               asChild
               variant="outline"
-              className="w-full rounded-2xl border-primary/40 py-6 text-base font-semibold hover:bg-primary/10 flex items-center justify-center gap-2"
+              className="w-full rounded-2xl border-primary/40 h-auto min-h-[50px] py-3 px-4 text-sm sm:text-base font-semibold hover:bg-primary/10 flex items-center justify-center gap-2 whitespace-normal text-center"
             >
               <Link to="/learn/$slug" params={{ slug: result.chapterSlug }}>
-                <BookOpen className="h-5 w-5 text-primary" />
-                <span>Listen to Full Audio & Notes on Easy Padhai 🎧</span>
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-primary" />
+                <span>Study Full Chapter (Audio &amp; Notes) 🎧</span>
               </Link>
             </Button>
           </CardContent>
