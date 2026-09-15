@@ -19,6 +19,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RevisionRouteImport } from './routes/revision'
 import { Route as TeachRouteImport } from './routes/teach'
 import { Route as WalletRouteImport } from './routes/wallet'
+import { Route as CCodeRouteImport } from './routes/c.$code'
 import { Route as LearnIndexRouteImport } from './routes/learn.index'
 import { Route as LearnSlugRouteImport } from './routes/learn.$slug'
 import { Route as TestTestIdRouteImport } from './routes/test.$testId'
@@ -73,6 +74,11 @@ const WalletRoute = WalletRouteImport.update({
   path: '/wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CCodeRoute = CCodeRouteImport.update({
+  id: '/c/$code',
+  path: '/c/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LearnIndexRoute = LearnIndexRouteImport.update({
   id: '/learn/',
   path: '/learn/',
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/revision': typeof RevisionRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
+  '/c/$code': typeof CCodeRoute
   '/learn/$slug': typeof LearnSlugRoute
   '/test/$testId': typeof TestTestIdRoute
   '/learn/': typeof LearnIndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/revision': typeof RevisionRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
+  '/c/$code': typeof CCodeRoute
   '/learn/$slug': typeof LearnSlugRoute
   '/test/$testId': typeof TestTestIdRoute
   '/learn': typeof LearnIndexRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/revision': typeof RevisionRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
+  '/c/$code': typeof CCodeRoute
   '/learn/$slug': typeof LearnSlugRoute
   '/test/$testId': typeof TestTestIdRoute
   '/learn/': typeof LearnIndexRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/revision'
     | '/teach'
     | '/wallet'
+    | '/c/$code'
     | '/learn/$slug'
     | '/test/$testId'
     | '/learn/'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/revision'
     | '/teach'
     | '/wallet'
+    | '/c/$code'
     | '/learn/$slug'
     | '/test/$testId'
     | '/learn'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/revision'
     | '/teach'
     | '/wallet'
+    | '/c/$code'
     | '/learn/$slug'
     | '/test/$testId'
     | '/learn/'
@@ -194,6 +206,7 @@ export interface RootRouteChildren {
   RevisionRoute: typeof RevisionRoute
   TeachRoute: typeof TeachRoute
   WalletRoute: typeof WalletRoute
+  CCodeRoute: typeof CCodeRoute
   LearnSlugRoute: typeof LearnSlugRoute
   TestTestIdRoute: typeof TestTestIdRoute
   LearnIndexRoute: typeof LearnIndexRoute
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WalletRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/c/$code': {
+      id: '/c/$code'
+      path: '/c/$code'
+      fullPath: '/c/$code'
+      preLoaderRoute: typeof CCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/learn/': {
       id: '/learn/'
       path: '/learn'
@@ -306,6 +326,7 @@ const rootRouteChildren: RootRouteChildren = {
   RevisionRoute: RevisionRoute,
   TeachRoute: TeachRoute,
   WalletRoute: WalletRoute,
+  CCodeRoute: CCodeRoute,
   LearnSlugRoute: LearnSlugRoute,
   TestTestIdRoute: TestTestIdRoute,
   LearnIndexRoute: LearnIndexRoute,
