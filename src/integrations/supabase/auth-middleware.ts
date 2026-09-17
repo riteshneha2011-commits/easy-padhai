@@ -28,8 +28,6 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
 }
 
 const DEFAULT_SUPABASE_URL = "https://bykqlnoftmqclyrtjiyp.supabase.co";
-const DEFAULT_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5a3Fsbm9mdG1xY2x5cnRqaXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNTYxOTYsImV4cCI6MjEwMzYzMjE5Nn0.pDpQhIe9Vl80DSIjSXTH_8gwGlG47ge9SPFKQJwzbR0";
 
 export const requireSupabaseAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
@@ -43,7 +41,11 @@ export const requireSupabaseAuth = createMiddleware({ type: "function" }).server
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
       process.env.SUPABASE_ANON_KEY ||
       process.env.VITE_SUPABASE_ANON_KEY ||
-      DEFAULT_SUPABASE_ANON_KEY;
+      "";
+
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+      throw new Error('Unauthorized: Supabase credentials not configured');
+    }
     
     const request = getRequest();
 

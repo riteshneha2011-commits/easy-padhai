@@ -44,8 +44,7 @@ function createSupabaseClient() {
     getEnvVar("VITE_SUPABASE_PUBLISHABLE_KEY") ||
     getEnvVar("SUPABASE_PUBLISHABLE_KEY") ||
     getEnvVar("VITE_SUPABASE_ANON_KEY") ||
-    getEnvVar("SUPABASE_ANON_KEY") ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ5a3Fsbm9mdG1xY2x5cnRqaXlwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwNTYxOTYsImV4cCI6MjEwMzYzMjE5Nn0.pDpQhIe9Vl80DSIjSXTH_8gwGlG47ge9SPFKQJwzbR0";
+    getEnvVar("SUPABASE_ANON_KEY");
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const message = "Supabase URL and API Key are required.";
