@@ -16,7 +16,25 @@ import {
   ExternalLink,
   ChevronRight,
   TrendingUp,
-  Award
+  Award,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Calendar,
+  Lock,
+  Unlock,
+  Mail,
+  Phone,
+  MapPin,
+  School,
+  Target,
+  Coins,
+  Zap,
+  Activity,
+  HelpCircle,
+  Video,
+  Headphones,
+  FileText
 } from "lucide-react";
 import { getPeople, updateUserRole, getAdminCatalog } from "@/lib/admin.functions";
 import { getUserDetail } from "@/lib/profile.functions";
@@ -664,46 +682,385 @@ function UserDetail({ userId }: { userId: string }) {
     queryFn: () => fetchDetail({ data: { userId } }),
   });
 
-  if (isLoading) return <p className="mt-3 text-sm text-muted-foreground">Loading profile…</p>;
-  if (error || !data)
-    return <p className="mt-3 text-sm text-destructive">Could not load this user's details.</p>;
+  const [activeTab, setActiveTab] = useState<"unlocks" | "completed" | "tests" | "wallet">("unlocks");
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 flex items-center justify-center p-8 rounded-2xl bg-background/60 border text-muted-foreground animate-pulse">
+        <Sparkles className="size-4 mr-2 text-primary animate-spin" />
+        <span className="text-xs font-semibold">Loading complete learner profile and history…</span>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="mt-4 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+        Could not load details for this user.
+      </div>
+    );
+  }
 
   const p = data.profile;
+  const phoneNumber = p.phone || data.authPhone;
+  const cleanPhone = phoneNumber ? phoneNumber.replace(/[^0-9]/g, "").slice(-10) : "";
+  const waUrl = cleanPhone ? `https://wa.me/91${cleanPhone}?text=Hello%20${encodeURIComponent(p.full_name || "Student")},%20this%20is%20Easy%20Padhai%20support!` : null;
 
   return (
-    <div className="mt-4 space-y-4 rounded-2xl bg-background p-4">
-      <div className="grid gap-3 sm:grid-cols-4">
-        <Stat label="Credits" value={p.credits ?? 0} />
-        <Stat label="XP" value={p.total_xp ?? 0} />
-        <Stat label="Board" value={p.board ?? "Not set"} />
-        <Stat label="City" value={p.city ?? "Not set"} />
+    <div className="mt-4 space-y-4 rounded-3xl bg-background p-4 sm:p-6 border border-border/80 shadow-xs">
+      {/* 1. PROFILE IDENTITY & CONTACT BAR */}
+      <div className="rounded-2xl border border-border/60 bg-muted/20 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <h4 className="font-display text-base font-bold text-foreground flex items-center gap-2">
+              {p.full_name || "Learner"}
+              {p.onboarding_completed ? (
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                  Onboarded ✓
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                  Pending Onboarding
+                </Badge>
+              )}
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Member since {new Date(p.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+              {data.lastSignInAt && (
+                <span> · Last active {new Date(data.lastSignInAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+              )}
+            </p>
+          </div>
+
+          {waUrl && (
+            <Button
+              asChild
+              size="sm"
+              className="rounded-full h-8 text-xs bg-[#25D366] hover:bg-[#20ba59] text-white shadow-xs"
+            >
+              <a href={waUrl} target="_blank" rel="noreferrer">
+                <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                WhatsApp Student
+              </a>
+            </Button>
+          )}
+        </div>
+
+        {/* Contact & Academic Metadata Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-1 text-xs">
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <Mail className="size-3.5 text-primary shrink-0" />
+            <span className="truncate text-foreground font-medium">{data.email || "No email"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <Phone className="size-3.5 text-emerald-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{phoneNumber || "No phone"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <BookOpen className="size-3.5 text-blue-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{classLabel(p.class_level)} · {p.board || "Board N/A"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <MapPin className="size-3.5 text-orange-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{[p.city, p.state].filter(Boolean).join(", ") || "City N/A"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <School className="size-3.5 text-indigo-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{p.school_name || "School not set"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <Target className="size-3.5 text-rose-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{p.goal || "Goal: General"}</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <Award className="size-3.5 text-amber-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">Ref: {p.referral_code || "None"} ({data.referralsQualified} invited)</span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground bg-background/80 p-2 rounded-xl border border-border/40">
+            <Zap className="size-3.5 text-violet-500 shrink-0" />
+            <span className="truncate text-foreground font-medium">{data.badges?.length ?? 0} Badges earned</span>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Recent lesson unlocks
-        </p>
-        <div className="mt-2 space-y-1">
-          {data.unlocks.length === 0 && (
-            <p className="text-xs text-muted-foreground">No unlocked lessons yet.</p>
-          )}
-          {data.unlocks.map((u) => (
-            <div key={u.id} className="flex justify-between text-xs">
-              <span>{u.title}</span>
-              <span className="text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</span>
-            </div>
-          ))}
+      {/* 2. CORE STATS CARDS */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <Stat label="Current Credits" value={p.credits ?? 0} sub={`${data.creditsSpent} spent`} />
+        <Stat label="Total XP" value={p.total_xp ?? 0} sub="Learner rank" />
+        <Stat 
+          label="Study Streak" 
+          value={`${data.streak?.current_streak ?? 0}d`} 
+          sub={`Best: ${data.streak?.longest_streak ?? 0}d`} 
+        />
+        <Stat 
+          label="Study Time" 
+          value={`${data.studyTime?.totalMinutes ?? 0}m`} 
+          sub={`${data.studyTime?.daysCount ?? 0} days active`} 
+        />
+        <Stat label="Completed" value={data.lessonsCompleted ?? 0} sub="Finished lectures" />
+        <Stat label="Quizzes Taken" value={data.attempts?.length ?? 0} sub="MCQ attempts" />
+      </div>
+
+      {/* 3. DETAILED ACTIVITY TABS */}
+      <div className="pt-2">
+        <div className="flex items-center justify-between border-b border-border/60 pb-2 mb-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab("unlocks")}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "unlocks"
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 font-bold border border-amber-500/30 shadow-2xs"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <Unlock className="size-3.5" />
+              <span>Unlocked Lectures ({data.unlocks?.length ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("completed")}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "completed"
+                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30 shadow-2xs"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <CheckCircle2 className="size-3.5" />
+              <span>Completed ({data.recentLessons?.length ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("tests")}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "tests"
+                  ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/30 shadow-2xs"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <Sparkles className="size-3.5" />
+              <span>Quizzes & Tests ({data.attempts?.length ?? 0})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("wallet")}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+                activeTab === "wallet"
+                  ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/30 shadow-2xs"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+              )}
+            >
+              <Coins className="size-3.5" />
+              <span>Wallet History ({data.creditEvents?.length ?? 0})</span>
+            </button>
+          </div>
         </div>
+
+        {/* TAB CONTENT: UNLOCKED LECTURES */}
+        {activeTab === "unlocks" && (
+          <div className="space-y-2">
+            {(data.unlocks ?? []).length === 0 ? (
+              <div className="p-6 text-center rounded-2xl bg-muted/20 border border-dashed border-border/60 text-muted-foreground text-xs">
+                No lectures unlocked with credits yet. (Note: Lecture 1 of every chapter is free and does not require unlock).
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 rounded-2xl border bg-muted/10 overflow-hidden">
+                {data.unlocks.map((u: any, idx: number) => (
+                  <div key={idx} className="p-3 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 capitalize text-primary font-semibold">
+                          {u.kind || "lecture"}
+                        </Badge>
+                        <span className="font-semibold text-foreground text-sm">
+                          {u.title}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {u.subjectName ? `${u.subjectName} (Class ${u.classLevel || p.class_level}) · ` : ""}
+                        {u.chapterTitle || "Chapter"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                      <span className="font-bold text-amber-600 dark:text-amber-400">
+                        −{u.cost ?? 10} Credits
+                      </span>
+                      <span className="text-muted-foreground text-[11px]">
+                        {new Date(u.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB CONTENT: COMPLETED LESSONS */}
+        {activeTab === "completed" && (
+          <div className="space-y-2">
+            {(data.recentLessons ?? []).length === 0 ? (
+              <div className="p-6 text-center rounded-2xl bg-muted/20 border border-dashed border-border/60 text-muted-foreground text-xs">
+                No completed lectures recorded yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 rounded-2xl border bg-muted/10 overflow-hidden">
+                {data.recentLessons.map((l: any, idx: number) => (
+                  <div key={idx} className="p-3 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
+                        <span className="font-semibold text-foreground text-sm">
+                          {l.title}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground pl-5">
+                        {l.subjectName ? `${l.subjectName} · ` : ""}{l.chapterTitle || "Chapter"}
+                      </p>
+                    </div>
+
+                    <span className="text-muted-foreground text-[11px] shrink-0 pl-5 sm:pl-0">
+                      Completed {new Date(l.completedAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB CONTENT: QUIZZES & TESTS */}
+        {activeTab === "tests" && (
+          <div className="space-y-2">
+            {(data.attempts ?? []).length === 0 ? (
+              <div className="p-6 text-center rounded-2xl bg-muted/20 border border-dashed border-border/60 text-muted-foreground text-xs">
+                No quiz or test attempts recorded yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 rounded-2xl border bg-muted/10 overflow-hidden">
+                {data.attempts.map((a: any, idx: number) => (
+                  <div key={idx} className="p-3 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-foreground text-sm">
+                          {a.title}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] py-0 px-1.5 font-bold",
+                            a.passed
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                              : "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                          )}
+                        >
+                          {a.passed ? "Passed" : "Needs Review"}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {a.subjectName ? `${a.subjectName} · ` : ""}{a.chapterTitle || "Chapter"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className="font-bold text-sm text-foreground">
+                          {a.score} / {a.total}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground ml-1">
+                          ({a.percentage}%)
+                        </span>
+                      </div>
+                      <span className="text-muted-foreground text-[11px]">
+                        {new Date(a.createdAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB CONTENT: WALLET TRANSACTIONS */}
+        {activeTab === "wallet" && (
+          <div className="space-y-2">
+            {(data.creditEvents ?? []).length === 0 ? (
+              <div className="p-6 text-center rounded-2xl bg-muted/20 border border-dashed border-border/60 text-muted-foreground text-xs">
+                No credit/XP transactions recorded yet.
+              </div>
+            ) : (
+              <div className="divide-y divide-border/40 rounded-2xl border bg-muted/10 overflow-hidden">
+                {data.creditEvents.map((evt: any, idx: number) => {
+                  const isPositive = evt.delta > 0;
+                  return (
+                    <div key={idx} className="p-3 hover:bg-muted/30 transition-colors flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "size-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0",
+                          isPositive ? "bg-emerald-500/15 text-emerald-600" : "bg-amber-500/15 text-amber-600"
+                        )}>
+                          {isPositive ? "+" : "−"}
+                        </span>
+                        <span className="font-medium text-foreground">
+                          {evt.reason || "Study Reward"}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <span className={cn("font-bold text-xs", isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400")}>
+                          {isPositive ? `+${evt.delta}` : evt.delta} Credits
+                        </span>
+                        <span className="text-muted-foreground text-[11px]">
+                          {new Date(evt.created_at).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl bg-secondary p-3 text-center">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-base font-semibold">{value}</p>
+    <div className="rounded-2xl bg-secondary/70 p-3 text-center border border-border/40">
+      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p className="mt-1 text-lg font-bold text-foreground">{value}</p>
+      {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }

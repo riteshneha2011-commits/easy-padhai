@@ -95,7 +95,7 @@ export async function updateClassLevelFor(userId: string, classLevel: number) {
 
 /** Admin-only: full picture of one learner — identity, credits, XP, streak and activity. */
 export async function getUserDetailFor(userId: string) {
-  const [profile, auth, roles, streak, progress, attempts, unlocks, credits, referrals, badges] =
+  const [profile, auth, roles, streak, progress, attempts, unlocks, credits, referrals, badges, studyTime] =
     await Promise.all([
       supabaseAdmin.from("profiles").select(PROFILE_COLUMNS).eq("id", userId).maybeSingle(),
       supabaseAdmin.auth.admin.getUserById(userId),
@@ -103,29 +103,95 @@ export async function getUserDetailFor(userId: string) {
       supabaseAdmin.from("streaks").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin
         .from("lesson_progress")
-        .select("lesson_id, completed_at, lessons(title, chapter_id)")
+        .select(`
+          lesson_id,
+          completed_at,
+          lessons (
+            id,
+            title,
+            kind,
+            duration_minutes,
+            chapters (
+              id,
+              title,
+              slug,
+              subjects (
+                id,
+                name,
+                class_level
+              )
+            )
+          )
+        `)
         .eq("user_id", userId)
         .order("completed_at", { ascending: false })
-        .limit(25),
+        .limit(30),
       supabaseAdmin
         .from("test_attempts")
-        .select("id, test_id, score, total, created_at, tests(title)")
+        .select(`
+          id,
+          test_id,
+          score,
+          total,
+          created_at,
+          tests (
+            id,
+            title,
+            duration_minutes,
+            chapters (
+              id,
+              title,
+              subjects (
+                name,
+                class_level
+              )
+            )
+          )
+        `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(25),
-      supabaseAdmin.from("lesson_unlocks").select("lesson_id, cost, created_at").eq("user_id", userId),
+        .limit(30),
+      supabaseAdmin
+        .from("lesson_unlocks")
+        .select(`
+          lesson_id,
+          cost,
+          created_at,
+          lessons (
+            id,
+            title,
+            kind,
+            duration_minutes,
+            chapters (
+              id,
+              title,
+              slug,
+              subjects (
+                id,
+                name,
+                class_level
+              )
+            )
+          )
+        `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("credit_events")
         .select("delta, reason, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(25),
+        .limit(30),
       supabaseAdmin.from("referrals").select("status, credits_awarded").eq("referrer_id", userId),
       supabaseAdmin.from("user_badges").select("badge_code, earned_at").eq("user_id", userId),
+      supabaseAdmin.from("study_time").select("seconds, day").eq("user_id", userId),
     ]);
 
   if (!profile.data) throw new Error("User not found");
   const authUser = auth.data?.user;
+
+  const totalStudySeconds = (studyTime.data ?? []).reduce((sum, s) => sum + (s.seconds ?? 0), 0);
+  const studyDaysSet = new Set((studyTime.data ?? []).map((s) => s.day));
 
   return {
     profile: profile.data,
@@ -135,20 +201,64 @@ export async function getUserDetailFor(userId: string) {
     provider: authUser?.app_metadata?.provider ?? null,
     roles: (roles.data ?? []).map((r) => r.role),
     streak: streak.data ?? null,
+    studyTime: {
+      totalSeconds: totalStudySeconds,
+      totalMinutes: Math.round(totalStudySeconds / 60),
+      daysCount: studyDaysSet.size,
+    },
     lessonsCompleted: (progress.data ?? []).length,
-    recentLessons: (progress.data ?? []).map((row) => ({
-      lessonId: row.lesson_id,
-      title: (row.lessons as { title?: string } | null)?.title ?? "Lesson",
-      completedAt: row.completed_at,
-    })),
-    attempts: (attempts.data ?? []).map((a) => ({
-      id: a.id,
-      title: (a.tests as { title?: string } | null)?.title ?? "Test",
-      score: a.score,
-      total: a.total,
-      createdAt: a.created_at,
-    })),
-    unlocks: unlocks.data ?? [],
+    recentLessons: (progress.data ?? []).map((row: any) => {
+      const lesson = row.lessons;
+      const chapter = lesson?.chapters;
+      const subject = chapter?.subjects;
+      return {
+        lessonId: row.lesson_id,
+        title: lesson?.title ?? "Lesson",
+        kind: lesson?.kind ?? "lesson",
+        durationMinutes: lesson?.duration_minutes ?? null,
+        chapterTitle: chapter?.title ?? null,
+        chapterSlug: chapter?.slug ?? null,
+        subjectName: subject?.name ?? null,
+        classLevel: subject?.class_level ?? null,
+        completedAt: row.completed_at,
+      };
+    }),
+    attempts: (attempts.data ?? []).map((a: any) => {
+      const test = a.tests;
+      const chapter = test?.chapters;
+      const subject = chapter?.subjects;
+      const pct = a.total > 0 ? Math.round((a.score / a.total) * 100) : 0;
+      return {
+        id: a.id,
+        testId: a.test_id,
+        title: test?.title ?? "Test",
+        chapterTitle: chapter?.title ?? null,
+        subjectName: subject?.name ?? null,
+        classLevel: subject?.class_level ?? null,
+        score: a.score,
+        total: a.total,
+        percentage: pct,
+        passed: pct >= 50,
+        createdAt: a.created_at,
+      };
+    }),
+    unlocks: (unlocks.data ?? []).map((u: any) => {
+      const lesson = u.lessons;
+      const chapter = lesson?.chapters;
+      const subject = chapter?.subjects;
+      return {
+        lessonId: u.lesson_id,
+        title: lesson?.title ?? "Lesson",
+        kind: lesson?.kind ?? "audio",
+        durationMinutes: lesson?.duration_minutes ?? null,
+        chapterTitle: chapter?.title ?? null,
+        chapterSlug: chapter?.slug ?? null,
+        subjectName: subject?.name ?? null,
+        classLevel: subject?.class_level ?? null,
+        cost: u.cost ?? 0,
+        createdAt: u.created_at,
+      };
+    }),
     creditsSpent: (unlocks.data ?? []).reduce((sum, u) => sum + (u.cost ?? 0), 0),
     creditEvents: credits.data ?? [],
     referralsQualified: (referrals.data ?? []).filter((r) => r.status === "qualified").length,
