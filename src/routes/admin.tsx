@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dialog";
 import { classLabel } from "@/lib/classes";
 import { ViralTemplate } from "@/lib/viral-copy";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
