@@ -68,7 +68,13 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
-import { formatScheduleDate, isScheduleInFuture } from "@/lib/schedule";
+import { 
+  formatScheduleDate, 
+  isScheduleInFuture, 
+  localDateTimeToIso, 
+  toLocalDateTimeInputString, 
+  getDefaultNextDayScheduleInput 
+} from "@/lib/schedule";
 
 
 export const Route = createFileRoute("/teach")({
@@ -718,8 +724,9 @@ function TeachPage() {
                   const targetSubjectId = effectiveLessonSubjectId;
                   const targetChapterId = effectiveChapterId;
                   const isDraft = newLessonPublishMode === "draft";
+                  const rawSched = String(f.get("scheduled_at") ?? newLessonScheduledAt ?? "").trim();
                   const scheduledAt =
-                    newLessonPublishMode === "schedule" && newLessonScheduledAt ? newLessonScheduledAt : null;
+                    newLessonPublishMode === "schedule" && rawSched ? localDateTimeToIso(rawSched) : null;
                   const successMsg = scheduledAt
                     ? `Lesson scheduled for ${formatScheduleDate(scheduledAt)}`
                     : isDraft
@@ -897,12 +904,7 @@ function TeachPage() {
                       onClick={() => {
                         setNewLessonPublishMode("schedule");
                         if (!newLessonScheduledAt) {
-                          // Default to tomorrow 10:00 AM local time
-                          const d = new Date();
-                          d.setDate(d.getDate() + 1);
-                          d.setHours(10, 0, 0, 0);
-                          const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                          setNewLessonScheduledAt(localIso);
+                          setNewLessonScheduledAt(getDefaultNextDayScheduleInput());
                         }
                       }}
                       className={cn(
@@ -933,10 +935,11 @@ function TeachPage() {
                   {newLessonPublishMode === "schedule" && (
                     <div className="mt-2.5 pt-2 border-t border-border/50 space-y-1.5 animate-in fade-in duration-200">
                       <Label className="text-xs font-medium flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <Calendar className="size-3.5" /> Select Release Date & Time
+                        <Calendar className="size-3.5" /> Select Release Date & Time (IST)
                       </Label>
                       <Input
                         type="datetime-local"
+                        name="scheduled_at"
                         value={newLessonScheduledAt}
                         onChange={(e) => setNewLessonScheduledAt(e.target.value)}
                         required={newLessonPublishMode === "schedule"}
@@ -1482,7 +1485,7 @@ function TeachPage() {
                                                   e.preventDefault();
                                                    const f = new FormData(e.currentTarget);
                                                    const schedVal = String(f.get("scheduled_at") ?? "").trim();
-                                                   const scheduledAt = schedVal ? new Date(schedVal).toISOString() : null;
+                                                   const scheduledAt = schedVal ? localDateTimeToIso(schedVal) : null;
                                                    void run(
                                                      () =>
                                                        upsertLesson({
@@ -1591,13 +1594,7 @@ function TeachPage() {
                                                    <Input
                                                      type="datetime-local"
                                                      name="scheduled_at"
-                                                     defaultValue={
-                                                       (l as any).scheduled_at
-                                                         ? new Date(new Date((l as any).scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000)
-                                                             .toISOString()
-                                                             .slice(0, 16)
-                                                         : ""
-                                                     }
+                                                     defaultValue={toLocalDateTimeInputString((l as any).scheduled_at)}
                                                      className="rounded-xl text-xs bg-background"
                                                    />
                                                    <p className="text-[10px] text-muted-foreground">
