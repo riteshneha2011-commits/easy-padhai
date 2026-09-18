@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -81,6 +81,48 @@ function LearnIndex() {
   const [selectedChapterId, setSelectedChapterId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");
+
+  // Persistent last study session & PWA auto-resume
+  const [lastStudy, setLastStudy] = useState<{
+    slug: string;
+    chapterId: string;
+    chapterTitle: string;
+    subjectName?: string;
+    lessonId: string;
+    lessonTitle?: string;
+    updatedAt: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("easypadhai_last_study");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Valid if within last 30 days and has slug & lessonId
+        if (parsed?.slug && parsed?.lessonId && Date.now() - (parsed.updatedAt || 0) < 30 * 86400 * 1000) {
+          setLastStudy(parsed);
+
+          // If launched in PWA standalone mode (app icon on phone screen)
+          const isStandalone =
+            window.matchMedia("(display-mode: standalone)").matches ||
+            (window.navigator as any).standalone === true;
+
+          const hasRedirectedThisSession = sessionStorage.getItem("easypadhai_pwa_auto_resumed");
+          if (isStandalone && !hasRedirectedThisSession) {
+            sessionStorage.setItem("easypadhai_pwa_auto_resumed", "true");
+            void navigate({
+              to: "/learn/$slug",
+              params: { slug: parsed.slug },
+              search: { lesson: parsed.lessonId } as any,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[LearnIndex] Could not parse last study record:", e);
+    }
+  }, [navigate]);
 
   // Effective subject
   const activeSubject = useMemo(() => {
@@ -192,6 +234,47 @@ function LearnIndex() {
           </div>
         )}
       </div>
+
+      {/* Resume Active Learning Banner */}
+      {lastStudy && (
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/35 bg-gradient-to-r from-primary/15 via-primary/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="size-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md">
+              <PlayCircle className="size-6" />
+            </div>
+            <div className="min-w-0 space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary bg-primary/15 px-2.5 py-0.5 rounded-full">
+                  Pick Up Where You Left Off
+                </span>
+                {lastStudy.subjectName && (
+                  <span className="text-xs text-muted-foreground font-semibold hidden xs:inline">
+                    {lastStudy.subjectName}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm sm:text-base font-bold text-foreground truncate">
+                {lastStudy.chapterTitle}
+                {lastStudy.lessonTitle ? ` · ${lastStudy.lessonTitle}` : ""}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() =>
+              navigate({
+                to: "/learn/$slug",
+                params: { slug: lastStudy.slug },
+                search: { lesson: lastStudy.lessonId } as any,
+              })
+            }
+            className="rounded-xl font-bold gap-1.5 shadow-glow shrink-0 w-full sm:w-auto h-10 px-5"
+          >
+            <span>Continue Learning</span>
+            <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      )}
 
       {/* If Class has no chapters yet: High-Impact Launching Soon Screen */}
       {isClassComingSoon && (

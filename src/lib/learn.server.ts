@@ -4,73 +4,87 @@ import { applyStreakLadderFor, awardCredits, qualifyReferralFor } from "./credit
 import { CREDIT_REWARDS } from "./credits";
 
 export async function completeLessonFor(userId: string, lessonId: string) {
-  const { data: existing } = await supabaseAdmin
-    .from("lesson_progress")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("lesson_id", lessonId)
-    .maybeSingle();
+  const [existingRes, lessonRes] = await Promise.all([
+    supabaseAdmin
+      .from("lesson_progress")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("lessons")
+      .select("id, chapter_id, duration_minutes, order_index")
+      .eq("id", lessonId)
+      .maybeSingle(),
+  ]);
 
-  if (existing) return { alreadyDone: true, xp: 0, credits: 0 };
+  if (existingRes.data) return { alreadyDone: true, xp: 0, credits: 0 };
 
-  const { data: lesson } = await supabaseAdmin
-    .from("lessons")
-    .select("id, chapter_id, duration_minutes, order_index")
-    .eq("id", lessonId)
-    .maybeSingle();
-
+  const lesson = lessonRes.data;
   if (!lesson) throw new Error("Lesson not found");
 
   // Verify access: Lesson 1 of chapter is free; Lesson 2 onwards must be unlocked
-  const { data: firstLesson } = await supabaseAdmin
-    .from("lessons")
-    .select("id")
-    .eq("chapter_id", lesson.chapter_id)
-    .eq("published", true)
-    .order("order_index")
-    .limit(1);
-
-  const isFirst = (firstLesson ?? [])[0]?.id === lesson.id;
-  if (!isFirst) {
-    const { data: unlocked } = await supabaseAdmin
+  const [{ data: firstLesson }, { data: unlocked }] = await Promise.all([
+    supabaseAdmin
+      .from("lessons")
+      .select("id")
+      .eq("chapter_id", lesson.chapter_id)
+      .eq("published", true)
+      .order("order_index")
+      .limit(1),
+    supabaseAdmin
       .from("lesson_unlocks")
       .select("id")
       .eq("user_id", userId)
       .eq("lesson_id", lessonId)
-      .maybeSingle();
+      .maybeSingle(),
+  ]);
 
-    if (!unlocked) {
-      throw new Error("Please unlock this lecture (10 credits) before marking it complete.");
-    }
+  const isFirst = (firstLesson ?? [])[0]?.id === lesson.id;
+  if (!isFirst && !unlocked) {
+    throw new Error("Please unlock this lecture (10 credits) before marking it complete.");
   }
 
+  // Record progress
   await supabaseAdmin.from("lesson_progress").insert({ user_id: userId, lesson_id: lessonId });
-  await awardXp(userId, 10, "Lesson completed");
-  await touchStreak(userId, lesson.duration_minutes ?? 10);
 
-  let credits = CREDIT_REWARDS.lessonComplete;
-  await awardCredits(userId, CREDIT_REWARDS.lessonComplete, "Lesson completed", `lesson-${lessonId}`);
-  credits += await applyStreakLadderFor(userId);
-  const referral = await qualifyReferralFor(userId);
-  credits += referral.awarded;
+  // Concurrently award XP, update streak, award base credits, streak ladder, and referral bonus
+  const [_, __, ___, ladderBonus, referral] = await Promise.all([
+    awardXp(userId, 10, "Lesson completed"),
+    touchStreak(userId, lesson.duration_minutes ?? 10),
+    awardCredits(userId, CREDIT_REWARDS.lessonComplete, "Lesson completed", `lesson-${lessonId}`),
+    applyStreakLadderFor(userId),
+    qualifyReferralFor(userId),
+  ]);
 
-  const { count: totalDone } = await supabaseAdmin
-    .from("lesson_progress")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if ((totalDone ?? 0) <= 1) await grantBadge(userId, "first_lesson");
+  const totalCredits = CREDIT_REWARDS.lessonComplete + (ladderBonus ?? 0) + (referral?.awarded ?? 0);
 
-  const [{ data: chapterLessons }, { data: doneRows }] = await Promise.all([
+  // Concurrently check badge milestones and chapter completion
+  const [{ count: totalDone }, { data: chapterLessons }, { data: doneRows }] = await Promise.all([
+    supabaseAdmin
+      .from("lesson_progress")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
     supabaseAdmin.from("lessons").select("id").eq("chapter_id", lesson.chapter_id).eq("published", true),
     supabaseAdmin.from("lesson_progress").select("lesson_id").eq("user_id", userId),
   ]);
-  const doneSet = new Set((doneRows ?? []).map((r) => r.lesson_id));
-  if ((chapterLessons ?? []).length > 0 && (chapterLessons ?? []).every((l) => doneSet.has(l.id))) {
-    await grantBadge(userId, "chapter_master");
-    await awardXp(userId, 25, "Chapter completed");
+
+  const badgePromises: Promise<any>[] = [];
+  if ((totalDone ?? 0) <= 1) {
+    badgePromises.push(grantBadge(userId, "first_lesson"));
   }
 
-  return { alreadyDone: false, xp: 10, credits };
+  const doneSet = new Set((doneRows ?? []).map((r) => r.lesson_id));
+  if ((chapterLessons ?? []).length > 0 && (chapterLessons ?? []).every((l) => doneSet.has(l.id))) {
+    badgePromises.push(grantBadge(userId, "chapter_master"));
+    badgePromises.push(awardXp(userId, 25, "Chapter completed"));
+  }
+
+  if (badgePromises.length > 0) {
+    await Promise.all(badgePromises);
+  }
+
+  return { alreadyDone: false, xp: 10, credits: totalCredits };
 }
 
 function detectSubjectCategory(

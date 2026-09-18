@@ -28,6 +28,7 @@ import {
   Layers,
   Clock,
   Calendar,
+  Loader2,
 } from "lucide-react";
 import { formatScheduleDate } from "@/lib/schedule";
 import { toast } from "sonner";
@@ -121,7 +122,25 @@ function ChapterPage() {
   const { user, profile, refresh, addCreditsAndXp } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(lessons[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const urlLesson = searchParams.get("lesson");
+        if (urlLesson && lessons.some((l: Lesson) => l.id === urlLesson)) {
+          return urlLesson;
+        }
+
+        const saved = localStorage.getItem(`easypadhai_last_lesson_${chapter.id}`);
+        if (saved && lessons.some((l: Lesson) => l.id === saved)) {
+          return saved;
+        }
+      } catch (err) {
+        console.warn("[Learn] Error reading initial lesson position:", err);
+      }
+    }
+    return lessons[0]?.id ?? null;
+  });
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(false);
   const [victoryXp, setVictoryXp] = useState(10);
@@ -145,6 +164,30 @@ function ChapterPage() {
       return next;
     });
   };
+
+  // Sync active lesson to localStorage and global last study record
+  useEffect(() => {
+    if (typeof window !== "undefined" && activeId && chapter) {
+      const currentLesson = lessons.find((l: Lesson) => l.id === activeId);
+      try {
+        localStorage.setItem(`easypadhai_last_lesson_${chapter.id}`, activeId);
+        localStorage.setItem(
+          "easypadhai_last_study",
+          JSON.stringify({
+            slug: chapter.slug,
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            subjectName: chapter.subjects?.name ?? "",
+            lessonId: activeId,
+            lessonTitle: currentLesson?.title ?? "",
+            updatedAt: Date.now(),
+          })
+        );
+      } catch (err) {
+        console.warn("[Learn] Error storing last study state:", err);
+      }
+    }
+  }, [activeId, chapter, lessons]);
 
   useEffect(() => {
     if (chapter && lessons.length > 0) {
@@ -193,6 +236,33 @@ function ChapterPage() {
   const handleSelectLesson = (lessonId: string) => {
     setActiveId(lessonId);
     soundFx.playClick();
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`easypadhai_last_lesson_${chapter.id}`, lessonId);
+        const targetLesson = lessons.find((l: Lesson) => l.id === lessonId);
+        localStorage.setItem(
+          "easypadhai_last_study",
+          JSON.stringify({
+            slug: chapter.slug,
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            subjectName: chapter.subjects?.name ?? "",
+            lessonId,
+            lessonTitle: targetLesson?.title ?? "",
+            updatedAt: Date.now(),
+          })
+        );
+
+        // Update URL query string without full page reload
+        const url = new URL(window.location.href);
+        url.searchParams.set("lesson", lessonId);
+        window.history.replaceState({}, "", url.toString());
+      } catch (err) {
+        console.warn("[Learn] Error updating selected lesson in storage:", err);
+      }
+    }
+
     const playerEl = document.getElementById("lesson-player");
     if (playerEl) {
       playerEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1577,12 +1647,24 @@ function LessonPanel({
             </Button>
           ) : isVerified ? (
             <Button
-              className="w-full sm:w-auto rounded-full font-bold shadow-glow bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-6 animate-pulse"
+              className={cn(
+                "w-full sm:w-auto rounded-full font-bold shadow-glow bg-emerald-600 hover:bg-emerald-700 text-white gap-2 px-6",
+                pending ? "opacity-90" : "animate-pulse"
+              )}
               disabled={pending}
               onClick={onComplete}
             >
-              <Check className="size-4 stroke-[3]" />
-              <span>Mark Complete · +10 XP · +{CREDIT_REWARDS.lessonComplete} Credits</span>
+              {pending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin text-white" />
+                  <span>Claiming XP & Credits... ✨</span>
+                </>
+              ) : (
+                <>
+                  <Check className="size-4 stroke-[3]" />
+                  <span>Mark Complete · +10 XP · +{CREDIT_REWARDS.lessonComplete} Credits</span>
+                </>
+              )}
             </Button>
           ) : (
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
