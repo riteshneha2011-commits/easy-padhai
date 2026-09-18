@@ -1,10 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import {
   ArrowRight,
   BookOpen,
   ChevronRight,
+  Check,
   FileText,
   GraduationCap,
   Headphones,
@@ -20,6 +21,8 @@ import {
   BellRing,
 } from "lucide-react";
 import { getCatalog } from "@/lib/content.functions";
+import { getUserCompletedLessons } from "@/lib/learn.functions";
+import { useAuth } from "@/hooks/use-auth";
 import { useActiveClass } from "@/hooks/use-active-class";
 import { ClassSwitcher } from "@/components/class-switcher";
 import { Card } from "@/components/ui/card";
@@ -148,6 +151,27 @@ function LearnIndex() {
     return subjectChapters[0] ?? null;
   }, [subjectChapters, selectedChapterId]);
 
+  // User progress tracking across lessons
+  const { user } = useAuth();
+  const completedQuery = useQuery({
+    queryKey: ["user-completed-lessons", user?.id],
+    queryFn: () => getUserCompletedLessons(),
+    enabled: Boolean(user),
+  });
+  const completedLessonIds = useMemo(
+    () => new Set(completedQuery.data ?? []),
+    [completedQuery.data]
+  );
+
+  const activeChapterLessons = activeChapter?.lessons ?? [];
+  const completedCountInActiveChapter = useMemo(
+    () => activeChapterLessons.filter((l) => completedLessonIds.has(l.id)).length,
+    [activeChapterLessons, completedLessonIds]
+  );
+  const activeChapterProgressPercent = activeChapterLessons.length
+    ? Math.round((completedCountInActiveChapter / activeChapterLessons.length) * 100)
+    : 0;
+
   // Filtered chapters for grid / search
   const filteredGridChapters = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -257,6 +281,23 @@ function LearnIndex() {
                 {lastStudy.chapterTitle}
                 {lastStudy.lessonTitle ? ` · ${lastStudy.lessonTitle}` : ""}
               </p>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium pt-0.5">
+                <span className="inline-flex items-center gap-1 text-primary">
+                  <Headphones className="size-3" /> Audio
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                  <Zap className="size-3" /> Summary
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                  <FileText className="size-3" /> Notes
+                </span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                  <Sparkles className="size-3" /> Quiz Included
+                </span>
+              </div>
             </div>
           </div>
           <Button
@@ -441,10 +482,19 @@ function LearnIndex() {
                     <ActiveSubjectIcon className="size-3.5 text-primary" />
                     <span>{activeSubject?.name}</span>
                   </Badge>
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {(activeChapter.lessons ?? []).length} {(activeChapter.lessons ?? []).length === 1 ? "Lesson" : "Lessons"} published
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {user && activeChapterLessons.length > 0 && completedCountInActiveChapter > 0 && (
+                      <Badge className="rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1">
+                        <Check className="size-3 stroke-[3]" />
+                        {completedCountInActiveChapter}/{activeChapterLessons.length} Completed
+                      </Badge>
+                    )}
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      {activeChapterLessons.length} {activeChapterLessons.length === 1 ? "Lesson" : "Lessons"} published
+                    </span>
+                  </div>
                 </div>
+
                 <div>
                   <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
                     {activeChapter.title}
@@ -455,6 +505,22 @@ function LearnIndex() {
                     </p>
                   )}
                 </div>
+
+                {/* Progress bar if logged in */}
+                {user && activeChapterLessons.length > 0 && (
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                      <span>Chapter Completion</span>
+                      <span className="text-foreground font-bold">{activeChapterProgressPercent}%</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{ width: `${activeChapterProgressPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </Card>
 
               {/* Lesson Items List */}
@@ -467,65 +533,110 @@ function LearnIndex() {
                     Lesson Breakdown & Audio Lectures
                   </h3>
                   <span className="text-xs text-muted-foreground font-medium">
-                    Tap any lesson to start
+                    Tap any lesson to open directly
                   </span>
                 </div>
 
                 <div className="grid gap-3">
-                  {(activeChapter.lessons ?? []).map((lesson, idx) => (
-                    <Link
-                      key={lesson.id}
-                      to="/learn/$slug"
-                      params={{ slug: activeChapter.slug }}
-                      className="group block"
-                    >
-                      <Card className="rounded-2xl border-border/70 p-4 sm:p-5 transition-all hover:border-primary/50 hover:shadow-md bg-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs mt-0.5">
-                            {idx + 1}
-                          </div>
-                          <div className="min-w-0 space-y-1">
-                            <h4 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
-                              {lesson.title}
-                            </h4>
-                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                              {lesson.hasAudio && (
-                                <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
-                                  <Headphones className="size-3" /> Audio Lecture
-                                </span>
-                              )}
-                              {lesson.hasVideo && (
-                                <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                  <PlayCircle className="size-3" /> Video
-                                </span>
-                              )}
-                              {lesson.hasPdf && (
-                                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                  <FileText className="size-3" /> Notes
-                                </span>
-                              )}
-                              {lesson.hasSummary && (
-                                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                  <Zap className="size-3" /> Quick Summary
-                                </span>
-                              )}
-                              {lesson.duration_minutes && (
-                                <span>· {lesson.duration_minutes} mins</span>
-                              )}
+                  {activeChapterLessons.map((lesson, idx) => {
+                    const isDone = completedLessonIds.has(lesson.id);
+
+                    return (
+                      <Link
+                        key={lesson.id}
+                        to="/learn/$slug"
+                        params={{ slug: activeChapter.slug }}
+                        search={{ lesson: lesson.id } as any}
+                        className="group block"
+                      >
+                        <Card
+                          className={cn(
+                            "rounded-2xl p-4 sm:p-5 transition-all hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4",
+                            isDone
+                              ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/70"
+                              : "border-border/70 hover:border-primary/50 bg-card"
+                          )}
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            {isDone ? (
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white font-bold text-xs mt-0.5 shadow-xs">
+                                <Check className="size-4 stroke-[3]" />
+                              </div>
+                            ) : (
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs mt-0.5">
+                                {idx + 1}
+                              </div>
+                            )}
+
+                            <div className="min-w-0 space-y-1.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4
+                                  className={cn(
+                                    "text-sm sm:text-base font-bold transition-colors leading-snug",
+                                    isDone
+                                      ? "text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                                      : "text-foreground group-hover:text-primary"
+                                  )}
+                                >
+                                  {lesson.title}
+                                </h4>
+                                {isDone && (
+                                  <Badge className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border-0 px-2 py-0.5 gap-1">
+                                    <Check className="size-3 stroke-[3]" /> Completed
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium">
+                                {lesson.hasAudio && (
+                                  <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
+                                    <Headphones className="size-3" /> Audio Lecture
+                                  </span>
+                                )}
+                                {lesson.hasVideo && (
+                                  <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-semibold">
+                                    <PlayCircle className="size-3" /> Video
+                                  </span>
+                                )}
+                                {lesson.hasPdf && (
+                                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full font-semibold">
+                                    <FileText className="size-3" /> Notes
+                                  </span>
+                                )}
+                                {lesson.hasSummary && (
+                                  <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full font-semibold">
+                                    <Zap className="size-3" /> Quick Summary
+                                  </span>
+                                )}
+                                {lesson.hasQuiz && (
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-semibold">
+                                    <Sparkles className="size-3" /> Quick Quiz
+                                  </span>
+                                )}
+                                {lesson.duration_minutes && (
+                                  <span>· {lesson.duration_minutes} mins</span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center justify-end sm:justify-center shrink-0">
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform bg-secondary/80 rounded-full px-3 py-1.5">
-                            Start Lesson <ChevronRight className="size-3.5" />
-                          </span>
-                        </div>
-                      </Card>
-                    </Link>
-                  ))}
+                          <div className="flex items-center justify-end sm:justify-center shrink-0">
+                            {isDone ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-full px-3.5 py-1.5 transition-colors">
+                                Review Lecture <ChevronRight className="size-3.5" />
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform bg-secondary/80 rounded-full px-3.5 py-1.5">
+                                Start Lesson <ChevronRight className="size-3.5" />
+                              </span>
+                            )}
+                          </div>
+                        </Card>
+                      </Link>
+                    );
+                  })}
 
-                  {(activeChapter.lessons ?? []).length === 0 && (
+                  {activeChapterLessons.length === 0 && (
                     <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground space-y-2">
                       <BookOpen className="size-8 mx-auto text-muted-foreground/60" />
                       <p className="text-sm font-semibold">No lessons published in this chapter yet.</p>
@@ -645,14 +756,35 @@ function LearnIndex() {
                     <span className="rounded-full bg-muted/60 px-2 py-0.5 font-semibold text-foreground">
                       {chapter.lessonCount} {chapter.lessonCount === 1 ? "Lesson" : "Lessons"}
                     </span>
+                    {user && (
+                      (() => {
+                        const doneCount = (chapter.lessons ?? []).filter((l: any) => completedLessonIds.has(l.id)).length;
+                        if (doneCount === 0) return null;
+                        return (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 font-bold">
+                            <Check className="size-3 stroke-[3]" /> {doneCount}/{chapter.lessonCount} Done
+                          </span>
+                        );
+                      })()
+                    )}
                     <span className="flex items-center gap-1 text-primary">
                       <Headphones className="size-3" /> Audio
                     </span>
                     <span className="flex items-center gap-1 text-blue-500">
                       <PlayCircle className="size-3" /> Video
                     </span>
-                    {chapter.testId && (
-                      <span className="flex items-center gap-1 text-emerald-500">
+                    {(chapter.lessons ?? []).some((l: any) => l.hasPdf) && (
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <FileText className="size-3" /> Notes
+                      </span>
+                    )}
+                    {(chapter.lessons ?? []).some((l: any) => l.hasSummary) && (
+                      <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
+                        <Zap className="size-3" /> Summary
+                      </span>
+                    )}
+                    {(chapter.testId || (chapter.lessons ?? []).some((l: any) => l.hasQuiz)) && (
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
                         <Sparkles className="size-3" /> Quiz
                       </span>
                     )}

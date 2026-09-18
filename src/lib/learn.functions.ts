@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { completeLessonFor, getChapterProgressFor, getDashboardFor } from "./learn.server";
+import { completeLessonFor, getChapterProgressFor, getDashboardFor, getUserCompletedLessonsFor } from "./learn.server";
 
 export const getDashboard = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -15,3 +15,7 @@ export const getChapterProgress = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { chapterId: string }) => data)
   .handler(async ({ data, context }) => getChapterProgressFor(context.userId, data.chapterId));
+
+export const getUserCompletedLessons = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => getUserCompletedLessonsFor(context.userId));

@@ -247,3 +247,11 @@ export async function getChapterProgressFor(userId: string, chapterId: string) {
     .in("lesson_id", ids);
   return (data ?? []).map((d) => d.lesson_id);
 }
+
+export async function getUserCompletedLessonsFor(userId: string) {
+  const { data } = await supabaseAdmin
+    .from("lesson_progress")
+    .select("lesson_id")
+    .eq("user_id", userId);
+  return (data ?? []).map((d) => d.lesson_id);
+}

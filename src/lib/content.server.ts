@@ -12,6 +12,8 @@ export type CatalogLesson = {
   hasVideo: boolean;
   hasPdf: boolean;
   hasSummary: boolean;
+  hasQuiz: boolean;
+  testId?: string | null;
   scheduled_at?: string | null;
   isScheduled?: boolean;
 };
@@ -33,6 +35,7 @@ export type CatalogSubject = {
   name: string;
   class_level: number;
   description: string | null;
+  order_index?: number;
   chapters: CatalogChapter[];
 };
 
@@ -60,6 +63,7 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
     name: subject.name,
     class_level: subject.class_level,
     description: subject.description,
+    order_index: subject.order_index ?? 0,
     chapters: (chapters ?? [])
       .filter((chapter) => chapter.subject_id === subject.id)
       .map((chapter) => {
@@ -68,6 +72,13 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
           .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
           .map((l) => {
             const sched = parseLessonSchedule(l.summary);
+            const lessonTest = (tests as Array<{ id: string; chapter_id: string; description: string | null; questions?: Array<{ id: string }> }> ?? []).find(
+              (t) =>
+                t.chapter_id === chapter.id &&
+                t.description?.startsWith(`lesson:${l.id}`) &&
+                Array.isArray(t.questions) &&
+                t.questions.length > 0,
+            );
             return {
               id: l.id,
               chapter_id: l.chapter_id,
@@ -79,6 +90,8 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
               hasVideo: Boolean(l.video_url),
               hasPdf: Boolean(l.pdf_url),
               hasSummary: Boolean(sched.cleanSummary),
+              hasQuiz: Boolean(lessonTest),
+              testId: lessonTest?.id ?? null,
               scheduled_at: sched.scheduledAt,
               isScheduled: sched.isScheduled,
             };
