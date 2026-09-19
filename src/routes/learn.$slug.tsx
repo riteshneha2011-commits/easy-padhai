@@ -30,7 +30,7 @@ import {
   Calendar,
   Loader2,
 } from "lucide-react";
-import { formatScheduleDate } from "@/lib/schedule";
+import { formatScheduleDate, isScheduleInFuture } from "@/lib/schedule";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
@@ -318,15 +318,51 @@ function ChapterPage() {
 
   const unlock = useMutation({
     mutationFn: (lessonId: string) => unlockLesson({ data: { lessonId } }),
-    onSuccess: (access) => {
+    onMutate: async (lessonId: string) => {
+      // 1. Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: ["chapter-unlocks", chapter.id, user?.id] });
+      await queryClient.cancelQueries({ queryKey: ["wallet"] });
+
+      // 2. Snapshot previous values
+      const prevUnlocks = queryClient.getQueryData<string[]>(["chapter-unlocks", chapter.id, user?.id]);
+      const prevWallet = queryClient.getQueryData<any>(["wallet"]);
+
+      // 3. Optimistically mark as unlocked in chapter-unlocks cache
+      queryClient.setQueryData<string[]>(["chapter-unlocks", chapter.id, user?.id], (old) => {
+        const set = new Set(old ?? []);
+        set.add(lessonId);
+        return Array.from(set);
+      });
+
+      // 4. Optimistically deduct credits
+      queryClient.setQueriesData({ queryKey: ["wallet"] }, (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          credits: Math.max(0, (old.credits ?? 0) - 10),
+        };
+      });
+
+      return { prevUnlocks, prevWallet };
+    },
+    onSuccess: (access, lessonId) => {
+      // Immediately cache fresh access data for zero-delay player display
+      queryClient.setQueryData(["lesson-access", lessonId, user?.id], access);
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
-      void queryClient.invalidateQueries({ queryKey: ["lesson-access"] });
       void queryClient.invalidateQueries({ queryKey: ["chapter-unlocks"] });
       void refresh();
       soundFx.playSuccess();
       toast.success(`Unlocked! −${access.cost} credits · yours forever`);
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error, _lessonId, context) => {
+      if (context?.prevUnlocks) {
+        queryClient.setQueryData(["chapter-unlocks", chapter.id, user?.id], context.prevUnlocks);
+      }
+      if (context?.prevWallet) {
+        queryClient.setQueryData(["wallet"], context.prevWallet);
+      }
+      toast.error(error.message);
+    },
   });
 
   const active = lessons.find((l: Lesson) => l.id === activeId) ?? lessons[0] ?? null;
@@ -379,7 +415,8 @@ function ChapterPage() {
     const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
     const isDone = done.has(lesson.id);
     const isActive = active?.id === lesson.id;
-    const isUnlocked = !lesson.isScheduled && (lesson.isFree || unlockedLessonIds.has(lesson.id));
+    const isLessonScheduled = Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
+    const isUnlocked = !isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id));
 
     return (
       <button
@@ -398,11 +435,11 @@ function ChapterPage() {
           className={cn(
             "grid size-8 sm:size-9 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground transition-colors text-xs font-bold",
             isActive && "bg-primary text-primary-foreground font-bold",
-            lesson.isScheduled && "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30",
-            !isUnlocked && !isActive && !lesson.isScheduled && "text-amber-500/80",
+            isLessonScheduled && "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30",
+            !isUnlocked && !isActive && !isLessonScheduled && "text-amber-500/80",
           )}
         >
-          {lesson.isScheduled ? (
+          {isLessonScheduled ? (
             <Clock className="size-3.5 text-amber-600 dark:text-amber-400" />
           ) : isUnlocked ? (
             <meta.icon className="size-4" />
@@ -418,11 +455,11 @@ function ChapterPage() {
             {lesson.title}
           </span>
           <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            {lesson.isScheduled ? (
+            {isLessonScheduled ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/15 px-1.5 py-0.5 rounded-md border border-amber-500/20">
                 <Clock className="size-2.5" /> Unlocks {formatScheduleDate(lesson.scheduled_at)}
               </span>
-            ) : lesson.isFree ? (
+            ) : (lesson.isFree || index === 0) ? (
               <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                 🎉 Free Audio
               </span>
@@ -619,14 +656,15 @@ function ChapterPage() {
                   const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
                   const isDone = done.has(lesson.id);
                   const isActive = active?.id === lesson.id;
-                  const isUnlocked = lesson.isFree || unlockedLessonIds.has(lesson.id);
+                  const isLessonScheduled = Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
+                  const isUnlocked = !isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id));
 
                   return (
                     <button
                       key={lesson.id}
                       type="button"
                       onClick={() => handleSelectLesson(lesson.id)}
-                      title={`Step ${index + 1}: ${lesson.title} (${isUnlocked ? "Available" : "Locked"})`}
+                      title={`Step ${index + 1}: ${lesson.title} (${isLessonScheduled ? "Scheduled" : isUnlocked ? "Available" : "Locked"})`}
                       className={cn(
                         "relative group flex size-10 items-center justify-center rounded-xl border border-transparent transition-all shrink-0",
                         isActive
@@ -634,7 +672,9 @@ function ChapterPage() {
                           : "bg-secondary/60 text-secondary-foreground hover:bg-secondary hover:border-border",
                       )}
                     >
-                      {isUnlocked ? (
+                      {isLessonScheduled ? (
+                        <Clock className="size-3.5 text-amber-500" />
+                      ) : isUnlocked ? (
                         <meta.icon className="size-4.5" />
                       ) : (
                         <Lock className="size-3.5 text-amber-500" />
@@ -753,6 +793,9 @@ function ChapterPage() {
               <LessonPanel
                 key={active.id}
                 lesson={active}
+                isAlreadyUnlocked={unlockedLessonIds.has(active.id)}
+                isFirstLesson={activeIndex === 0}
+                isUnlocksLoading={chapterUnlocksQuery.isLoading}
                 done={done.has(active.id)}
                 pending={complete.isPending}
                 signedIn={Boolean(user)}
@@ -855,6 +898,9 @@ type ResourceTab = {
 
 function LessonPanel({
   lesson,
+  isAlreadyUnlocked,
+  isFirstLesson,
+  isUnlocksLoading,
   done,
   pending,
   signedIn,
@@ -865,6 +911,9 @@ function LessonPanel({
   onComplete,
 }: {
   lesson: Lesson;
+  isAlreadyUnlocked: boolean;
+  isFirstLesson: boolean;
+  isUnlocksLoading: boolean;
   done: boolean;
   pending: boolean;
   signedIn: boolean;
@@ -874,6 +923,7 @@ function LessonPanel({
   onUnlock: () => void;
   onComplete: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -891,51 +941,6 @@ function LessonPanel({
     };
   }, [lesson.id]);
 
-  const handleDownloadOffline = async () => {
-    soundFx.playClick();
-    setIsDownloading(true);
-    setDownloadProgress(15);
-    try {
-      let audioToDownload = media?.audio ?? null;
-      let pdfToDownload = media?.pdf ?? null;
-
-      // If media hasn't loaded yet, fetch access first
-      if (!audioToDownload && !pdfToDownload) {
-        setDownloadProgress(25);
-        const freshAccess = userId
-          ? await getLessonAccess({ data: { lessonId: lesson.id } })
-          : await getPublicLessonAccess({ data: { lessonId: lesson.id } });
-        audioToDownload = freshAccess?.media?.audio ?? null;
-        pdfToDownload = freshAccess?.media?.pdf ?? null;
-      }
-
-      if (!audioToDownload && !pdfToDownload) {
-        throw new Error("No media file available to download for this lesson.");
-      }
-
-      await downloadLessonForOffline(
-        lesson,
-        audioToDownload,
-        pdfToDownload,
-        (pct) => setDownloadProgress(pct),
-      );
-      setIsOfflineReady(true);
-      soundFx.playSuccess();
-      toast.success("Lesson saved in-app for 100% offline access! 📥");
-    } catch (err: any) {
-      toast.error(err?.message || "Could not download for offline.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleRemoveOffline = async () => {
-    soundFx.playClick();
-    await removeOfflineLesson(lesson.id);
-    setIsOfflineReady(false);
-    toast.info("Offline copy removed.");
-  };
-
   const accessQuery = useQuery({
     queryKey: ["lesson-access", lesson.id, userId],
     queryFn: () =>
@@ -950,13 +955,55 @@ function LessonPanel({
 
   const access = accessQuery.data ?? null;
   const media = access?.media ?? null;
-  const isScheduled = Boolean(lesson.isScheduled || access?.isScheduled);
   const scheduledAt = lesson.scheduled_at || access?.scheduledAt;
-  const isStaffPreview = Boolean(access?.isStaffPreview);
-  const locked = isScheduled && !isStaffPreview ? true : access ? access.locked : !lesson.isFree;
-  const currentBalance = userCredits > 0 ? userCredits : (access?.balance ?? 0);
 
-  const queryClient = useQueryClient();
+  // Real-time schedule synchronization
+  const [schedulePassed, setSchedulePassed] = useState(() => {
+    if (!scheduledAt) return true;
+    return !isScheduleInFuture(scheduledAt);
+  });
+
+  useEffect(() => {
+    if (!scheduledAt) {
+      setSchedulePassed(true);
+      return;
+    }
+    const msUntil = new Date(scheduledAt).getTime() - Date.now();
+    if (msUntil <= 0) {
+      setSchedulePassed(true);
+      return;
+    }
+
+    setSchedulePassed(false);
+
+    // Auto-switch to live without page refresh when scheduled time hits
+    const timer = setTimeout(() => {
+      setSchedulePassed(true);
+      void accessQuery.refetch();
+      void queryClient.invalidateQueries({ queryKey: ["chapter"] });
+      soundFx.playSuccess();
+      toast.success(`🎉 "${lesson.title}" is now LIVE! Enjoy learning.`);
+    }, msUntil);
+
+    return () => clearTimeout(timer);
+  }, [scheduledAt, lesson.title, queryClient, accessQuery]);
+
+  const isScheduled = !schedulePassed && Boolean(access?.isScheduled ?? (lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at)));
+  const isStaffPreview = Boolean(access?.isStaffPreview);
+
+  // Unlocked & Locked evaluation:
+  // If already known unlocked or lecture 1, locked is false from frame 1
+  const isKnownUnlocked = !isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree);
+  const locked = isScheduled && !isStaffPreview
+    ? true
+    : access
+      ? access.locked
+      : isKnownUnlocked
+        ? false
+        : isUnlocksLoading
+          ? false
+          : !isFirstLesson;
+  const currentBalance = userCredits > 0 ? userCredits : (access?.balance ?? 0);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   const bookmarkQuery = useQuery({
@@ -996,6 +1043,50 @@ function LessonPanel({
       toast.error("Could not update revision list");
     },
   });
+
+  const handleDownloadOffline = async () => {
+    soundFx.playClick();
+    setIsDownloading(true);
+    setDownloadProgress(15);
+    try {
+      let audioToDownload = media?.audio ?? null;
+      let pdfToDownload = media?.pdf ?? null;
+
+      if (!audioToDownload && !pdfToDownload) {
+        setDownloadProgress(25);
+        const freshAccess = userId
+          ? await getLessonAccess({ data: { lessonId: lesson.id } })
+          : await getPublicLessonAccess({ data: { lessonId: lesson.id } });
+        audioToDownload = freshAccess?.media?.audio ?? null;
+        pdfToDownload = freshAccess?.media?.pdf ?? null;
+      }
+
+      if (!audioToDownload && !pdfToDownload) {
+        throw new Error("No media file available to download for this lesson.");
+      }
+
+      await downloadLessonForOffline(
+        lesson,
+        audioToDownload,
+        pdfToDownload,
+        (pct) => setDownloadProgress(pct),
+      );
+      setIsOfflineReady(true);
+      soundFx.playSuccess();
+      toast.success("Lesson saved in-app for 100% offline access! 📥");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not download for offline.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleRemoveOffline = async () => {
+    soundFx.playClick();
+    await removeOfflineLesson(lesson.id);
+    setIsOfflineReady(false);
+    toast.info("Offline copy removed.");
+  };
 
   useEffect(() => {
     if (locked) setWatching(false);
@@ -1075,7 +1166,15 @@ function LessonPanel({
                   onClick={onUnlock}
                   disabled={unlocking || accessQuery.isLoading}
                 >
-                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                  {unlocking ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button asChild size="sm" className="rounded-full font-bold">
@@ -1133,7 +1232,15 @@ function LessonPanel({
                   onClick={onUnlock}
                   disabled={unlocking || accessQuery.isLoading}
                 >
-                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                  {unlocking ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button asChild size="sm" className="rounded-full font-bold">
@@ -1245,7 +1352,15 @@ function LessonPanel({
                       onClick={onUnlock}
                       disabled={unlocking || accessQuery.isLoading}
                     >
-                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                      {unlocking ? (
+                        <>
+                          <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                        </>
+                      )}
                     </Button>
                     <span className="text-[11px] font-semibold text-muted-foreground">
                       Balance: {currentBalance} credits
@@ -1298,7 +1413,15 @@ function LessonPanel({
                   onClick={onUnlock}
                   disabled={unlocking || accessQuery.isLoading}
                 >
-                  <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                  {unlocking ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button asChild size="sm" className="rounded-full font-bold">
@@ -1348,7 +1471,15 @@ function LessonPanel({
                   onClick={onUnlock}
                   disabled={unlocking || accessQuery.isLoading}
                 >
-                  <Unlock className="size-4" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                  {unlocking ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" /> Unlocking Lecture...
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="size-4" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button asChild size="lg" className="rounded-full font-bold gap-2 px-8">
@@ -1567,7 +1698,7 @@ function LessonPanel({
             </div>
           )}
 
-          {locked && (
+          {locked && !isKnownUnlocked && !accessQuery.isLoading && (
             <div className="rounded-2xl sm:rounded-3xl border border-dashed border-primary/40 bg-primary/5 p-4 sm:p-6 text-center min-w-0">
               <span className="mx-auto grid size-10 sm:size-12 place-items-center rounded-2xl bg-primary/15 text-amber-500">
                 <Lock className="size-5 sm:size-6" />
@@ -1580,8 +1711,16 @@ function LessonPanel({
               </p>
               {signedIn ? (
                 <div className="mt-4 flex flex-col items-center gap-2 w-full">
-                  <Button className="w-full sm:w-auto rounded-full font-bold shadow-glow" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
-                    <Unlock className="size-4" /> Unlock All Resources · {access?.cost ?? 10} credits
+                  <Button className="w-full sm:w-auto rounded-full font-bold shadow-glow gap-2" disabled={unlocking || accessQuery.isLoading} onClick={onUnlock}>
+                    {unlocking ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" /> Unlocking Lecture...
+                      </>
+                    ) : (
+                      <>
+                        <Unlock className="size-4" /> Unlock All Resources · {access?.cost ?? 10} credits
+                      </>
+                    )}
                   </Button>
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                     <Coins className="size-3.5" /> Balance: {currentBalance} credits ·{" "}
@@ -1627,14 +1766,28 @@ function LessonPanel({
             >
               <Clock className="size-3.5" /> Scheduled for {formatScheduleDate(scheduledAt)}
             </Button>
-          ) : locked ? (
+          ) : locked && !isKnownUnlocked ? (
             <Button
               className="w-full sm:w-auto rounded-full font-bold shadow-glow gap-1.5"
               disabled={unlocking || accessQuery.isLoading}
               onClick={onUnlock}
             >
-              <Unlock className="size-4 text-amber-300" />
-              <span>Unlock Lecture to Learn (+10 XP · +10 Credits)</span>
+              {unlocking ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Unlocking Lecture...</span>
+                </>
+              ) : accessQuery.isLoading ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Checking access...</span>
+                </>
+              ) : (
+                <>
+                  <Unlock className="size-4 text-amber-300" />
+                  <span>Unlock Lecture to Learn (+10 XP · +10 Credits)</span>
+                </>
+              )}
             </Button>
           ) : done ? (
             <Button

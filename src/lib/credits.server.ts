@@ -147,26 +147,30 @@ export async function getLessonAccessFor(
 
   const sched = parseLessonSchedule(lesson.summary);
   const cost = lessonCost(lesson);
-  const isFirst = await isFreeLesson(lesson);
 
-  let isUnlocked = false;
-  let balance = 0;
-  const staff = userId ? await isStaff(userId) : false;
+  const [isFirst, balance, staff, unlockRes, testObjRes] = await Promise.all([
+    isFreeLesson(lesson),
+    userId ? getBalance(userId) : Promise.resolve(0),
+    userId ? isStaff(userId) : Promise.resolve(false),
+    userId
+      ? supabaseAdmin
+          .from("lesson_unlocks")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("lesson_id", lessonId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    userId
+      ? supabaseAdmin
+          .from("tests")
+          .select("id")
+          .eq("chapter_id", lesson.chapter_id)
+          .like("description", `lesson:${lessonId}%`)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  if (userId) {
-    balance = await getBalance(userId);
-    if (staff) {
-      isUnlocked = true;
-    } else {
-      const { data } = await supabaseAdmin
-        .from("lesson_unlocks")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("lesson_id", lessonId)
-        .maybeSingle();
-      isUnlocked = Boolean(data);
-    }
-  }
+  const isUnlocked = Boolean(staff || unlockRes?.data);
 
   // If lecture is scheduled for future release and caller is not a teacher/admin:
   if (sched.isScheduled && !staff) {
@@ -187,35 +191,36 @@ export async function getLessonAccessFor(
   // First lesson of each chapter: 100% free (Audio, Video, Notes, Quiz, Summary).
   // Subsequent lessons (Lecture 2 onwards): completely locked until unlocked with credits (10 credits unlocks all).
   const isAccessible = (isFirst && !sched.isScheduled) || isUnlocked;
-  const audioUnlocked = isAccessible;
-  const videoUnlocked = isAccessible;
-  const pdfUnlocked = isAccessible;
   const locked = !isAccessible;
 
+  const testObj = testObjRes?.data ?? null;
+  const [attemptRes, signedMedia] = await Promise.all([
+    userId && testObj
+      ? supabaseAdmin
+          .from("test_attempts")
+          .select("id, score, total")
+          .eq("user_id", userId)
+          .eq("test_id", testObj.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    isAccessible
+      ? Promise.all([
+          signMedia(lesson.audio_url),
+          signMedia(lesson.video_url),
+          signMedia(lesson.pdf_url),
+        ])
+      : Promise.resolve([null, null, null]),
+  ]);
+
   let quizPassed = false;
-  if (userId) {
-    const { data: testObj } = await supabaseAdmin
-      .from("tests")
-      .select("id")
-      .eq("chapter_id", lesson.chapter_id)
-      .like("description", `lesson:${lessonId}%`)
-      .maybeSingle();
-
-    if (testObj) {
-      const { data: attempt } = await supabaseAdmin
-        .from("test_attempts")
-        .select("id, score, total")
-        .eq("user_id", userId)
-        .eq("test_id", testObj.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (attempt && attempt.total > 0 && attempt.score / attempt.total >= 0.5) {
-        quizPassed = true;
-      }
-    }
+  const attempt = attemptRes?.data;
+  if (attempt && attempt.total > 0 && attempt.score / attempt.total >= 0.5) {
+    quizPassed = true;
   }
+
+  const [audio, video, pdf] = signedMedia;
 
   return {
     lessonId,
@@ -228,9 +233,9 @@ export async function getLessonAccessFor(
     scheduledAt: sched.scheduledAt,
     isStaffPreview: sched.isScheduled && staff,
     media: {
-      audio: audioUnlocked ? await signMedia(lesson.audio_url) : null,
-      video: videoUnlocked ? await signMedia(lesson.video_url) : null,
-      pdf: pdfUnlocked ? await signMedia(lesson.pdf_url) : null,
+      audio,
+      video,
+      pdf,
     },
   };
 }
@@ -256,26 +261,73 @@ async function signMedia(value: string | null) {
   return data?.signedUrl ?? null;
 }
 
-export async function unlockLessonFor(userId: string, lessonId: string) {
-  const access = await getLessonAccessFor(userId, lessonId);
-  if (access.isScheduled) {
-    const formattedDate = formatScheduleDate(access.scheduledAt);
+export async function unlockLessonFor(userId: string, lessonId: string): Promise<LessonAccess> {
+  // 1. Concurrently fetch lesson, profile balance, existing unlock, and staff status
+  const [{ data: lesson }, { data: existingUnlock }, balance, staff] = await Promise.all([
+    supabaseAdmin
+      .from("lessons")
+      .select("id, chapter_id, audio_url, video_url, pdf_url, published, summary")
+      .eq("id", lessonId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("lesson_unlocks")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("lesson_id", lessonId)
+      .maybeSingle(),
+    getBalance(userId),
+    isStaff(userId),
+  ]);
+
+  if (!lesson || !lesson.published) throw new Error("Lesson not found");
+
+  const sched = parseLessonSchedule(lesson.summary);
+  const cost = lessonCost(lesson);
+  const isFirst = await isFreeLesson(lesson);
+
+  // If already unlocked or free or staff, return immediate access without re-charging credits
+  const isAlreadyUnlocked = Boolean(existingUnlock) || staff || (isFirst && !sched.isScheduled);
+  if (isAlreadyUnlocked) {
+    return getLessonAccessFor(userId, lessonId);
+  }
+
+  // If scheduled in the future, prevent unlocking early
+  if (sched.isScheduled && !staff) {
+    const formattedDate = formatScheduleDate(sched.scheduledAt);
     throw new Error(`This lecture is scheduled to release on ${formattedDate}. It cannot be unlocked early.`);
   }
-  if (!access.locked) return access;
 
-  if (access.balance < access.cost) {
+  if (balance < cost) {
     throw new Error(
-      `You need ${access.cost - access.balance} more credits. Finish a lesson or invite a friend to earn more.`,
+      `You need ${cost - balance} more credits. Finish a lesson or invite a friend to earn more.`,
     );
   }
 
-  await supabaseAdmin
-    .from("lesson_unlocks")
-    .upsert({ user_id: userId, lesson_id: lessonId, cost: access.cost }, { onConflict: "user_id,lesson_id" });
-  await awardCredits(userId, -access.cost, "Lesson unlocked", `unlock-${lessonId}`);
+  // 2. Concurrently record unlock in DB, deduct credits, and sign media files
+  const [_, newBalance, [audio, video, pdf]] = await Promise.all([
+    supabaseAdmin
+      .from("lesson_unlocks")
+      .upsert({ user_id: userId, lesson_id: lessonId, cost }, { onConflict: "user_id,lesson_id" }),
+    awardCredits(userId, -cost, "Lesson unlocked", `unlock-${lessonId}`),
+    Promise.all([
+      signMedia(lesson.audio_url),
+      signMedia(lesson.video_url),
+      signMedia(lesson.pdf_url),
+    ]),
+  ]);
 
-  return getLessonAccessFor(userId, lessonId);
+  return {
+    lessonId,
+    locked: false,
+    free: false,
+    cost,
+    balance: newBalance ?? (balance - cost),
+    quizPassed: false,
+    isScheduled: false,
+    scheduledAt: sched.scheduledAt,
+    isStaffPreview: false,
+    media: { audio, video, pdf },
+  };
 }
 
 /** Daily visit bonus. The database rejects a second award for the same day. */
