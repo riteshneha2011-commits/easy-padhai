@@ -97,3 +97,4 @@ Role hierarchy: `admin` > `teacher` > `student`. Both owners have `role = 'admin
    ```
    or use directory staging: `git add src/`.
 5. **Clean Git Commits:** Write concise, descriptive commit messages following the Conventional Commits format (e.g. `feat: ...`, `fix: ...`). Always push to `origin main`.
+6. **Strict Declaration Order & TDZ Prevention:** In React/ESM, all `const` computed values (e.g. `activeSubject`, `activeChapter`, memos) MUST be declared before any `useEffect` dependency arrays or handlers that reference them. Using `const` variables inside `useEffect([..., activeSubject])` before their line of declaration causes JavaScript Temporal Dead Zone (TDZ) errors (`ReferenceError: Cannot access '...' before initialization`) in production bundles. Always declare data/memo variables first, then effects, then JSX.
