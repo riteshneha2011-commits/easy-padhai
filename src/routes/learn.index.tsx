@@ -356,41 +356,64 @@ function LearnIndex() {
 
       {/* Resume Active Learning Banner */}
       {lastStudy && (
-        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/35 bg-gradient-to-r from-primary/15 via-primary/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="size-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md">
-              <PlayCircle className="size-6" />
+        <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/35 bg-gradient-to-r from-primary/15 via-primary/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm w-full">
+          <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full">
+            <div className="size-10 sm:size-11 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-md mt-0.5 sm:mt-0">
+              <PlayCircle className="size-5 sm:size-6" />
             </div>
-            <div className="min-w-0 space-y-0.5">
+            <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary bg-primary/15 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary bg-primary/15 px-2.5 py-0.5 rounded-full shrink-0">
                   Pick Up Where You Left Off
                 </span>
                 {lastStudy.subjectName && (
-                  <span className="text-xs text-muted-foreground font-semibold hidden xs:inline">
+                  <span className="text-xs text-muted-foreground font-semibold truncate hidden xs:inline">
                     {lastStudy.subjectName}
                   </span>
                 )}
               </div>
-              <p className="text-sm sm:text-base font-bold text-foreground truncate">
-                {lastStudy.chapterTitle}
-                {lastStudy.lessonTitle ? ` · ${lastStudy.lessonTitle}` : ""}
-              </p>
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium pt-0.5">
-                <span className="inline-flex items-center gap-1 text-primary">
+              {(() => {
+                const rawLesson = lastStudy.lessonTitle?.trim();
+                const rawChapter = lastStudy.chapterTitle?.trim();
+                const isDuplicate =
+                  rawLesson &&
+                  rawChapter &&
+                  (rawLesson.toLowerCase() === rawChapter.toLowerCase() ||
+                    rawLesson.toLowerCase().startsWith(rawChapter.toLowerCase() + " ") ||
+                    rawLesson.toLowerCase().startsWith(rawChapter.toLowerCase() + ":") ||
+                    rawLesson.toLowerCase().startsWith(rawChapter.toLowerCase() + " -") ||
+                    rawLesson.toLowerCase().startsWith(rawChapter.toLowerCase() + " ·"));
+                const displayLesson = isDuplicate
+                  ? rawLesson.slice(rawChapter.length).replace(/^[:\s\-–—·]+/, "").trim() || null
+                  : rawLesson || null;
+
+                return (
+                  <p
+                    className="text-sm sm:text-base font-bold text-foreground truncate max-w-full"
+                    title={`${lastStudy.chapterTitle}${displayLesson ? ` · ${displayLesson}` : ""}`}
+                  >
+                    <span>{lastStudy.chapterTitle}</span>
+                    {displayLesson && (
+                      <span className="text-xs sm:text-sm font-semibold text-muted-foreground"> · {displayLesson}</span>
+                    )}
+                  </p>
+                );
+              })()}
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground font-medium pt-0.5">
+                <span className="inline-flex items-center gap-1 text-primary shrink-0">
                   <Headphones className="size-3" /> Audio
                 </span>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <span className="text-muted-foreground/30">·</span>
+                <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 shrink-0">
                   <Zap className="size-3" /> Summary
                 </span>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                <span className="text-muted-foreground/30">·</span>
+                <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 shrink-0">
                   <FileText className="size-3" /> Notes
                 </span>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
-                  <Sparkles className="size-3" /> Quiz Included
+                <span className="text-muted-foreground/30">·</span>
+                <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold shrink-0">
+                  <Sparkles className="size-3" /> Quiz
                 </span>
               </div>
             </div>
@@ -500,7 +523,7 @@ function LearnIndex() {
           <Card className="rounded-3xl border-border/70 shadow-sm bg-card p-4 sm:p-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12 items-center">
               {/* Step 1: Subject Dropdown */}
-              <div className="lg:col-span-4 space-y-1.5">
+              <div className="lg:col-span-4 space-y-1.5 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
                     1
@@ -510,7 +533,7 @@ function LearnIndex() {
                 <select
                   value={activeSubject?.id ?? ""}
                   onChange={(e) => handleSubjectChange(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                  className="w-full truncate rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                 >
                   {classSubjects.map((sub) => (
                     <option key={sub.id} value={sub.id}>
@@ -521,7 +544,7 @@ function LearnIndex() {
               </div>
 
               {/* Step 2: Chapter Dropdown */}
-              <div className="lg:col-span-5 space-y-1.5">
+              <div className="lg:col-span-5 space-y-1.5 min-w-0">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
                     2
@@ -531,21 +554,21 @@ function LearnIndex() {
                 <select
                   value={activeChapter?.id ?? ""}
                   onChange={(e) => handleChapterChange(e.target.value)}
-                  className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
+                  className="w-full truncate rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                 >
                   {subjectChapters.map((chap, idx) => {
                     const chapLessons = chap.lessons ?? [];
                     const chapDone = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
                     const isFullyDone = chapLessons.length > 0 && chapDone === chapLessons.length;
                     const suffix = isFullyDone
-                      ? "✓ (Completed)"
+                      ? "(✓ Done)"
                       : chapDone > 0
-                      ? `(${chapDone}/${chap.lessonCount ?? chapLessons.length} Done)`
+                      ? `(${chapDone}/${chap.lessonCount ?? chapLessons.length} done)`
                       : `(${chap.lessonCount ?? chapLessons.length} lessons)`;
 
                     return (
                       <option key={chap.id} value={chap.id}>
-                        Ch {idx + 1}: {chap.title} · {suffix}
+                        Ch {idx + 1}: {chap.title} {suffix}
                       </option>
                     );
                   })}
@@ -633,8 +656,8 @@ function LearnIndex() {
                           size="sm"
                           className="rounded-full font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs sm:text-sm gap-1.5 h-10 px-4"
                         >
-                          <Link to="/learn/$slug" params={{ slug: nextChap.slug }}>
-                            <span>Next Chapter: {nextChap.title}</span>
+                          <Link to="/learn/$slug" params={{ slug: nextChap.slug }} className="inline-flex items-center gap-1.5">
+                            <span className="truncate max-w-[170px] sm:max-w-none">Next: {nextChap.title}</span>
                             <ArrowRight className="size-4 shrink-0" />
                           </Link>
                         </Button>
