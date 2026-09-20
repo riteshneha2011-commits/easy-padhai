@@ -437,6 +437,22 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
   );
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
 
+  // Active reading timer for PDF notes (25s active viewing verifies learning)
+  useEffect(() => {
+    if (kind !== "pdf" || !onVerified) return;
+    let readingSeconds = 0;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        readingSeconds += 1;
+        if (readingSeconds >= 25) {
+          onVerified();
+          clearInterval(interval);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [kind, onVerified]);
+
   useEffect(() => {
     let alive = true;
 
@@ -593,14 +609,14 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             {directSrc && (
-              <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 rounded-xl font-semibold">
+              <Button asChild size="sm" variant="outline" className="h-8 text-xs gap-1.5 rounded-xl font-semibold" onClick={() => onVerified?.()}>
                 <a href={directSrc} download={`${title || "Lesson-Notes"}.pdf`}>
                   <Download className="size-3.5" /> Save to Device
                 </a>
               </Button>
             )}
             {directSrc && (
-              <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground">
+              <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground" onClick={() => onVerified?.()}>
                 <a href={directSrc} target="_blank" rel="noreferrer">
                   <ExternalLink className="size-3.5" /> Fullscreen
                 </a>
@@ -640,12 +656,12 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
                   </p>
                 </div>
                 <div className="flex flex-col w-full gap-2.5 pt-1">
-                  <Button asChild size="lg" className="rounded-full shadow-glow font-bold gap-2 w-full">
+                  <Button asChild size="lg" className="rounded-full shadow-glow font-bold gap-2 w-full" onClick={() => onVerified?.()}>
                     <a href={directSrc} target="_blank" rel="noreferrer">
                       <BookOpen className="size-4" /> Open Fullscreen Reader
                     </a>
                   </Button>
-                  <Button asChild variant="outline" size="sm" className="rounded-full font-semibold gap-1.5 w-full">
+                  <Button asChild variant="outline" size="sm" className="rounded-full font-semibold gap-1.5 w-full" onClick={() => onVerified?.()}>
                     <a href={directSrc} download={`${title || "Lesson-Notes"}.pdf`}>
                       <Download className="size-3.5" /> Save PDF File
                     </a>

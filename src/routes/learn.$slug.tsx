@@ -1349,8 +1349,33 @@ function LessonPanel({
       render: () => {
         if (!locked) {
           return (
-            <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs">
+            <div className="rounded-2xl bg-card border border-border/70 p-5 sm:p-7 text-[15px] leading-relaxed text-foreground/90 shadow-2xs space-y-5">
               <MarkdownRenderer content={lesson.summary || ""} />
+
+              {/* Manual Confirmation Button for Summary Reading */}
+              {!done && (
+                <div className="pt-3 border-t border-border/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <BookOpen className="size-3.5 text-primary" />
+                    <span>Finished reading the key points?</span>
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={isVerified ? "secondary" : "outline"}
+                    onClick={() => handleVerified("summary")}
+                    className={cn(
+                      "rounded-full text-xs font-bold gap-1.5 transition-all shadow-xs",
+                      isVerified
+                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/30"
+                        : "border-primary/50 text-primary hover:bg-primary/10"
+                    )}
+                  >
+                    <Check className="size-3.5" />
+                    <span>{isVerified ? "Summary Read Verified ✓" : "I've read this summary ✓"}</span>
+                  </Button>
+                </div>
+              )}
             </div>
           );
         }
@@ -1513,6 +1538,7 @@ function LessonPanel({
             title={lesson.title}
             kind="pdf"
             lessonId={lesson.id}
+            onVerified={() => handleVerified("pdf")}
           />
         );
       },
@@ -1614,6 +1640,47 @@ function LessonPanel({
   const currentTabKey = activeTab?.key ?? defaultTabKey;
   const isReadingNotes = (currentTabKey === "summary" || currentTabKey === "pdf") && (typeof document === "undefined" || document.visibilityState === "visible");
   const isStudying = watching || isReadingNotes;
+
+  // Active reading timer for Summary (25s of visible reading verifies learning)
+  useEffect(() => {
+    if (locked || isVerified || currentTabKey !== "summary") return;
+    let readingSeconds = 0;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        readingSeconds += 1;
+        if (readingSeconds >= 25) {
+          handleVerified("summary");
+          clearInterval(interval);
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [locked, isVerified, currentTabKey, handleVerified]);
+
+  const hasAV = hasAudioOption || hasVideoOption;
+  const unverifiedTitle = !hasAV
+    ? hasSummaryOption && hasPdfOption
+      ? "Read Summary or Notes to Complete"
+      : hasSummaryOption
+      ? "Read Summary to Complete"
+      : "Read PDF Notes to Complete"
+    : "Study to Complete (Audio, Video, or Notes)";
+
+  const unverifiedHint = !hasAV
+    ? hasSummaryOption && hasPdfOption
+      ? "Read summary for 25s (or mark read), view notes, or pass quiz"
+      : hasSummaryOption
+      ? "Read summary for 25s (or mark read), or pass quiz"
+      : "Open fullscreen reader, download notes, or view for 25s"
+    : "Listen audio, watch video, read notes/summary, or pass quiz";
+
+  const unverifiedToast = !hasAV
+    ? hasSummaryOption && hasPdfOption
+      ? "To complete this lecture, please read the summary (25s or click 'I\\'ve read'), view/download the PDF notes, or pass the quiz!"
+      : hasSummaryOption
+      ? "To complete this lecture, please read the summary (25s or click 'I\\'ve read this summary'), or pass the quiz!"
+      : "To complete this lecture, please open fullscreen reader, save/download notes, or view for 25s!"
+    : "To complete this lecture, please listen to the audio (70%+), watch video, read notes/summary, or pass the quiz!";
 
   const { celebration, closeCelebration } = useStudyHeartbeat(lesson.id, isStudying, Boolean(userId) && !locked);
 
@@ -1900,17 +1967,13 @@ function LessonPanel({
               <Button
                 variant="outline"
                 className="w-full sm:w-auto rounded-full text-xs sm:text-sm font-semibold border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/5 hover:bg-amber-500/10 gap-1.5"
-                onClick={() =>
-                  toast.info(
-                    "To complete this lecture, please listen to the audio (70%+), watch the video, or pass the Quick Quiz!"
-                  )
-                }
+                onClick={() => toast.info(unverifiedToast)}
               >
                 <Lock className="size-3.5 text-amber-500" />
-                <span>Study to Complete (Audio, Video, or Quiz)</span>
+                <span>{unverifiedTitle}</span>
               </Button>
               <span className="text-[11px] text-muted-foreground">
-                Listen audio, watch video, or pass quiz to verify understanding
+                {unverifiedHint}
               </span>
             </div>
           )}
