@@ -13,6 +13,11 @@ export async function getTestForAttempt(testId: string) {
 
   if (!test || !test.published) return null;
 
+  // Social challenges are separate acquisition links (/c/$code), not regular chapter tests
+  if (test.title?.includes("[CHALLENGE:") || test.description?.includes('"challenge"')) {
+    return null;
+  }
+
   const { data: chapter } = await supabaseAdmin
     .from("chapters")
     .select("slug, title")

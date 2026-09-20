@@ -105,10 +105,12 @@ export async function fetchCatalog(): Promise<CatalogSubject[]> {
           order_index: chapter.order_index,
           lessonCount: ownLessons.length,
           testId:
-            (tests as Array<{ id: string; chapter_id: string; description: string | null; questions?: Array<{ id: string }> }> ?? []).find(
+            (tests as Array<{ id: string; chapter_id: string; title?: string | null; description: string | null; questions?: Array<{ id: string }> }> ?? []).find(
               (t) =>
                 t.chapter_id === chapter.id &&
                 !t.description?.startsWith("lesson:") &&
+                !t.title?.includes("[CHALLENGE:") &&
+                !t.description?.includes('"challenge"') &&
                 Array.isArray(t.questions) &&
                 t.questions.length > 0,
             )?.id ?? null,
@@ -171,11 +173,13 @@ export async function fetchChapterBySlug(slug: string) {
   const testsList = (allTests as TestRecord[] | null) ?? [];
   const firstId = list[0]?.id ?? null;
 
-  // Chapter-level test is the test NOT tagged with a specific lesson AND containing questions:
+  // Chapter-level test is the test NOT tagged with a specific lesson, NOT a social challenge, AND containing questions:
   const chapterTestRecord =
     testsList.find(
       (t) =>
         !t.description?.startsWith("lesson:") &&
+        !t.title?.includes("[CHALLENGE:") &&
+        !t.description?.includes('"challenge"') &&
         Array.isArray(t.questions) &&
         t.questions.length > 0,
     ) ?? null;
