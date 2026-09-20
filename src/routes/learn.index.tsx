@@ -173,28 +173,38 @@ function LearnIndex() {
     }
   }, [navigate]);
 
-  // Sync subject & chapter from URL or localStorage when class, URL search, or subject list updates
+  // When active class changes, load the saved subject for that class
   useEffect(() => {
-    if (searchParams?.subject && classSubjects.some((s) => s.id === searchParams.subject)) {
+    if (classSubjects.length === 0) return;
+    const savedSub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+    const validSub =
+      savedSub && classSubjects.some((s) => s.id === savedSub) ? savedSub : classSubjects[0]?.id ?? "";
+    setSelectedSubjectId(validSub);
+    const targetSub = classSubjects.find((s) => s.id === validSub);
+    const savedChap = targetSub ? localStorage.getItem(`easypadhai_active_chapter_${validSub}`) : null;
+    const validChap =
+      savedChap && targetSub?.chapters.some((c) => c.id === savedChap)
+        ? savedChap
+        : targetSub?.chapters[0]?.id ?? "";
+    setSelectedChapterId(validChap);
+  }, [activeClass]);
+
+  // Sync from URL if changed via external browser navigation (e.g. back/forward)
+  useEffect(() => {
+    if (
+      searchParams?.subject &&
+      searchParams.subject !== selectedSubjectId &&
+      classSubjects.some((s) => s.id === searchParams.subject)
+    ) {
       setSelectedSubjectId(searchParams.subject);
-    } else if (!selectedSubjectId && classSubjects.length > 0) {
-      const savedSub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
-      if (savedSub && classSubjects.some((s) => s.id === savedSub)) {
-        setSelectedSubjectId(savedSub);
-      }
     }
-  }, [searchParams?.subject, activeClass, classSubjects, selectedSubjectId]);
+  }, [searchParams?.subject]);
 
   useEffect(() => {
-    if (searchParams?.chapter) {
+    if (searchParams?.chapter && searchParams.chapter !== selectedChapterId) {
       setSelectedChapterId(searchParams.chapter);
-    } else if (activeSubject && !selectedChapterId) {
-      const savedChap = localStorage.getItem(`easypadhai_active_chapter_${activeSubject.id}`);
-      if (savedChap && activeSubject.chapters.some((c) => c.id === savedChap)) {
-        setSelectedChapterId(savedChap);
-      }
     }
-  }, [searchParams?.chapter, activeSubject, selectedChapterId]);
+  }, [searchParams?.chapter]);
 
   const handleSubjectChange = (newSubjectId: string) => {
     setSelectedSubjectId(newSubjectId);
@@ -203,11 +213,17 @@ function LearnIndex() {
         localStorage.setItem(`easypadhai_active_subject_${activeClass}`, newSubjectId);
         const savedChap = localStorage.getItem(`easypadhai_active_chapter_${newSubjectId}`);
         const targetSub = classSubjects.find((s) => s.id === newSubjectId);
-        if (savedChap && targetSub?.chapters.some((c) => c.id === savedChap)) {
-          setSelectedChapterId(savedChap);
-        } else {
-          setSelectedChapterId("");
-        }
+        const nextChapId =
+          savedChap && targetSub?.chapters.some((c) => c.id === savedChap)
+            ? savedChap
+            : targetSub?.chapters[0]?.id ?? "";
+        setSelectedChapterId(nextChapId);
+
+        void navigate({
+          to: "/learn",
+          search: { subject: newSubjectId, chapter: nextChapId || undefined } as any,
+          replace: true,
+        });
       } catch (e) {
         console.warn(e);
       }
@@ -219,6 +235,11 @@ function LearnIndex() {
     if (typeof window !== "undefined" && activeSubject) {
       try {
         localStorage.setItem(`easypadhai_active_chapter_${activeSubject.id}`, newChapterId);
+        void navigate({
+          to: "/learn",
+          search: { subject: activeSubject.id, chapter: newChapterId } as any,
+          replace: true,
+        });
       } catch (e) {
         console.warn(e);
       }
@@ -806,7 +827,10 @@ function LearnIndex() {
             <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setSelectedSubjectId("all")}
+                onClick={() => {
+                  setSelectedSubjectId("all");
+                  void navigate({ to: "/learn", search: { subject: "all" } as any, replace: true });
+                }}
                 className={cn(
                   "rounded-full px-3 py-1 text-xs font-bold transition-all",
                   selectedSubjectId === "all"
@@ -820,7 +844,10 @@ function LearnIndex() {
                 <button
                   key={sub.id}
                   type="button"
-                  onClick={() => setSelectedSubjectId(sub.id)}
+                  onClick={() => {
+                    setSelectedSubjectId(sub.id);
+                    void navigate({ to: "/learn", search: { subject: sub.id } as any, replace: true });
+                  }}
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-bold transition-all",
                     selectedSubjectId === sub.id
