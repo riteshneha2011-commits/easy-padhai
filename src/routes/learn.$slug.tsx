@@ -169,7 +169,10 @@ function ChapterPage() {
   useEffect(() => {
     if (typeof window !== "undefined" && activeId && chapter) {
       const currentLesson = lessons.find((l: Lesson) => l.id === activeId);
+      const classLevel = chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL;
       try {
+        localStorage.setItem(`easypadhai_active_subject_${classLevel}`, chapter.subject_id);
+        localStorage.setItem(`easypadhai_active_chapter_${chapter.subject_id}`, chapter.id);
         localStorage.setItem(`easypadhai_last_lesson_${chapter.id}`, activeId);
         localStorage.setItem(
           "easypadhai_last_study",
@@ -177,6 +180,7 @@ function ChapterPage() {
             slug: chapter.slug,
             chapterId: chapter.id,
             chapterTitle: chapter.title,
+            subjectId: chapter.subject_id,
             subjectName: chapter.subjects?.name ?? "",
             lessonId: activeId,
             lessonTitle: currentLesson?.title ?? "",
@@ -232,6 +236,11 @@ function ChapterPage() {
   const activeIndex = lessons.findIndex((l: Lesson) => l.id === activeId);
   const prevLesson = activeIndex > 0 ? lessons[activeIndex - 1] : null;
   const nextLesson = activeIndex >= 0 && activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
+  const currentChapterIndex = siblingChapters.findIndex((sc: any) => sc.id === chapter.id);
+  const nextChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < siblingChapters.length - 1
+      ? siblingChapters[currentChapterIndex + 1]
+      : null;
 
   const handleSelectLesson = (lessonId: string) => {
     setActiveId(lessonId);
@@ -239,6 +248,9 @@ function ChapterPage() {
 
     if (typeof window !== "undefined") {
       try {
+        const classLevel = chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL;
+        localStorage.setItem(`easypadhai_active_subject_${classLevel}`, chapter.subject_id);
+        localStorage.setItem(`easypadhai_active_chapter_${chapter.subject_id}`, chapter.id);
         localStorage.setItem(`easypadhai_last_lesson_${chapter.id}`, lessonId);
         const targetLesson = lessons.find((l: Lesson) => l.id === lessonId);
         localStorage.setItem(
@@ -247,6 +259,7 @@ function ChapterPage() {
             slug: chapter.slug,
             chapterId: chapter.id,
             chapterTitle: chapter.title,
+            subjectId: chapter.subject_id,
             subjectName: chapter.subjects?.name ?? "",
             lessonId,
             lessonTitle: targetLesson?.title ?? "",
@@ -275,6 +288,13 @@ function ChapterPage() {
       handleSelectLesson(nextLesson.id);
     } else if (test) {
       void navigate({ to: "/test/$testId", params: { testId: test.id } });
+    } else if (nextChapter) {
+      void navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } });
+    } else {
+      void navigate({
+        to: "/learn",
+        search: { subject: chapter.subject_id, chapter: chapter.id } as any,
+      });
     }
   };
 
@@ -505,7 +525,11 @@ function ChapterPage() {
               <span>Playlist ({lessons.length})</span>
             </Button>
           )}
-          <Link to="/learn" className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground">
+          <Link
+            to="/learn"
+            search={{ subject: chapter.subject_id, chapter: chapter.id } as any}
+            className="inline-flex items-center gap-1 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-foreground"
+          >
             ← All chapters
           </Link>
           <span className="text-muted-foreground/40">/</span>
@@ -539,7 +563,11 @@ function ChapterPage() {
       {/* Mobile Sticky Bar & Trigger (Visible only on < lg) */}
       <div className="lg:hidden flex flex-col gap-2 mb-4">
         <div className="flex items-center justify-between gap-2">
-          <Link to="/learn" className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground">
+          <Link
+            to="/learn"
+            search={{ subject: chapter.subject_id, chapter: chapter.id } as any}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
+          >
             ← Chapters
           </Link>
           {chapter.subjects?.name && (
@@ -809,7 +837,7 @@ function ChapterPage() {
           )}
 
           {/* Sequential Navigation Bar */}
-          <div className="flex items-center justify-between gap-2 p-3 rounded-2xl border border-border/60 bg-card/60">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl border border-border/60 bg-card/60">
             <Button
               variant="outline"
               size="sm"
@@ -819,7 +847,7 @@ function ChapterPage() {
             >
               <ChevronLeft className="size-3.5" /> Previous
             </Button>
-            <span className="text-xs font-semibold text-muted-foreground truncate">
+            <span className="text-xs font-semibold text-muted-foreground truncate hidden xs:inline">
               Lecture {activeIndex + 1} of {lessons.length}
             </span>
             {nextLesson ? (
@@ -830,22 +858,47 @@ function ChapterPage() {
               >
                 Next <ChevronRight className="size-3.5" />
               </Button>
-            ) : test ? (
-              <Button
-                size="sm"
-                onClick={() =>
-                  user
-                    ? navigate({ to: "/test/$testId", params: { testId: test.id } })
-                    : navigate({ to: "/auth" })
-                }
-                className="rounded-full gap-1 text-xs font-semibold shadow-glow"
-              >
-                <Sparkles className="size-3 mr-1" /> Chapter Test
-              </Button>
             ) : (
-              <Button variant="outline" size="sm" disabled className="rounded-full text-xs">
-                Finished 🎉
-              </Button>
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                {test && (
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      user
+                        ? navigate({ to: "/test/$testId", params: { testId: test.id } })
+                        : navigate({ to: "/auth" })
+                    }
+                    className="rounded-full gap-1 text-xs font-semibold shadow-glow"
+                  >
+                    <Sparkles className="size-3 mr-1" /> Chapter Test
+                  </Button>
+                )}
+                {nextChapter ? (
+                  <Button
+                    size="sm"
+                    variant={test ? "outline" : "default"}
+                    onClick={() => navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } })}
+                    className="rounded-full gap-1 text-xs font-semibold"
+                  >
+                    <span className="truncate max-w-[130px] sm:max-w-[200px]">Next: {nextChapter.title}</span>
+                    <ChevronRight className="size-3.5 shrink-0" />
+                  </Button>
+                ) : !test ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      navigate({
+                        to: "/learn",
+                        search: { subject: chapter.subject_id, chapter: chapter.id } as any,
+                      })
+                    }
+                    className="rounded-full text-xs font-semibold"
+                  >
+                    All Chapters ➔
+                  </Button>
+                ) : null}
+              </div>
             )}
           </div>
 
@@ -878,10 +931,33 @@ function ChapterPage() {
         open={victoryOpen}
         xpEarned={victoryXp}
         creditsEarned={victoryCredits}
-        title="Lesson Completed! 🎉"
-        message={`Great job on completing "${active?.title ?? "this lesson"}". Keep up the daily learning streak!`}
-        nextLabel={nextLesson ? `Next: ${nextLesson.title}` : (test ? "Start Chapter Quiz" : undefined)}
+        title={nextLesson ? "Lesson Completed! 🎉" : "Chapter Finished! 🏆"}
+        message={
+          nextLesson
+            ? `Great job on completing "${active?.title ?? "this lesson"}". Keep up the momentum!`
+            : `Phenomenal achievement! You completed all lectures in "${chapter.title}". Ready for the chapter quiz or next chapter?`
+        }
+        nextLabel={
+          nextLesson
+            ? `Next: ${nextLesson.title}`
+            : test
+            ? "Take Chapter Quiz ✨"
+            : nextChapter
+            ? `Go to Next Chapter: ${nextChapter.title} ➔`
+            : "Explore All Chapters"
+        }
         onPlayNext={handlePlayNext}
+        secondaryAction={
+          !nextLesson && test && nextChapter
+            ? {
+                label: `Go to Next Chapter: ${nextChapter.title} ➔`,
+                onClick: () => {
+                  setVictoryOpen(false);
+                  void navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } });
+                },
+              }
+            : undefined
+        }
         onDirectClose={() => setVictoryOpen(false)}
       />
     </div>

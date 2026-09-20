@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { soundFx } from "@/lib/sound-effects";
 import confetti from "canvas-confetti";
 import { Trophy, Flame, Sparkles, ArrowRight, Share2, Coins } from "lucide-react";
@@ -14,6 +15,11 @@ export type VictoryProps = {
   creditsEarned?: number;
   nextLabel?: string;
   isTest?: boolean;
+  secondaryAction?: {
+    label: string;
+    onClick: () => void;
+    icon?: ReactNode;
+  };
 };
 
 export function VictoryModal({
@@ -26,6 +32,7 @@ export function VictoryModal({
   creditsEarned = 10,
   nextLabel,
   isTest = false,
+  secondaryAction,
 }: VictoryProps) {
   const triggerCelebration = () => {
     soundFx.playCelebration();
@@ -101,6 +108,20 @@ export function VictoryModal({
               onClick={onDirectClose}
             >
               Continue
+            </Button>
+          )}
+
+          {secondaryAction && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-full gap-2 border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 font-bold text-xs sm:text-sm h-11 min-w-0 overflow-hidden shadow-xs"
+              onClick={secondaryAction.onClick}
+            >
+              <span className="truncate min-w-0 flex-1 text-center">
+                {secondaryAction.label}
+              </span>
+              {secondaryAction.icon ?? <ArrowRight className="size-4 shrink-0" />}
             </Button>
           )}
 

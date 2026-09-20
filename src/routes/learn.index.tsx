@@ -34,6 +34,10 @@ import { cn } from "@/lib/utils";
 const catalogQuery = queryOptions({ queryKey: ["catalog"], queryFn: () => getCatalog() });
 
 export const Route = createFileRoute("/learn/")({
+  validateSearch: (search: Record<string, unknown>): { subject?: string; chapter?: string } => ({
+    subject: typeof search.subject === "string" ? search.subject : undefined,
+    chapter: typeof search.chapter === "string" ? search.chapter : undefined,
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
   head: () => ({
     meta: [
@@ -58,6 +62,7 @@ function LearnIndex() {
   const { data: allSubjects } = useSuspenseQuery(catalogQuery);
   const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
+  const searchParams = Route.useSearch();
 
   // Filter subjects for active class, prioritizing subjects with available content
   const classSubjects = useMemo(() => {
@@ -80,8 +85,29 @@ function LearnIndex() {
   const isClassComingSoon = totalChaptersInClass === 0;
 
   // Navigation & filter state
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
-  const [selectedChapterId, setSelectedChapterId] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlSub = urlParams.get("subject");
+      if (urlSub) return urlSub;
+      const saved = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+      if (saved) return saved;
+    }
+    return "";
+  });
+  const [selectedChapterId, setSelectedChapterId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlChap = urlParams.get("chapter");
+      if (urlChap) return urlChap;
+      const sub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+      if (sub) {
+        const savedChap = localStorage.getItem(`easypadhai_active_chapter_${sub}`);
+        if (savedChap) return savedChap;
+      }
+    }
+    return "";
+  });
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");
 
@@ -126,6 +152,58 @@ function LearnIndex() {
       console.warn("[LearnIndex] Could not parse last study record:", e);
     }
   }, [navigate]);
+
+  // Sync subject & chapter from URL or localStorage when class, URL search, or subject list updates
+  useEffect(() => {
+    if (searchParams.subject && classSubjects.some((s) => s.id === searchParams.subject)) {
+      setSelectedSubjectId(searchParams.subject);
+    } else if (!selectedSubjectId && classSubjects.length > 0) {
+      const savedSub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+      if (savedSub && classSubjects.some((s) => s.id === savedSub)) {
+        setSelectedSubjectId(savedSub);
+      }
+    }
+  }, [searchParams.subject, activeClass, classSubjects, selectedSubjectId]);
+
+  useEffect(() => {
+    if (searchParams.chapter) {
+      setSelectedChapterId(searchParams.chapter);
+    } else if (activeSubject && !selectedChapterId) {
+      const savedChap = localStorage.getItem(`easypadhai_active_chapter_${activeSubject.id}`);
+      if (savedChap && activeSubject.chapters.some((c) => c.id === savedChap)) {
+        setSelectedChapterId(savedChap);
+      }
+    }
+  }, [searchParams.chapter, activeSubject, selectedChapterId]);
+
+  const handleSubjectChange = (newSubjectId: string) => {
+    setSelectedSubjectId(newSubjectId);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`easypadhai_active_subject_${activeClass}`, newSubjectId);
+        const savedChap = localStorage.getItem(`easypadhai_active_chapter_${newSubjectId}`);
+        const targetSub = classSubjects.find((s) => s.id === newSubjectId);
+        if (savedChap && targetSub?.chapters.some((c) => c.id === savedChap)) {
+          setSelectedChapterId(savedChap);
+        } else {
+          setSelectedChapterId("");
+        }
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  };
+
+  const handleChapterChange = (newChapterId: string) => {
+    setSelectedChapterId(newChapterId);
+    if (typeof window !== "undefined" && activeSubject) {
+      try {
+        localStorage.setItem(`easypadhai_active_chapter_${activeSubject.id}`, newChapterId);
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  };
 
   // Effective subject
   const activeSubject = useMemo(() => {
@@ -414,10 +492,7 @@ function LearnIndex() {
                 </label>
                 <select
                   value={activeSubject?.id ?? ""}
-                  onChange={(e) => {
-                    setSelectedSubjectId(e.target.value);
-                    setSelectedChapterId(""); // Reset chapter on subject change
-                  }}
+                  onChange={(e) => handleSubjectChange(e.target.value)}
                   className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                 >
                   {classSubjects.map((sub) => (
@@ -438,14 +513,25 @@ function LearnIndex() {
                 </label>
                 <select
                   value={activeChapter?.id ?? ""}
-                  onChange={(e) => setSelectedChapterId(e.target.value)}
+                  onChange={(e) => handleChapterChange(e.target.value)}
                   className="w-full rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
                 >
-                  {subjectChapters.map((chap, idx) => (
-                    <option key={chap.id} value={chap.id}>
-                      Ch {idx + 1}: {chap.title} ({chap.lessonCount} lessons)
-                    </option>
-                  ))}
+                  {subjectChapters.map((chap, idx) => {
+                    const chapLessons = chap.lessons ?? [];
+                    const chapDone = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
+                    const isFullyDone = chapLessons.length > 0 && chapDone === chapLessons.length;
+                    const suffix = isFullyDone
+                      ? "✓ (Completed)"
+                      : chapDone > 0
+                      ? `(${chapDone}/${chap.lessonCount ?? chapLessons.length} Done)`
+                      : `(${chap.lessonCount ?? chapLessons.length} lessons)`;
+
+                    return (
+                      <option key={chap.id} value={chap.id}>
+                        Ch {idx + 1}: {chap.title} · {suffix}
+                      </option>
+                    );
+                  })}
                   {subjectChapters.length === 0 && (
                     <option value="">No chapters in this subject</option>
                   )}
@@ -476,7 +562,7 @@ function LearnIndex() {
           {activeChapter ? (
             <div className="space-y-4">
               {/* Active Chapter Header Card */}
-              <Card className="rounded-3xl border-primary/30 bg-primary/5 p-6 space-y-3">
+              <Card className="rounded-3xl border-primary/30 bg-primary/5 p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold flex items-center gap-1.5">
                     <ActiveSubjectIcon className="size-3.5 text-primary" />
@@ -484,9 +570,18 @@ function LearnIndex() {
                   </Badge>
                   <div className="flex items-center gap-2">
                     {user && activeChapterLessons.length > 0 && completedCountInActiveChapter > 0 && (
-                      <Badge className="rounded-full px-2.5 py-0.5 text-xs font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 flex items-center gap-1">
+                      <Badge
+                        className={cn(
+                          "rounded-full px-2.5 py-0.5 text-xs font-bold border flex items-center gap-1",
+                          activeChapterProgressPercent === 100
+                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                            : "bg-primary/10 text-primary border-primary/20"
+                        )}
+                      >
                         <Check className="size-3 stroke-[3]" />
-                        {completedCountInActiveChapter}/{activeChapterLessons.length} Completed
+                        {activeChapterProgressPercent === 100
+                          ? "Chapter Completed 🎉"
+                          : `${completedCountInActiveChapter}/${activeChapterLessons.length} Completed`}
                       </Badge>
                     )}
                     <span className="text-xs font-semibold text-muted-foreground">
@@ -495,20 +590,46 @@ function LearnIndex() {
                   </div>
                 </div>
 
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
-                    {activeChapter.title}
-                  </h2>
-                  {activeChapter.description && (
-                    <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                      {activeChapter.description}
-                    </p>
-                  )}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
+                      {activeChapter.title}
+                    </h2>
+                    {activeChapter.description && (
+                      <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                        {activeChapter.description}
+                      </p>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const currentIdx = subjectChapters.findIndex((c) => c.id === activeChapter.id);
+                    const nextChap =
+                      currentIdx >= 0 && currentIdx < subjectChapters.length - 1
+                        ? subjectChapters[currentIdx + 1]
+                        : null;
+
+                    if (activeChapterProgressPercent === 100 && nextChap) {
+                      return (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="rounded-full font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs sm:text-sm gap-1.5 h-10 px-4"
+                        >
+                          <Link to="/learn/$slug" params={{ slug: nextChap.slug }}>
+                            <span>Next Chapter: {nextChap.title}</span>
+                            <ArrowRight className="size-4 shrink-0" />
+                          </Link>
+                        </Button>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {/* Progress bar if logged in */}
                 {user && activeChapterLessons.length > 0 && (
-                  <div className="space-y-1.5 pt-2">
+                  <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
                       <span>Chapter Completion</span>
                       <span className="text-foreground font-bold">{activeChapterProgressPercent}%</span>
@@ -743,9 +864,24 @@ function LearnIndex() {
                         <SubIcon className="size-3" />
                         <span>{chapter.subjectName}</span>
                       </span>
-                      <Badge variant="secondary" className="rounded-full text-[10px] px-2">
-                        Ch {chapter.order_index}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {user && (() => {
+                          const chapLessons = chapter.lessons ?? [];
+                          const doneCount = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
+                          const isFullyDone = chapLessons.length > 0 && doneCount === chapLessons.length;
+                          if (isFullyDone) {
+                            return (
+                              <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/30 px-2 py-0">
+                                ✓ Done
+                              </Badge>
+                            );
+                          }
+                          return null;
+                        })()}
+                        <Badge variant="secondary" className="rounded-full text-[10px] px-2">
+                          Ch {chapter.order_index}
+                        </Badge>
+                      </div>
                     </div>
                     <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground line-clamp-2">
                       {chapter.title}
@@ -758,11 +894,21 @@ function LearnIndex() {
                     </span>
                     {user && (
                       (() => {
-                        const doneCount = (chapter.lessons ?? []).filter((l: any) => completedLessonIds.has(l.id)).length;
+                        const chapLessons = chapter.lessons ?? [];
+                        const doneCount = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
                         if (doneCount === 0) return null;
+                        const isFullyDone = chapLessons.length > 0 && doneCount === chapLessons.length;
                         return (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 font-bold">
-                            <Check className="size-3 stroke-[3]" /> {doneCount}/{chapter.lessonCount} Done
+                          <span
+                            className={cn(
+                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold",
+                              isFullyDone
+                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                                : "bg-primary/15 text-primary"
+                            )}
+                          >
+                            <Check className="size-3 stroke-[3]" />
+                            {isFullyDone ? "✓ Completed 🎉" : `${doneCount}/${chapter.lessonCount} Done`}
                           </span>
                         );
                       })()
