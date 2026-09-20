@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -34,10 +34,6 @@ import { cn } from "@/lib/utils";
 const catalogQuery = queryOptions({ queryKey: ["catalog"], queryFn: () => getCatalog() });
 
 export const Route = createFileRoute("/learn/")({
-  validateSearch: (search: Record<string, unknown>): { subject?: string; chapter?: string } => ({
-    subject: typeof search.subject === "string" ? search.subject : undefined,
-    chapter: typeof search.chapter === "string" ? search.chapter : undefined,
-  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
   head: () => ({
     meta: [
@@ -62,7 +58,7 @@ function LearnIndex() {
   const { data: allSubjects } = useSuspenseQuery(catalogQuery);
   const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
-  const searchParams = Route.useSearch();
+  const searchParams = useSearch({ strict: false }) as { subject?: string; chapter?: string };
 
   // Filter subjects for active class, prioritizing subjects with available content
   const classSubjects = useMemo(() => {
@@ -111,6 +107,30 @@ function LearnIndex() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");
 
+  // Effective subject (declared BEFORE any useEffect or handlers that use it)
+  const activeSubject = useMemo(() => {
+    if (selectedSubjectId) {
+      const found = classSubjects.find((s) => s.id === selectedSubjectId);
+      if (found) return found;
+    }
+    return classSubjects[0] ?? null;
+  }, [classSubjects, selectedSubjectId]);
+
+  // Chapters under active subject
+  const subjectChapters = useMemo(() => {
+    if (!activeSubject) return [];
+    return activeSubject.chapters ?? [];
+  }, [activeSubject]);
+
+  // Active chapter object
+  const activeChapter = useMemo(() => {
+    if (selectedChapterId) {
+      const found = subjectChapters.find((c) => c.id === selectedChapterId);
+      if (found) return found;
+    }
+    return subjectChapters[0] ?? null;
+  }, [subjectChapters, selectedChapterId]);
+
   // Persistent last study session & PWA auto-resume
   const [lastStudy, setLastStudy] = useState<{
     slug: string;
@@ -155,7 +175,7 @@ function LearnIndex() {
 
   // Sync subject & chapter from URL or localStorage when class, URL search, or subject list updates
   useEffect(() => {
-    if (searchParams.subject && classSubjects.some((s) => s.id === searchParams.subject)) {
+    if (searchParams?.subject && classSubjects.some((s) => s.id === searchParams.subject)) {
       setSelectedSubjectId(searchParams.subject);
     } else if (!selectedSubjectId && classSubjects.length > 0) {
       const savedSub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
@@ -163,10 +183,10 @@ function LearnIndex() {
         setSelectedSubjectId(savedSub);
       }
     }
-  }, [searchParams.subject, activeClass, classSubjects, selectedSubjectId]);
+  }, [searchParams?.subject, activeClass, classSubjects, selectedSubjectId]);
 
   useEffect(() => {
-    if (searchParams.chapter) {
+    if (searchParams?.chapter) {
       setSelectedChapterId(searchParams.chapter);
     } else if (activeSubject && !selectedChapterId) {
       const savedChap = localStorage.getItem(`easypadhai_active_chapter_${activeSubject.id}`);
@@ -174,7 +194,7 @@ function LearnIndex() {
         setSelectedChapterId(savedChap);
       }
     }
-  }, [searchParams.chapter, activeSubject, selectedChapterId]);
+  }, [searchParams?.chapter, activeSubject, selectedChapterId]);
 
   const handleSubjectChange = (newSubjectId: string) => {
     setSelectedSubjectId(newSubjectId);
@@ -204,30 +224,6 @@ function LearnIndex() {
       }
     }
   };
-
-  // Effective subject
-  const activeSubject = useMemo(() => {
-    if (selectedSubjectId) {
-      const found = classSubjects.find((s) => s.id === selectedSubjectId);
-      if (found) return found;
-    }
-    return classSubjects[0] ?? null;
-  }, [classSubjects, selectedSubjectId]);
-
-  // Chapters under active subject
-  const subjectChapters = useMemo(() => {
-    if (!activeSubject) return [];
-    return activeSubject.chapters ?? [];
-  }, [activeSubject]);
-
-  // Active chapter object
-  const activeChapter = useMemo(() => {
-    if (selectedChapterId) {
-      const found = subjectChapters.find((c) => c.id === selectedChapterId);
-      if (found) return found;
-    }
-    return subjectChapters[0] ?? null;
-  }, [subjectChapters, selectedChapterId]);
 
   // User progress tracking across lessons
   const { user } = useAuth();
