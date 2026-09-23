@@ -11,6 +11,7 @@ import { getWallet } from "@/lib/credits.functions";
 import { cn } from "@/lib/utils";
 import { soundFx } from "@/lib/sound-effects";
 import brandMark from "@/assets/easy-padhai-mark.png";
+import { NotificationBell } from "@/components/notification-bell";
 
 const links = [
   { to: "/learn", label: "Learn", icon: BookOpen },
@@ -184,13 +185,15 @@ export function SiteHeader() {
                   <span className="hidden sm:inline">Credits</span>
                 </Link>
 
-                <div
-                  className="hidden xl:flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-700 dark:text-orange-300 shadow-sm shrink-0"
+                <div className="hidden xl:flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-700 dark:text-orange-300 shadow-sm shrink-0"
                   title="My XP Progress"
                 >
                   <Flame className="size-3.5 text-orange-500 fill-orange-500" />
                   <span>{wallet?.totalXp ?? profile?.total_xp ?? 0} XP</span>
                 </div>
+
+                {/* Notification Bell */}
+                <NotificationBell />
 
                 <div className="hidden sm:inline-flex">
                   <ThemeToggle />
@@ -220,6 +223,10 @@ export function SiteHeader() {
                   <Gift className="size-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>100 Free Credits</span>
                 </Link>
+
+                {/* Notification Bell */}
+                <NotificationBell />
+
                 <div className="hidden sm:inline-flex">
                   <ThemeToggle />
                 </div>

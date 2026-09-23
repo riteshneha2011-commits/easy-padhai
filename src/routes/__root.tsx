@@ -15,6 +15,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { SiteHeader } from "@/components/site-header";
 import { OnboardingGate } from "@/components/onboarding-gate";
+import { useRealtimeContentSync } from "@/hooks/use-realtime-content";
 import { Toaster } from "@/components/ui/sonner";
 import { InstallPwaBanner } from "@/components/install-pwa-button";
 import { REF_STORAGE_KEY } from "@/lib/credits";
@@ -152,6 +153,11 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function RealtimeSyncBridge() {
+  useRealtimeContentSync();
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -187,6 +193,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
       <AuthProvider>
+        <RealtimeSyncBridge />
         <div className="flex min-h-screen flex-col w-full max-w-[100vw] overflow-x-hidden">
           <OnboardingGate />
           <SiteHeader />

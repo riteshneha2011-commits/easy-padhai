@@ -15,6 +15,7 @@ import {
   generateQuestions,
   deleteRow,
 } from "@/lib/admin.functions";
+import { createNotificationFn } from "@/lib/notifications.functions";
 import {
   parseJsonQuestions,
   parseMarkdownQuestions,
@@ -67,6 +68,7 @@ import {
   Filter,
   Clock,
   Calendar,
+  BellRing,
 } from "lucide-react";
 import { 
   formatScheduleDate, 
@@ -113,6 +115,7 @@ function TeachPage() {
   const insertQuestions = useServerFn(addQuestions);
   const aiGenerate = useServerFn(generateQuestions);
   const removeRow = useServerFn(deleteRow);
+  const sendNotification = useServerFn(createNotificationFn);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", replace: true });
@@ -158,6 +161,7 @@ function TeachPage() {
   const [editChapter, setEditChapter] = useState<string | null>(null);
   const [editLesson, setEditLesson] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState<string | null>(null);
+  const [notifyStudents, setNotifyStudents] = useState(true);
 
   // Manage Quizzes Tab State
   const [selectedManageTestId, setSelectedManageTestId] = useState<string | null>(null);
@@ -732,12 +736,17 @@ function TeachPage() {
                     : isDraft
                     ? "Lesson saved as draft"
                     : "Lesson published";
+                  const lessonTitle = String(f.get("title") ?? "").trim();
+                  const targetChap = data?.chapters?.find((c) => c.id === targetChapterId);
+                  const chapTitle = targetChap?.title || "";
+                  const chapSlug = targetChap?.slug || "";
+
                   void run(
                     () =>
                       upsertLesson({
                         data: {
                           chapter_id: targetChapterId,
-                          title: String(f.get("title") ?? ""),
+                          title: lessonTitle,
                           kind: String(f.get("kind") ?? "audio"),
                           audio_url: String(f.get("audio_url") ?? "") || null,
                           video_url: String(f.get("video_url") ?? "") || null,
@@ -751,6 +760,22 @@ function TeachPage() {
                       }),
                     successMsg,
                   ).then(() => {
+                    if (!isDraft && notifyStudents) {
+                      void sendNotification({
+                        data: {
+                          title: scheduledAt
+                            ? `Upcoming: ${lessonTitle}`
+                            : `New Lecture: ${lessonTitle}`,
+                          message: scheduledAt
+                            ? `Scheduled to premiere on ${formatScheduleDate(scheduledAt)} in ${chapTitle}.`
+                            : `${chapTitle ? chapTitle + " · " : ""}${lessonTitle} is now live! Tap to start learning.`,
+                          action_url: chapSlug ? `/learn/${chapSlug}` : "/learn",
+                          target_class: targetClass,
+                          target_subject_id: targetSubjectId,
+                          type: "lecture",
+                        },
+                      });
+                    }
                     setPubClassFilter(targetClass);
                     setPubSubjectFilter(targetSubjectId);
                     setPubChapterFilter(targetChapterId);
@@ -951,6 +976,27 @@ function TeachPage() {
                     </div>
                   )}
                 </div>
+
+                {newLessonPublishMode !== "draft" && (
+                  <div className="sm:col-span-2 rounded-2xl border border-border/70 bg-card p-3.5 flex items-start gap-3 shadow-2xs">
+                    <input
+                      type="checkbox"
+                      id="notify_students_toggle"
+                      name="notify_students"
+                      checked={notifyStudents}
+                      onChange={(e) => setNotifyStudents(e.target.checked)}
+                      className="mt-0.5 size-4 rounded accent-primary text-primary cursor-pointer shrink-0"
+                    />
+                    <label htmlFor="notify_students_toggle" className="flex flex-col cursor-pointer select-none">
+                      <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <BellRing className="size-3.5 text-primary" /> Notify students immediately
+                      </span>
+                      <span className="text-[11px] text-muted-foreground mt-0.5">
+                        Send in-app notification to students of this class. Uncheck if you are uploading multiple lectures in bulk to avoid sending repeated notifications.
+                      </span>
+                    </label>
+                  </div>
+                )}
 
                 <Button type="submit" disabled={busy} className="rounded-full sm:col-span-2">
                   {newLessonPublishMode === "schedule" ? (
