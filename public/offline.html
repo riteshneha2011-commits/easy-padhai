@@ -271,15 +271,155 @@
     }
     .summary-box {
       background: var(--secondary);
-      border-radius: 12px;
-      padding: 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 14px 16px;
       font-size: 13px;
-      line-height: 1.5;
-      color: rgba(255, 255, 255, 0.9);
-      white-space: pre-wrap;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.92);
       word-break: break-word;
-      max-height: 260px;
+      max-height: 380px;
       overflow-y: auto;
+    }
+    .summary-box h1 {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+      margin: 8px 0 6px 0;
+      line-height: 1.3;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 4px;
+    }
+    .summary-box h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fbbf24;
+      margin: 12px 0 4px 0;
+      line-height: 1.3;
+    }
+    .summary-box h3, .summary-box h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin: 10px 0 4px 0;
+    }
+    .summary-box p {
+      margin: 6px 0;
+    }
+    .summary-box strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+    .summary-box em {
+      color: rgba(255, 255, 255, 0.85);
+      font-style: italic;
+    }
+    .summary-box ul {
+      margin: 6px 0 8px 0;
+      padding-left: 20px;
+      list-style-type: disc;
+    }
+    .summary-box ol {
+      margin: 6px 0 8px 0;
+      padding-left: 20px;
+      list-style-type: decimal;
+    }
+    .summary-box li {
+      margin: 4px 0;
+      line-height: 1.5;
+    }
+    .summary-box blockquote {
+      border-left: 3px solid var(--primary);
+      margin: 8px 0;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .summary-box hr {
+      border: 0;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 12px 0;
+    }
+    /* KaTeX equation display offline */
+    .summary-box .katex {
+      font: normal 1.05em KaTeX_Main, Times New Roman, serif;
+      line-height: 1.2;
+      color: #f8fafc;
+    }
+    .summary-box .katex * {
+      border-color: currentColor;
+    }
+    .summary-box .katex-display-wrapper {
+      margin: 10px 0;
+      overflow-x: auto;
+      padding: 6px 0;
+      text-align: center;
+    }
+    .summary-box .katex-display {
+      display: block;
+      margin: 0.5em 0;
+      text-align: center;
+    }
+    .summary-box .katex .base {
+      position: relative;
+      display: inline-block;
+      white-space: nowrap;
+      width: min-content;
+    }
+    .summary-box .katex .strut {
+      display: inline-block;
+    }
+    .summary-box .katex .mord, .summary-box .katex .minner {
+      display: inline-block;
+    }
+    .summary-box .katex .mbin {
+      display: inline-block;
+      margin: 0 0.22em;
+    }
+    .summary-box .katex .mrel {
+      display: inline-block;
+      margin: 0 0.27em;
+    }
+    .summary-box .katex .mfrac {
+      display: inline-block;
+      vertical-align: -0.09em;
+      text-align: center;
+    }
+    .summary-box .katex .mfrac > span > span {
+      display: block;
+    }
+    .summary-box .katex .frac-line {
+      display: block;
+      border-bottom: 0.04em solid;
+      margin: 0.04em 0;
+    }
+    .summary-box .katex .vlist-t {
+      display: inline-table;
+      table-layout: fixed;
+      border-collapse: collapse;
+    }
+    .summary-box .katex .vlist-r {
+      display: table-row;
+    }
+    .summary-box .katex .vlist {
+      display: table-cell;
+      vertical-align: bottom;
+      position: relative;
+    }
+    .summary-box .katex .vlist > span {
+      display: block;
+      height: 0;
+      position: relative;
+    }
+    .summary-box .katex .vlist > span > span {
+      display: inline-block;
+    }
+    .summary-box .katex .msupsub {
+      text-align: left;
+    }
+    .summary-box .katex .sqrt > .vlist-t {
+      border-top: 0.04em solid;
     }
     .empty-state {
       text-align: center;
@@ -436,6 +576,67 @@
 
     let currentBlobUrl = null;
 
+    function parseSmartMarkdown(text) {
+      if (!text) return "";
+      // Escape HTML special characters
+      let s = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      // Math symbol replacements for offline fallback if uncompiled LaTeX is present
+      s = s.replace(/\\Omega/g, "Ω")
+           .replace(/\\Delta/g, "Δ")
+           .replace(/\\pi/g, "π")
+           .replace(/\\mu/g, "μ")
+           .replace(/\\alpha/g, "α")
+           .replace(/\\beta/g, "β")
+           .replace(/\\theta/g, "θ")
+           .replace(/\\lambda/g, "λ")
+           .replace(/\\approx/g, "≈")
+           .replace(/\\neq/g, "≠")
+           .replace(/\\le/g, "≤")
+           .replace(/\\ge/g, "≥")
+           .replace(/\\times/g, "×")
+           .replace(/\\div/g, "÷")
+           .replace(/\\pm/g, "±")
+           .replace(/\\infty/g, "∞")
+           .replace(/\\rightarrow/g, "→")
+           .replace(/\\leftarrow/g, "←");
+
+      // Handle simple $...$ inline math by stripping $ and italicizing
+      s = s.replace(/\$([^\$\n]+)\$/g, "<em>$1</em>");
+
+      // Markdown Headings
+      s = s.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+      s = s.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+      s = s.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+
+      // Bold & Italic
+      s = s.replace(/\*\*(.*?)\*\*/gim, "<strong>$1</strong>");
+      s = s.replace(/\*(.*?)\*/gim, "<em>$1</em>");
+
+      // Inline code
+      s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+      // Unordered & Ordered List Items
+      s = s.replace(/(^|\n)[*-] (.*)/g, "$1<li>$2</li>");
+      s = s.replace(/(^|\n)\d+\. (.*)/g, "$1<li>$2</li>");
+
+      // Wrap contiguous <li> with <ul>
+      s = s.replace(/((?:<li>.*?<\/li>\s*)+)/gs, "<ul>$1</ul>");
+
+      // Paragraphs and breaks
+      s = s.replace(/\n\n+/g, "<br/><br/>");
+      s = s.replace(/\n/g, "<br/>");
+
+      // Clean up extra line breaks next to headers and lists
+      s = s.replace(/<\/h[1-3]><br\/>/g, (m) => m.replace("<br/>", ""));
+      s = s.replace(/<\/ul><br\/>/g, "</ul>");
+
+      return s;
+    }
+
     function playOfflineLesson(lesson, clickedItem) {
       if (clickedItem) {
         document.querySelectorAll(".lesson-item").forEach(el => el.classList.remove("active"));
@@ -466,9 +667,12 @@
         audioEl.style.display = "none";
       }
 
-      if (lesson.summary) {
+      if (lesson.html_summary) {
         summarySection.style.display = "block";
-        summaryContent.innerText = lesson.summary;
+        summaryContent.innerHTML = lesson.html_summary;
+      } else if (lesson.summary) {
+        summarySection.style.display = "block";
+        summaryContent.innerHTML = parseSmartMarkdown(lesson.summary);
       } else {
         summarySection.style.display = "none";
       }

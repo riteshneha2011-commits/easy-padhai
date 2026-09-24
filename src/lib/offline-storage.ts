@@ -10,6 +10,7 @@ export interface OfflineLessonData {
   title: string;
   kind: string;
   summary: string | null;
+  html_summary?: string | null;
   duration_minutes: number | null;
   audio_blob?: Blob;
   pdf_blob?: Blob;
@@ -159,6 +160,7 @@ export async function getCachedChapterMeta(slug: string): Promise<CachedChapterM
 }
 
 import { resolveMediaUrl, isStorageRef } from "@/lib/storage";
+import { renderMarkdownWithMath } from "@/components/markdown-renderer";
 
 /** Download a lesson's audio/notes into the private IndexedDB sandbox */
 export async function downloadLessonForOffline(
@@ -220,6 +222,15 @@ export async function downloadLessonForOffline(
 
   if (onProgress) onProgress(90);
 
+  let htmlSummary: string | null = null;
+  if (lesson.summary) {
+    try {
+      htmlSummary = renderMarkdownWithMath(lesson.summary);
+    } catch (err) {
+      console.warn("Could not pre-render markdown summary with math:", err);
+    }
+  }
+
   const record: OfflineLessonData = {
     id: lesson.id,
     chapter_id: lesson.chapter_id,
@@ -229,6 +240,7 @@ export async function downloadLessonForOffline(
     title: lesson.title,
     kind: lesson.kind,
     summary: lesson.summary,
+    html_summary: htmlSummary,
     duration_minutes: lesson.duration_minutes,
     audio_blob: audioBlob,
     pdf_blob: pdfBlob,
