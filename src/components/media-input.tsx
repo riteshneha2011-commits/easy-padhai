@@ -55,6 +55,7 @@ export function MediaInput({
   }, [defaultValue, isControlled]);
 
   const [busy, setBusy] = useState(false);
+  const [autoCompress, setAutoCompress] = useState(true);
   const [statusMsg, setStatusMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const getUploadUrl = useServerFn(getSignedUploadUrlAction);
@@ -63,12 +64,23 @@ export function MediaInput({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Label>{label}</Label>
         {isAudio && (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary">
-            <Sparkles className="size-3" /> Auto voice compression enabled
-          </span>
+          <label
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground cursor-pointer select-none"
+            title="When checked, raw/large audio files (.wav, .m4a) are automatically compressed. Pre-optimized MP3s are uploaded directly without delay."
+          >
+            <input
+              type="checkbox"
+              checked={autoCompress}
+              onChange={(e) => setAutoCompress(e.target.checked)}
+              className="size-3.5 rounded accent-primary text-primary cursor-pointer"
+            />
+            <span className="flex items-center gap-1">
+              <Sparkles className="size-3 text-primary" /> Auto-compress audio
+            </span>
+          </label>
         )}
       </div>
 
@@ -101,7 +113,11 @@ export function MediaInput({
           setBusy(true);
           setStatusMsg("Preparing file...");
           try {
-            if (isAudio && file.size > 4 * 1024 * 1024) {
+            const isMp3 = file.name.toLowerCase().endsWith(".mp3") || file.type.includes("mpeg") || file.type.includes("mp3");
+            const isLargeRaw = !isMp3 && file.size > 4 * 1024 * 1024;
+            const isHugeMp3 = isMp3 && file.size > 25 * 1024 * 1024;
+
+            if (isAudio && autoCompress && (isLargeRaw || isHugeMp3)) {
               const res = await compressAudioForSpeech(file, (msg) => {
                 setStatusMsg(msg);
                 toast.loading(msg, { id: "compress-toast" });
@@ -114,6 +130,13 @@ export function MediaInput({
                 );
               } else {
                 toast.dismiss("compress-toast");
+              }
+            } else if (isAudio) {
+              if (!autoCompress) {
+                toast.info("Auto-compression disabled: Uploading file directly ⚡", { duration: 2500 });
+              } else if (isMp3) {
+                const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+                toast.success(`⚡ Pre-optimized MP3 (${sizeMb} MB) — Bypassing compression for instant upload!`, { duration: 3000 });
               }
             }
 

@@ -22,6 +22,12 @@ export async function compressAudioForSpeech(
     return { file, originalSizeMb: origMb, compressedSizeMb: origMb, savedPercent: 0 };
   }
 
+  // If already an MP3 and <= 25MB, treat as already voice-optimized (skip redundant encoding)
+  const isMp3 = file.name.toLowerCase().endsWith(".mp3") || file.type.includes("mpeg") || file.type.includes("mp3");
+  if (isMp3 && file.size <= 25 * 1024 * 1024) {
+    return { file, originalSizeMb: origMb, compressedSizeMb: origMb, savedPercent: 0 };
+  }
+
   if (typeof window === "undefined") {
     return { file, originalSizeMb: origMb, compressedSizeMb: origMb, savedPercent: 0 };
   }

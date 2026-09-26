@@ -1,0 +1,6 @@
+bin/
+optimized_output/
+*.zip
+*.mp3
+*.wav
+*.m4a
