@@ -29,6 +29,7 @@ import {
   Clock,
   Calendar,
   Loader2,
+  Edit3,
 } from "lucide-react";
 import { formatScheduleDate, isScheduleInFuture } from "@/lib/schedule";
 import { toast } from "sonner";
@@ -119,7 +120,7 @@ const KIND_META: Record<string, { icon: typeof Headphones; label: string }> = {
 
 function ChapterPage() {
   const { chapter, lessons, test, siblingChapters = [] } = Route.useLoaderData() as any;
-  const { user, profile, refresh, addCreditsAndXp } = useAuth();
+  const { user, profile, isStaff, refresh, addCreditsAndXp } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(() => {
@@ -435,8 +436,8 @@ function ChapterPage() {
     const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
     const isDone = done.has(lesson.id);
     const isActive = active?.id === lesson.id;
-    const isLessonScheduled = Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
-    const isUnlocked = !isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id));
+    const isLessonScheduled = !isStaff && Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
+    const isUnlocked = Boolean(isStaff) || (!isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id)));
 
     return (
       <button
@@ -510,6 +511,25 @@ function ChapterPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 min-w-0">
+      {/* Staff Preview Mode Banner */}
+      {isStaff && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/10 px-4 py-2.5 text-xs text-foreground shadow-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge className="bg-primary text-primary-foreground font-bold text-[10px] shrink-0">
+              Staff / Teacher View
+            </Badge>
+            <span className="truncate text-xs font-semibold">
+              All audio lectures, notes, and tests are 100% unlocked for your preview.
+            </span>
+          </div>
+          <Button asChild size="sm" variant="outline" className="h-7 text-[11px] gap-1 bg-background hover:bg-accent/40 font-bold shrink-0">
+            <Link to="/teach">
+              <Edit3 className="size-3 text-primary" /> Teacher Studio
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Top Bar for Desktop: Quick navigation & collapse control */}
       <div className="hidden lg:flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-2">
@@ -821,7 +841,7 @@ function ChapterPage() {
               <LessonPanel
                 key={active.id}
                 lesson={active}
-                isAlreadyUnlocked={unlockedLessonIds.has(active.id)}
+                isAlreadyUnlocked={Boolean(isStaff) || unlockedLessonIds.has(active.id)}
                 isFirstLesson={activeIndex === 0}
                 isUnlocksLoading={chapterUnlocksQuery.isLoading}
                 done={done.has(active.id)}
@@ -832,6 +852,7 @@ function ChapterPage() {
                 unlocking={unlock.isPending}
                 onUnlock={() => unlock.mutate(active.id)}
                 onComplete={() => complete.mutate(active.id)}
+                isStaff={Boolean(isStaff)}
               />
             </Card>
           )}
@@ -985,6 +1006,7 @@ function LessonPanel({
   unlocking,
   onUnlock,
   onComplete,
+  isStaff,
 }: {
   lesson: Lesson;
   isAlreadyUnlocked: boolean;
@@ -998,6 +1020,7 @@ function LessonPanel({
   unlocking: boolean;
   onUnlock: () => void;
   onComplete: () => void;
+  isStaff?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
@@ -1065,20 +1088,22 @@ function LessonPanel({
   }, [scheduledAt, lesson.title, queryClient, accessQuery]);
 
   const isScheduled = !schedulePassed && Boolean(access?.isScheduled ?? (lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at)));
-  const isStaffPreview = Boolean(access?.isStaffPreview);
+  const isStaffPreview = Boolean(access?.isStaffPreview || isStaff);
 
   // Unlocked & Locked evaluation:
-  // If already known unlocked or lecture 1, locked is false from frame 1
-  const isKnownUnlocked = !isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree);
-  const locked = isScheduled && !isStaffPreview
-    ? true
-    : access
-      ? access.locked
-      : isKnownUnlocked
-        ? false
-        : isUnlocksLoading
+  // If staff, already known unlocked, or lecture 1, locked is false from frame 1
+  const isKnownUnlocked = Boolean(isStaff) || (!isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree));
+  const locked = isStaff
+    ? false
+    : isScheduled && !isStaffPreview
+      ? true
+      : access
+        ? access.locked
+        : isKnownUnlocked
           ? false
-          : !isFirstLesson;
+          : isUnlocksLoading
+            ? false
+            : !isFirstLesson;
   const currentBalance = userCredits > 0 ? userCredits : (access?.balance ?? 0);
   const [isBookmarked, setIsBookmarked] = useState(false);
 

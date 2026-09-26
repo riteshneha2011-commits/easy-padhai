@@ -28,7 +28,16 @@ import { MediaInput } from "@/components/media-input";
 import { AiAutofill } from "@/components/ai-autofill";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { MathText } from "@/components/markdown-renderer";
+import { MathText, MarkdownRenderer } from "@/components/markdown-renderer";
+import { MediaPlayer } from "@/components/media-player";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 import { Button } from "@/components/ui/button";
 
@@ -69,6 +78,10 @@ import {
   Clock,
   Calendar,
   BellRing,
+  ExternalLink,
+  X,
+  ListFilter,
+  ChevronRight,
 } from "lucide-react";
 import { 
   formatScheduleDate, 
@@ -279,6 +292,54 @@ function TeachPage() {
   const [pubChapterFilter, setPubChapterFilter] = useState<string>("");
   const [pubSearch, setPubSearch] = useState<string>("");
   const [collapsedChapters, setCollapsedChapters] = useState<Record<string, boolean>>({});
+  const [allChaptersCollapsed, setAllChaptersCollapsed] = useState<boolean>(false);
+
+  // New Collapsible Creation Action Bar & Lesson Preview State
+  const [activeCreatePanel, setActiveCreatePanel] = useState<"subject" | "chapter" | "lesson" | null>(null);
+  const [previewLessonData, setPreviewLessonData] = useState<{ lesson: any; chapter: any; subject: any } | null>(null);
+
+  // Quiz Bank Search & Dedicated Clean View Modal State
+  const [manageSearch, setManageSearch] = useState<string>("");
+  const [viewQuizTest, setViewQuizTest] = useState<any | null>(null);
+  const [viewQuizQuestions, setViewQuizQuestions] = useState<any[]>([]);
+  const [loadingViewQuiz, setLoadingViewQuiz] = useState<boolean>(false);
+  const [editingViewQuestionId, setEditingViewQuestionId] = useState<string | null>(null);
+
+  const handleOpenViewQuiz = async (test: any) => {
+    setViewQuizTest(test);
+    setLoadingViewQuiz(true);
+    setEditingViewQuestionId(null);
+    try {
+      const qs = await fetchTestQuestions({ data: { testId: test.id } });
+      setViewQuizQuestions(qs || []);
+      const stateMap: Record<string, any> = {};
+      (qs || []).forEach((q: any) => {
+        stateMap[q.id] = {
+          prompt: q.prompt,
+          options: [...q.options],
+          correct_index: q.correct_index,
+          explanation: q.explanation ?? "",
+          topic: q.topic ?? "",
+          difficulty: q.difficulty ?? "medium",
+        };
+      });
+      setEditingQuestionState((prev) => ({ ...prev, ...stateMap }));
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load test questions");
+    } finally {
+      setLoadingViewQuiz(false);
+    }
+  };
+
+  const toggleAllChapters = () => {
+    const nextState = !allChaptersCollapsed;
+    setAllChaptersCollapsed(nextState);
+    const map: Record<string, boolean> = {};
+    (data?.chapters ?? []).forEach((c) => {
+      map[c.id] = nextState;
+    });
+    setCollapsedChapters(map);
+  };
 
   const [newLessonClass, setNewLessonClass] = useState<number>(9);
   const [newLessonSubjectId, setNewLessonSubjectId] = useState("");
@@ -455,12 +516,98 @@ function TeachPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="content" className="space-y-4">
-          <Card className="rounded-3xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">Subjects</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <TabsContent value="content" className="space-y-6">
+          {/* Quick Creation Action Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-3xl border border-border/80 bg-gradient-to-r from-primary/10 via-secondary/40 to-background shadow-xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="font-display text-base font-bold text-foreground">Content Management</h2>
+                <Badge variant="secondary" className="text-[10px] font-semibold text-primary">
+                  {data?.subjects?.length ?? 0} Subjects · {data?.chapters?.length ?? 0} Chapters · {data?.lessons?.length ?? 0} Lectures
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Organize curriculum easily or click below to quickly publish a new lecture, chapter, or subject.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={activeCreatePanel === "lesson" ? "default" : "outline"}
+                onClick={() => {
+                  soundFx.playClick();
+                  setActiveCreatePanel(activeCreatePanel === "lesson" ? null : "lesson");
+                }}
+                className={cn(
+                  "rounded-full text-xs font-semibold gap-1.5 h-8.5 transition-all shadow-xs",
+                  activeCreatePanel === "lesson"
+                    ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30"
+                    : "bg-card hover:border-primary/50"
+                )}
+              >
+                <Headphones className="size-3.5" />
+                <span>{activeCreatePanel === "lesson" ? "Close Lesson Form ✕" : "+ New Audio Lesson"}</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant={activeCreatePanel === "chapter" ? "default" : "outline"}
+                onClick={() => {
+                  soundFx.playClick();
+                  setActiveCreatePanel(activeCreatePanel === "chapter" ? null : "chapter");
+                }}
+                className={cn(
+                  "rounded-full text-xs font-semibold gap-1.5 h-8.5 transition-all shadow-xs",
+                  activeCreatePanel === "chapter"
+                    ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30"
+                    : "bg-card hover:border-primary/50"
+                )}
+              >
+                <BookOpen className="size-3.5" />
+                <span>{activeCreatePanel === "chapter" ? "Close Chapter Form ✕" : "+ New Chapter"}</span>
+              </Button>
+
+              <Button
+                size="sm"
+                variant={activeCreatePanel === "subject" ? "default" : "outline"}
+                onClick={() => {
+                  soundFx.playClick();
+                  setActiveCreatePanel(activeCreatePanel === "subject" ? null : "subject");
+                }}
+                className={cn(
+                  "rounded-full text-xs font-semibold gap-1.5 h-8.5 transition-all shadow-xs",
+                  activeCreatePanel === "subject"
+                    ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30"
+                    : "bg-card hover:border-primary/50"
+                )}
+              >
+                <Layers className="size-3.5" />
+                <span>{activeCreatePanel === "subject" ? "Close Subject Form ✕" : "+ New Subject"}</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Collapsible Panel 1: Subjects */}
+          {activeCreatePanel === "subject" && (
+            <Card className="rounded-3xl border-primary/40 shadow-md animate-in fade-in-50 duration-200">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between border-b border-border/40">
+                <div>
+                  <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
+                    <Layers className="size-4 text-primary" /> Manage Subjects
+                  </CardTitle>
+                  <CardDescription className="text-xs">Add a new academic subject or edit existing subjects.</CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setActiveCreatePanel(null)}
+                  className="rounded-full h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-4 mr-1" /> Close
+                </Button>
+              </CardHeader>
+              <CardContent className="pt-4">
               <form
                 className="grid gap-3 sm:grid-cols-2"
                 onSubmit={(e) => {
@@ -604,12 +751,28 @@ function TeachPage() {
               </div>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="rounded-3xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">New chapter</CardTitle>
+        {/* Collapsible Panel 2: Chapter */}
+        {activeCreatePanel === "chapter" && (
+          <Card className="rounded-3xl border-primary/40 shadow-md animate-in fade-in-50 duration-200">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between border-b border-border/40">
+              <div>
+                <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
+                  <BookOpen className="size-4 text-primary" /> New Chapter
+                </CardTitle>
+                <CardDescription className="text-xs">Publish a chapter under a class and subject.</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setActiveCreatePanel(null)}
+                className="rounded-full h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4 mr-1" /> Close
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form
                 key={`new-chap-${newChapterKey}`}
                 className="grid gap-3 sm:grid-cols-2"
@@ -711,12 +874,28 @@ function TeachPage() {
               </form>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="rounded-3xl">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-display text-lg">New lesson / lecture</CardTitle>
+        {/* Collapsible Panel 3: Lesson */}
+        {activeCreatePanel === "lesson" && (
+          <Card className="rounded-3xl border-primary/40 shadow-md animate-in fade-in-50 duration-200">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between border-b border-border/40">
+              <div>
+                <CardTitle className="font-display text-base sm:text-lg flex items-center gap-2">
+                  <Headphones className="size-4 text-primary" /> New Lesson / Audio Lecture
+                </CardTitle>
+                <CardDescription className="text-xs">Upload audio, notes, summary, and set publish mode.</CardDescription>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setActiveCreatePanel(null)}
+                className="rounded-full h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4 mr-1" /> Close
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form
                 key={`new-lesson-${newLessonKey}`}
                 className="grid gap-3 sm:grid-cols-2"
@@ -1012,8 +1191,9 @@ function TeachPage() {
               </form>
             </CardContent>
           </Card>
+        )}
 
-          <Card className="rounded-3xl border-border/80 shadow-sm">
+        <Card className="rounded-3xl border-border/80 shadow-sm">
             <CardHeader className="pb-3 border-b border-border/40">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div>
@@ -1028,26 +1208,15 @@ function TeachPage() {
                     size="sm"
                     variant="outline"
                     className="h-8 text-xs font-semibold rounded-full"
-                    onClick={() => {
-                      const allCollapsed = Object.values(collapsedChapters).filter(Boolean).length > 0;
-                      if (allCollapsed) {
-                        setCollapsedChapters({});
-                      } else {
-                        const next: Record<string, boolean> = {};
-                        data.chapters.forEach((c) => {
-                          next[c.id] = true;
-                        });
-                        setCollapsedChapters(next);
-                      }
-                    }}
+                    onClick={toggleAllChapters}
                   >
-                    {Object.values(collapsedChapters).filter(Boolean).length > 0 ? (
+                    {allChaptersCollapsed ? (
                       <>
-                        <ChevronDown className="size-3.5 mr-1" /> Expand All
+                        <ChevronDown className="size-3.5 mr-1 text-primary" /> Expand All Chapters
                       </>
                     ) : (
                       <>
-                        <ChevronUp className="size-3.5 mr-1" /> Collapse All
+                        <ChevronUp className="size-3.5 mr-1" /> Collapse All Chapters
                       </>
                     )}
                   </Button>
@@ -1188,12 +1357,23 @@ function TeachPage() {
                   <Label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
                     <Search className="size-3" /> Quick Search
                   </Label>
-                  <Input
-                    value={pubSearch}
-                    onChange={(e) => setPubSearch(e.target.value)}
-                    placeholder="Search chapter or lesson..."
-                    className="h-9 rounded-xl text-xs"
-                  />
+                  <div className="relative">
+                    <Input
+                      value={pubSearch}
+                      onChange={(e) => setPubSearch(e.target.value)}
+                      placeholder="Search chapter, lesson, or topic..."
+                      className="h-9 rounded-xl text-xs pr-7"
+                    />
+                    {pubSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setPubSearch("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -1248,8 +1428,10 @@ function TeachPage() {
                           variant="ghost"
                           className="h-7 text-xs text-primary"
                           onClick={() => {
+                            setNewChapterClass(sub.class_level);
                             setNewChapterSubjectId(sub.id);
-                            window.scrollTo({ top: 400, behavior: "smooth" });
+                            setActiveCreatePanel("chapter");
+                            window.scrollTo({ top: 180, behavior: "smooth" });
                           }}
                         >
                           <Plus className="size-3 mr-1" /> Add Chapter
@@ -1328,9 +1510,11 @@ function TeachPage() {
                                       variant="outline"
                                       className="h-7 px-2 text-[11px] font-medium"
                                       onClick={() => {
+                                        setNewLessonClass(sub.class_level);
                                         setNewLessonSubjectId(sub.id);
                                         setNewLessonChapterId(c.id);
-                                        window.scrollTo({ top: 600, behavior: "smooth" });
+                                        setActiveCreatePanel("lesson");
+                                        window.scrollTo({ top: 180, behavior: "smooth" });
                                       }}
                                     >
                                       <Plus className="size-3 mr-1" /> Add Lesson
@@ -1502,7 +1686,17 @@ function TeachPage() {
                                                   </span>
                                                 )}
                                               </div>
-                                              <div className="flex items-center gap-2">
+                                              <div className="flex items-center gap-1.5">
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="h-6 px-2 text-[11px] font-semibold gap-1 text-primary hover:bg-primary/10 border-primary/30"
+                                                  onClick={() => setPreviewLessonData({ lesson: l, chapter: c, subject: sub })}
+                                                  title="Preview as Student"
+                                                >
+                                                  <Eye className="size-3" />
+                                                  <span>Preview</span>
+                                                </Button>
                                                 <Button
                                                   size="sm"
                                                   variant="ghost"
@@ -2585,65 +2779,86 @@ function TeachPage() {
                   ))}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setFilterQuizType("all")}
-                      className={cn(
-                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                        filterQuizType === "all" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFilterQuizType("lesson")}
-                      className={cn(
-                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                        filterQuizType === "lesson" ? "bg-card shadow-sm text-primary font-bold" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      ⚡ Lesson Quizzes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFilterQuizType("chapter")}
-                      className={cn(
-                        "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
-                        filterQuizType === "chapter" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      📖 Chapter Tests
-                    </button>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pt-1">
+                  <div className="relative flex-1 min-w-[240px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Input
+                      value={manageSearch}
+                      onChange={(e) => setManageSearch(e.target.value)}
+                      placeholder="Search quizzes by title, chapter, lecture..."
+                      className="h-9 pl-9 pr-7 text-xs rounded-xl bg-card border-border/80"
+                    />
+                    {manageSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setManageSearch("")}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={manageSubjectFilter}
-                      onChange={(e) => setManageSubjectFilter(e.target.value)}
-                      className="h-8 rounded-xl border border-input bg-card px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      <option value="all">
-                        All Subjects (
-                        {
-                          (manageClassFilter === "all"
-                            ? data?.subjects
-                            : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
-                          )?.length ?? 0
-                        }
-                        )
-                      </option>
-                      {(manageClassFilter === "all"
-                        ? data?.subjects
-                        : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
-                      )?.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({classLabel(s.class_level)})
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-1 bg-secondary/70 p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setFilterQuizType("all")}
+                        className={cn(
+                          "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                          filterQuizType === "all" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFilterQuizType("lesson")}
+                        className={cn(
+                          "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                          filterQuizType === "lesson" ? "bg-card shadow-sm text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        ⚡ Lesson Quizzes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFilterQuizType("chapter")}
+                        className={cn(
+                          "rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                          filterQuizType === "chapter" ? "bg-card shadow-sm text-foreground font-bold" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        📖 Chapter Tests
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={manageSubjectFilter}
+                        onChange={(e) => setManageSubjectFilter(e.target.value)}
+                        className="h-8 rounded-xl border border-input bg-card px-2.5 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        <option value="all">
+                          All Subjects (
+                          {
+                            (manageClassFilter === "all"
+                              ? data?.subjects
+                              : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
+                            )?.length ?? 0
+                          }
+                          )
                         </option>
-                      ))}
-                    </select>
+                        {(manageClassFilter === "all"
+                          ? data?.subjects
+                          : data?.subjects?.filter((s) => s.class_level === manageClassFilter)
+                        )?.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({classLabel(s.class_level)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2666,11 +2881,20 @@ function TeachPage() {
                   const subjectChapters = new Set((data?.chapters ?? []).filter((c) => c.subject_id === manageSubjectFilter).map((c) => c.id));
                   filteredTests = filteredTests.filter((t: any) => subjectChapters.has(t.chapter_id));
                 }
+                if (manageSearch.trim()) {
+                  const q = manageSearch.toLowerCase().trim();
+                  filteredTests = filteredTests.filter((t: any) =>
+                    t.title?.toLowerCase().includes(q) ||
+                    t.chapter_title?.toLowerCase().includes(q) ||
+                    t.subject_name?.toLowerCase().includes(q) ||
+                    t.lesson_title?.toLowerCase().includes(q)
+                  );
+                }
 
                 if (filteredTests.length === 0) {
                   return (
                     <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">No quizzes match your filter.</p>
+                      <p className="text-sm font-medium text-muted-foreground">No quizzes match your filter or search query.</p>
                       <Button
                         size="sm"
                         variant="outline"
@@ -2679,6 +2903,7 @@ function TeachPage() {
                           setManageClassFilter("all");
                           setFilterQuizType("all");
                           setManageSubjectFilter("all");
+                          setManageSearch("");
                         }}
                       >
                         Reset filters
@@ -2737,21 +2962,22 @@ function TeachPage() {
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
                           <Button
                             size="sm"
-                            variant={isExpanded ? "default" : "outline"}
-                            onClick={() => handleOpenTestQuestions(t.id)}
-                            className="rounded-full text-xs font-semibold gap-1.5 h-8"
+                            variant="default"
+                            onClick={() => handleOpenViewQuiz(t)}
+                            className="rounded-full text-xs font-semibold gap-1.5 h-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs"
                           >
-                            {isExpanded ? (
-                              <>
-                                <ChevronUp className="size-3.5" />
-                                <span>Hide Questions</span>
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="size-3.5" />
-                                <span>Inspect & Edit ({t.questionCount})</span>
-                              </>
-                            )}
+                            <Eye className="size-3.5" />
+                            <span>View Quiz ({t.questionCount})</span>
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant={isExpanded ? "secondary" : "outline"}
+                            onClick={() => handleOpenTestQuestions(t.id)}
+                            className="rounded-full text-xs font-semibold gap-1.5 h-8 text-muted-foreground hover:text-foreground"
+                          >
+                            <Edit3 className="size-3.5" />
+                            <span>{isExpanded ? "Hide Inline Editor" : "Batch Edit"}</span>
                           </Button>
 
                           <Button
@@ -3004,6 +3230,393 @@ function TeachPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ============================================================ */}
+      {/* 1. In-Studio Lesson Preview Dialog                           */}
+      {/* ============================================================ */}
+      <Dialog open={Boolean(previewLessonData)} onOpenChange={(open) => !open && setPreviewLessonData(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
+          {previewLessonData && (
+            <div className="space-y-6">
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <Badge variant="outline" className="text-xs">
+                    {previewLessonData.subject?.title || "Subject"}
+                  </Badge>
+                  <span className="text-muted-foreground text-xs">/</span>
+                  <Badge variant="secondary" className="text-xs">
+                    {previewLessonData.chapter?.title || "Chapter"}
+                  </Badge>
+                  <Badge variant="default" className="text-xs bg-primary/20 text-primary hover:bg-primary/30">
+                    Order #{previewLessonData.lesson.sort_order}
+                  </Badge>
+                </div>
+                <DialogTitle className="font-display text-xl sm:text-2xl font-bold">
+                  {previewLessonData.lesson.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Teacher Preview Mode · See media, notes, and equations exactly as students will experience it.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Media Player */}
+              {(previewLessonData.lesson.audio_url || previewLessonData.lesson.video_url || previewLessonData.lesson.pdf_url) ? (
+                <div className="rounded-2xl overflow-hidden border border-border/70 bg-card p-4 shadow-sm">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
+                    <Sparkles className="size-3.5 text-primary" />
+                    <span>Attached Media Player</span>
+                  </div>
+                  <MediaPlayer
+                    audioUrl={previewLessonData.lesson.audio_url}
+                    videoUrl={previewLessonData.lesson.video_url}
+                    pdfUrl={previewLessonData.lesson.pdf_url}
+                    title={previewLessonData.lesson.title}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
+                  No media (Audio/Video/PDF) attached to this lecture yet.
+                </div>
+              )}
+
+              {/* Summary / Notes with KaTeX Markdown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <FileText className="size-3.5 text-primary" />
+                    <span>Summary &amp; Study Notes (With Math &amp; LaTeX)</span>
+                  </h4>
+                </div>
+
+                {previewLessonData.lesson.summary ? (
+                  <div className="rounded-2xl border border-border/80 bg-background/50 p-4 sm:p-5 text-sm leading-relaxed overflow-x-auto shadow-inner">
+                    <MarkdownRenderer content={previewLessonData.lesson.summary} />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+                    No summary notes written yet for this lesson. You can add notes with formulas like $E = mc^2$ in the editor!
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions */}
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/60">
+                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span>Slug:</span>
+                  <code className="bg-secondary px-1.5 py-0.5 rounded text-[11px] font-mono text-foreground">
+                    {previewLessonData.chapter?.slug || previewLessonData.lesson.id}
+                  </code>
+                </div>
+                <div className="flex items-center gap-2">
+                  {previewLessonData.chapter?.slug && (
+                    <Button asChild size="sm" variant="outline" className="rounded-full text-xs font-semibold gap-1.5">
+                      <Link
+                        to={`/learn/${previewLessonData.chapter.slug}?lessonId=${previewLessonData.lesson.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink className="size-3.5" />
+                        <span>Open Full Student Page</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      const lId = previewLessonData.lesson.id;
+                      setPreviewLessonData(null);
+                      setEditLesson(lId);
+                    }}
+                    className="rounded-full text-xs font-semibold gap-1.5 bg-primary text-primary-foreground"
+                  >
+                    <Edit3 className="size-3.5" />
+                    <span>Edit this Lesson</span>
+                  </Button>
+                </div>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ============================================================ */}
+      {/* 2. Dedicated Clean Quiz Viewer Dialog                        */}
+      {/* ============================================================ */}
+      <Dialog open={Boolean(viewQuizTest)} onOpenChange={(open) => !open && setViewQuizTest(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
+          {viewQuizTest && (
+            <div className="space-y-6">
+              <DialogHeader>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <Badge variant="outline" className="text-xs">
+                    {viewQuizTest.chapterTitle || "General Quiz"}
+                  </Badge>
+                  {viewQuizTest.lectureTitle && (
+                    <Badge variant="secondary" className="text-xs">
+                      Lesson: {viewQuizTest.lectureTitle}
+                    </Badge>
+                  )}
+                  <Badge variant="default" className="text-xs bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    {viewQuizQuestions.length} Questions
+                  </Badge>
+                </div>
+                <DialogTitle className="font-display text-xl sm:text-2xl font-bold flex items-center justify-between gap-3">
+                  <span>{viewQuizTest.title}</span>
+                </DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Quiz Reader Mode · Review all questions, verified answers, explanations, and LaTeX formulas.
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Questions List */}
+              {loadingViewQuiz ? (
+                <div className="py-16 text-center text-sm text-muted-foreground">
+                  <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
+                  Loading quiz questions...
+                </div>
+              ) : viewQuizQuestions.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground border border-dashed rounded-2xl">
+                  No questions found in this quiz yet.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {viewQuizQuestions.map((q: any, idx: number) => {
+                    const isEditing = editingViewQuestionId === q.id;
+                    const qState = editingQuestionState[q.id] || {
+                      prompt: q.prompt,
+                      options: [...q.options],
+                      correct_index: q.correct_index,
+                      explanation: q.explanation ?? "",
+                      topic: q.topic ?? "",
+                      difficulty: q.difficulty ?? "medium",
+                    };
+                    const isSaving = savingQuestionId === q.id;
+
+                    if (isEditing) {
+                      return (
+                        <Card key={q.id} className="rounded-2xl border-primary/50 bg-primary/5 p-4 sm:p-5 space-y-4 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-xs uppercase text-primary">Editing Question {idx + 1}</span>
+                            <div className="flex items-center gap-1.5">
+                              <Button
+                                size="sm"
+                                disabled={isSaving}
+                                onClick={async () => {
+                                  await handleSaveSingleQuestion(q.id, viewQuizTest.id);
+                                  setEditingViewQuestionId(null);
+                                  // Refresh questions list for view modal
+                                  const updatedQs = await fetchTestQuestions({ data: { testId: viewQuizTest.id } });
+                                  setViewQuizQuestions(updatedQs || []);
+                                }}
+                                className="h-7 rounded-full text-xs font-semibold gap-1 bg-primary text-primary-foreground"
+                              >
+                                <Save className="size-3" />
+                                <span>{isSaving ? "Saving..." : "Save Changes"}</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingViewQuestionId(null)}
+                                className="h-7 text-xs rounded-full"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Question Prompt</Label>
+                            <Textarea
+                              rows={2}
+                              value={qState.prompt}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditingQuestionState((prev) => ({
+                                  ...prev,
+                                  [q.id]: { ...prev[q.id], prompt: val },
+                                }));
+                              }}
+                              className="text-xs sm:text-sm rounded-xl bg-background"
+                            />
+                            {(qState.prompt.includes("$") || qState.prompt.includes("\\")) && (
+                              <div className="rounded-lg bg-background/80 p-2 text-xs border border-border/60">
+                                <MathText content={qState.prompt} />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-xs font-semibold">Options (Select radio for correct answer)</Label>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {qState.options.map((opt: string, optIdx: number) => {
+                                const isCorrect = qState.correct_index === optIdx;
+                                return (
+                                  <div
+                                    key={optIdx}
+                                    className={cn(
+                                      "flex flex-col gap-1 rounded-xl border p-2 text-xs bg-background transition-all",
+                                      isCorrect ? "border-emerald-500 bg-emerald-500/10" : "border-border/60"
+                                    )}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="radio"
+                                        name={`correct_clean_view_${q.id}`}
+                                        checked={isCorrect}
+                                        onChange={() => {
+                                          setEditingQuestionState((prev) => ({
+                                            ...prev,
+                                            [q.id]: { ...prev[q.id], correct_index: optIdx },
+                                          }));
+                                        }}
+                                        className="size-4 accent-emerald-600 shrink-0"
+                                      />
+                                      <span className="font-bold text-xs shrink-0">{String.fromCharCode(65 + optIdx)}.</span>
+                                      <Input
+                                        value={opt}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setEditingQuestionState((prev) => {
+                                            const currentOpts = [...(prev[q.id]?.options || [])];
+                                            currentOpts[optIdx] = val;
+                                            return {
+                                              ...prev,
+                                              [q.id]: { ...prev[q.id], options: currentOpts },
+                                            };
+                                          });
+                                        }}
+                                        className="h-7 text-xs border-0 shadow-none focus-visible:ring-1"
+                                      />
+                                    </div>
+                                    {(opt.includes("$") || opt.includes("\\")) && (
+                                      <div className="text-xs bg-secondary/30 rounded px-2 py-1 ml-6 border border-border/40">
+                                        <MathText content={opt} />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold">Explanation</Label>
+                            <Input
+                              value={qState.explanation}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setEditingQuestionState((prev) => ({
+                                  ...prev,
+                                  [q.id]: { ...prev[q.id], explanation: val },
+                                }));
+                              }}
+                              className="h-7 text-xs rounded-xl bg-background"
+                            />
+                            {(qState.explanation?.includes("$") || qState.explanation?.includes("\\")) && (
+                              <div className="text-xs bg-background/80 rounded px-2 py-1 border border-border/40">
+                                <MathText content={qState.explanation} />
+                              </div>
+                            )}
+                          </div>
+                        </Card>
+                      );
+                    }
+
+                    return (
+                      <Card key={q.id} className="rounded-2xl border-border/80 bg-card p-4 sm:p-5 space-y-3 shadow-xs">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2.5">
+                            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                              {idx + 1}
+                            </span>
+                            <div className="space-y-1">
+                              <div className="text-sm font-semibold text-foreground">
+                                <MathText content={q.prompt} />
+                              </div>
+                              {q.topic && (
+                                <Badge variant="outline" className="text-[10px] font-semibold text-muted-foreground">
+                                  {q.topic}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingViewQuestionId(q.id)}
+                            className="h-7 px-2.5 text-xs rounded-full gap-1 text-muted-foreground hover:text-foreground shrink-0"
+                          >
+                            <Edit3 className="size-3" />
+                            <span>Quick Edit</span>
+                          </Button>
+                        </div>
+
+                        {/* Options Grid */}
+                        <div className="grid gap-2 sm:grid-cols-2 pt-1">
+                          {q.options.map((opt: string, optIdx: number) => {
+                            const isCorrect = q.correct_index === optIdx;
+                            return (
+                              <div
+                                key={optIdx}
+                                className={cn(
+                                  "flex items-center gap-2.5 rounded-xl border p-2.5 text-xs transition-colors",
+                                  isCorrect
+                                    ? "border-emerald-500 bg-emerald-500/10 font-bold text-emerald-700 dark:text-emerald-400"
+                                    : "border-border/60 bg-secondary/30 text-foreground"
+                                )}
+                              >
+                                <span className={cn(
+                                  "grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-bold",
+                                  isCorrect ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+                                )}>
+                                  {String.fromCharCode(65 + optIdx)}
+                                </span>
+                                <div className="min-w-0 flex-1 break-words">
+                                  <MathText content={opt} />
+                                </div>
+                                {isCorrect && (
+                                  <Badge className="ml-auto text-[10px] bg-emerald-600 text-white px-1.5 py-0">
+                                    Correct Answer
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Explanation */}
+                        {q.explanation && (
+                          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-foreground/90 space-y-1">
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[10px] uppercase tracking-wider block">
+                              Explanation:
+                            </span>
+                            <MathText content={q.explanation} />
+                          </div>
+                        )}
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border/60">
+                <p className="text-xs text-muted-foreground">
+                  Changes made here instantly update the quiz for all students taking chapter practice.
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setViewQuizTest(null)}
+                  className="rounded-full text-xs font-semibold px-5"
+                >
+                  Close Reader
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
