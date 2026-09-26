@@ -1,4 +1,10 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  parseNotificationSchedule,
+  injectNotificationSchedule,
+  isScheduleInFuture,
+  localDateTimeToIso,
+} from "@/lib/schedule";
 
 export interface AppNotification {
   id: string;
@@ -10,6 +16,8 @@ export interface AppNotification {
   type: "broadcast" | "lecture" | "chapter" | "challenge";
   created_by?: string | null;
   created_at: string;
+  publish_at?: string | null;
+  is_scheduled?: boolean;
   is_read?: boolean;
 }
 
@@ -21,11 +29,13 @@ export interface CreateNotificationInput {
   target_subject_id?: string | null;
   type?: "broadcast" | "lecture" | "chapter" | "challenge";
   created_by?: string | null;
+  publish_at?: string | null;
 }
 
 /**
  * Fetch notifications applicable to a user (filtered by target class or global)
  * Safely falls back if the table doesn't exist yet in Supabase.
+ * Filters out notifications scheduled for the future until their release time arrives.
  */
 export async function getNotificationsForUser(
   userId?: string | null,
@@ -36,7 +46,7 @@ export async function getNotificationsForUser(
       .from("notifications")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(60);
 
     if (classLevel) {
       // Global notifications (target_class is null) or specific to this class
@@ -54,11 +64,40 @@ export async function getNotificationsForUser(
       return [];
     }
 
+    // Filter out notifications that are scheduled in the future!
+    const visibleNotifications: AppNotification[] = [];
+
+    for (const n of notifications) {
+      const parsed = parseNotificationSchedule(n.message);
+      const scheduledTime = (n as any).publish_at || parsed.scheduledAt;
+
+      // If scheduled in the future, student cannot see it yet
+      if (scheduledTime && isScheduleInFuture(scheduledTime)) {
+        continue;
+      }
+
+      visibleNotifications.push({
+        ...n,
+        message: parsed.cleanMessage,
+        publish_at: scheduledTime,
+        is_scheduled: false,
+        // If scheduled release, effective appearance date is the scheduled release time
+        created_at: scheduledTime || n.created_at,
+      });
+    }
+
+    // Sort visible notifications by effective date descending (so scheduled releases appear at the top when live)
+    visibleNotifications.sort((a, b) => {
+      const timeA = new Date(a.created_at).getTime();
+      const timeB = new Date(b.created_at).getTime();
+      return timeB - timeA;
+    });
+
     // If user is logged in, find which notifications they've read
     let readIds = new Set<string>();
-    if (userId) {
+    if (userId && visibleNotifications.length > 0) {
       try {
-        const notifIds = notifications.map((n) => n.id);
+        const notifIds = visibleNotifications.map((n) => n.id);
         const { data: reads } = await supabaseAdmin
           .from("notification_reads")
           .select("notification_id")
@@ -73,7 +112,7 @@ export async function getNotificationsForUser(
       }
     }
 
-    return notifications.map((n) => ({
+    return visibleNotifications.slice(0, 30).map((n) => ({
       ...n,
       is_read: userId ? readIds.has(n.id) : false,
     }));
@@ -84,7 +123,7 @@ export async function getNotificationsForUser(
 }
 
 /**
- * Admin: Fetch all recent notifications regardless of class
+ * Admin: Fetch all recent notifications regardless of class, including upcoming scheduled ones
  */
 export async function getAllAdminNotifications(): Promise<AppNotification[]> {
   try {
@@ -92,13 +131,23 @@ export async function getAllAdminNotifications(): Promise<AppNotification[]> {
       .from("notifications")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(60);
 
     if (error) {
       console.warn("[Notifications] Admin fetch warning:", error.message);
       return [];
     }
-    return data || [];
+
+    return (data || []).map((n) => {
+      const parsed = parseNotificationSchedule(n.message);
+      const scheduledTime = (n as any).publish_at || parsed.scheduledAt;
+      return {
+        ...n,
+        message: parsed.cleanMessage,
+        publish_at: scheduledTime,
+        is_scheduled: Boolean(scheduledTime && isScheduleInFuture(scheduledTime)),
+      };
+    });
   } catch (err: any) {
     console.warn("[Notifications] Unexpected error in getAllAdminNotifications:", err?.message);
     return [];
@@ -106,15 +155,21 @@ export async function getAllAdminNotifications(): Promise<AppNotification[]> {
 }
 
 /**
- * Create a new notification (broadcast or automated on publish)
+ * Create a new notification (broadcast, instant alert, or scheduled release)
  */
 export async function createNotification(
   input: CreateNotificationInput,
 ): Promise<AppNotification | null> {
   try {
-    const record = {
+    const rawPublishAt = input.publish_at?.trim() || null;
+    const isoPublishAt = rawPublishAt ? localDateTimeToIso(rawPublishAt) : null;
+    const enrichedMessage = isoPublishAt
+      ? injectNotificationSchedule(input.message, isoPublishAt)
+      : input.message.trim();
+
+    const record: any = {
       title: input.title.trim(),
-      message: input.message.trim(),
+      message: enrichedMessage,
       action_url: input.action_url?.trim() || null,
       target_class: input.target_class ?? null,
       target_subject_id: input.target_subject_id || null,
@@ -122,18 +177,40 @@ export async function createNotification(
       created_by: input.created_by || null,
     };
 
-    const { data, error } = await supabaseAdmin
+    if (isoPublishAt) {
+      record.publish_at = isoPublishAt;
+    }
+
+    let insertResult = await supabaseAdmin
       .from("notifications")
       .insert(record)
       .select("*")
       .single();
 
-    if (error) {
-      console.error("[Notifications] Create error:", error.message);
-      throw new Error(`Failed to create notification: ${error.message}`);
+    // Gracefully handle if publish_at column is not yet in the DB
+    if (insertResult.error && insertResult.error.message.includes("publish_at")) {
+      delete record.publish_at;
+      insertResult = await supabaseAdmin
+        .from("notifications")
+        .insert(record)
+        .select("*")
+        .single();
     }
 
-    return data;
+    if (insertResult.error) {
+      console.error("[Notifications] Create error:", insertResult.error.message);
+      throw new Error(`Failed to create notification: ${insertResult.error.message}`);
+    }
+
+    const parsed = parseNotificationSchedule(insertResult.data.message);
+    const scheduledTime = insertResult.data.publish_at || parsed.scheduledAt;
+
+    return {
+      ...insertResult.data,
+      message: parsed.cleanMessage,
+      publish_at: scheduledTime,
+      is_scheduled: Boolean(scheduledTime && isScheduleInFuture(scheduledTime)),
+    };
   } catch (err: any) {
     console.error("[Notifications] Unexpected error in createNotification:", err?.message);
     return null;

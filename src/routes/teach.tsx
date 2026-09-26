@@ -174,7 +174,9 @@ function TeachPage() {
   const [editChapter, setEditChapter] = useState<string | null>(null);
   const [editLesson, setEditLesson] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState<string | null>(null);
-  const [notifyStudents, setNotifyStudents] = useState(true);
+  const [notifyImmediate, setNotifyImmediate] = useState(true);
+  const [notifyScheduleNow, setNotifyScheduleNow] = useState(false);
+  const [notifyWhenLive, setNotifyWhenLive] = useState(true);
 
   // Manage Quizzes Tab State
   const [selectedManageTestId, setSelectedManageTestId] = useState<string | null>(null);
@@ -939,21 +941,50 @@ function TeachPage() {
                       }),
                     successMsg,
                   ).then(() => {
-                    if (!isDraft && notifyStudents) {
+                    // 1. Immediate Publish Notification
+                    if (!isDraft && newLessonPublishMode === "immediate" && notifyImmediate) {
                       void sendNotification({
                         data: {
-                          title: scheduledAt
-                            ? `Upcoming: ${lessonTitle}`
-                            : `New Lecture: ${lessonTitle}`,
-                          message: scheduledAt
-                            ? `Scheduled to premiere on ${formatScheduleDate(scheduledAt)} in ${chapTitle}.`
-                            : `${chapTitle ? chapTitle + " · " : ""}${lessonTitle} is now live! Tap to start learning.`,
+                          title: `New Lecture: ${lessonTitle}`,
+                          message: `${chapTitle ? chapTitle + " · " : ""}${lessonTitle} is now live! Tap to start learning.`,
                           action_url: chapSlug ? `/learn/${chapSlug}` : "/learn",
                           target_class: targetClass,
                           target_subject_id: targetSubjectId,
                           type: "lecture",
                         },
                       });
+                    }
+
+                    // 2. Scheduled Release Notifications (Dual Options)
+                    if (!isDraft && newLessonPublishMode === "schedule" && scheduledAt) {
+                      // Option A: Advance Announcement (Immediately informs students that a lecture will premiere on scheduled date)
+                      if (notifyScheduleNow) {
+                        void sendNotification({
+                          data: {
+                            title: `📢 Upcoming: ${lessonTitle}`,
+                            message: `Scheduled to premiere on ${formatScheduleDate(scheduledAt)} in ${chapTitle}. Mark your calendar!`,
+                            action_url: chapSlug ? `/learn/${chapSlug}` : "/learn",
+                            target_class: targetClass,
+                            target_subject_id: targetSubjectId,
+                            type: "lecture",
+                          },
+                        });
+                      }
+
+                      // Option B: Live Release Alert (Automatically pops to top of student notification bells when lecture goes live)
+                      if (notifyWhenLive) {
+                        void sendNotification({
+                          data: {
+                            title: `🔴 Now Live: ${lessonTitle}`,
+                            message: `${chapTitle ? chapTitle + " · " : ""}${lessonTitle} is now live! Tap to start learning.`,
+                            action_url: chapSlug ? `/learn/${chapSlug}` : "/learn",
+                            target_class: targetClass,
+                            target_subject_id: targetSubjectId,
+                            type: "lecture",
+                            publish_at: scheduledAt,
+                          },
+                        });
+                      }
                     }
                     setPubClassFilter(targetClass);
                     setPubSubjectFilter(targetSubjectId);
@@ -1156,24 +1187,79 @@ function TeachPage() {
                   )}
                 </div>
 
-                {newLessonPublishMode !== "draft" && (
+                {/* Immediate Publish Notification Checkbox */}
+                {newLessonPublishMode === "immediate" && (
                   <div className="sm:col-span-2 rounded-2xl border border-border/70 bg-card p-3.5 flex items-start gap-3 shadow-2xs">
                     <input
                       type="checkbox"
-                      id="notify_students_toggle"
-                      name="notify_students"
-                      checked={notifyStudents}
-                      onChange={(e) => setNotifyStudents(e.target.checked)}
+                      id="notify_immediate_toggle"
+                      checked={notifyImmediate}
+                      onChange={(e) => setNotifyImmediate(e.target.checked)}
                       className="mt-0.5 size-4 rounded accent-primary text-primary cursor-pointer shrink-0"
                     />
-                    <label htmlFor="notify_students_toggle" className="flex flex-col cursor-pointer select-none">
+                    <label htmlFor="notify_immediate_toggle" className="flex flex-col cursor-pointer select-none">
                       <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
                         <BellRing className="size-3.5 text-primary" /> Notify students immediately
                       </span>
                       <span className="text-[11px] text-muted-foreground mt-0.5">
-                        Send in-app notification to students of this class. Uncheck if you are uploading multiple lectures in bulk to avoid sending repeated notifications.
+                        Sends an in-app notification to students of this class that this lecture is now live. Uncheck if you are uploading multiple lectures in bulk.
                       </span>
                     </label>
+                  </div>
+                )}
+
+                {/* Scheduled Release Notification Preferences (Dual Checkboxes) */}
+                {newLessonPublishMode === "schedule" && (
+                  <div className="sm:col-span-2 space-y-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <BellRing className="size-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs font-bold text-foreground uppercase tracking-wider">
+                          Schedule Notification Preferences
+                        </span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] font-semibold border-amber-500/30 text-amber-700 dark:text-amber-400">
+                        2 Flexible Options
+                      </Badge>
+                    </div>
+
+                    {/* Option 1: Notify now about upcoming schedule */}
+                    <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/80 p-3 hover:border-border transition-colors">
+                      <input
+                        type="checkbox"
+                        id="notify_schedule_now_toggle"
+                        checked={notifyScheduleNow}
+                        onChange={(e) => setNotifyScheduleNow(e.target.checked)}
+                        className="mt-0.5 size-4 rounded accent-primary text-primary cursor-pointer shrink-0"
+                      />
+                      <label htmlFor="notify_schedule_now_toggle" className="flex flex-col cursor-pointer select-none">
+                        <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                          <span>📢</span> Notify now (Advance Announcement)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground mt-0.5">
+                          Sends an immediate broadcast right now: <em>"Upcoming lecture scheduled for {newLessonScheduledAt ? formatScheduleDate(newLessonScheduledAt) : "selected date"}."</em> Great for letting students plan ahead.
+                        </span>
+                      </label>
+                    </div>
+
+                    {/* Option 2: Notify automatically when lecture goes LIVE */}
+                    <div className="flex items-start gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-3 hover:border-emerald-500/60 transition-colors">
+                      <input
+                        type="checkbox"
+                        id="notify_when_live_toggle"
+                        checked={notifyWhenLive}
+                        onChange={(e) => setNotifyWhenLive(e.target.checked)}
+                        className="mt-0.5 size-4 rounded accent-emerald-600 text-emerald-600 cursor-pointer shrink-0"
+                      />
+                      <label htmlFor="notify_when_live_toggle" className="flex flex-col cursor-pointer select-none">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                          <span>🔴</span> Notify automatically when lecture goes LIVE (Recommended)
+                        </span>
+                        <span className="text-[11px] text-muted-foreground mt-0.5">
+                          The system holds this alert until {newLessonScheduledAt ? formatScheduleDate(newLessonScheduledAt) : "the scheduled release time"}, and instantly delivers: <em>"Now Live: [Lecture Title] is ready to learn!"</em> at the exact minute it unlocks.
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 )}
 

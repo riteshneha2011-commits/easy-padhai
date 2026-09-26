@@ -156,3 +156,43 @@ export function formatScheduleDate(dateInput: string | Date | null | undefined):
     timeZone: "Asia/Kolkata",
   }).format(date);
 }
+
+/**
+ * Extracts scheduled release timestamp from notification message metadata if embedded.
+ */
+export function parseNotificationSchedule(message: string | null | undefined): {
+  scheduledAt: string | null;
+  cleanMessage: string;
+  isScheduled: boolean;
+} {
+  if (!message || typeof message !== "string") {
+    return { scheduledAt: null, cleanMessage: message ?? "", isScheduled: false };
+  }
+  const match = message.match(SCHEDULE_TAG_REGEX);
+  if (match && match[1]) {
+    const scheduledAt = match[1].trim();
+    const cleanMessage = message.replace(SCHEDULE_TAG_REGEX, "").trim();
+    const isScheduled = isScheduleInFuture(scheduledAt);
+    return { scheduledAt, cleanMessage, isScheduled };
+  }
+  return { scheduledAt: null, cleanMessage: message, isScheduled: false };
+}
+
+/**
+ * Injects scheduled release timestamp into notification message.
+ */
+export function injectNotificationSchedule(
+  message: string,
+  publishAt: string | null | undefined,
+): string {
+  const baseMessage = message ? message.replace(SCHEDULE_TAG_REGEX, "").trim() : "";
+  if (!publishAt || !publishAt.trim()) {
+    return baseMessage;
+  }
+  const cleanIso = localDateTimeToIso(publishAt);
+  if (!cleanIso) {
+    return baseMessage;
+  }
+  return `<!--SCHEDULED:${cleanIso}-->\n${baseMessage}`;
+}
+

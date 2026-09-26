@@ -54,6 +54,7 @@ import {
   createNotificationFn,
   deleteNotificationFn,
 } from "@/lib/notifications.functions";
+import { formatScheduleDate } from "@/lib/schedule";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -823,6 +824,11 @@ function AdminPage() {
                           <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
                             {notif.target_class ? `Class ${notif.target_class}` : "All Classes"}
                           </Badge>
+                          {notif.is_scheduled && notif.publish_at && (
+                            <Badge className="text-[10px] py-0 px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30 gap-1 font-semibold">
+                              <Clock className="size-3" /> Scheduled: {formatScheduleDate(notif.publish_at)}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">{notif.message}</p>
                         <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-muted-foreground">
