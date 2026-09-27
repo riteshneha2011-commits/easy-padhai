@@ -2,10 +2,12 @@
 # Easy Padhai - Ultra-Fast Desktop Audio Lecture Compressor
 # Converts audio lectures (.wav, .m4a, .mp3, .aac, .ogg, .flac) to
 # voice-optimized 48kbps, 32kHz, Mono MP3 in 2 seconds per file.
+# Supports drag & drop of MULTIPLE files and folders at once!
 # ==============================================================================
 
 param (
-    [string]$InputPath = ""
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$InputPaths = @()
 )
 
 try {
@@ -65,34 +67,58 @@ if (!(Test-Path $FfmpegExe)) {
     }
 }
 
-# 2. Determine files to process
+# 2. Determine files to process (handles multiple files & folders dropped)
+$AudioRegex = '\.(wav|m4a|mp3|aac|ogg|flac|wma|opus|webm)$'
 $FilesToProcess = @()
 
-if ($InputPath -and (Test-Path $InputPath)) {
-    if ((Get-Item $InputPath) -is [System.IO.DirectoryInfo]) {
-        $FilesToProcess = Get-ChildItem -Path $InputPath -File | Where-Object { $_.Extension -match '\.(wav|m4a|mp3|aac|ogg|flac|wma|opus)$' }
-    } else {
-        $FilesToProcess = @(Get-Item $InputPath)
+if ($InputPaths -and $InputPaths.Count -gt 0) {
+    foreach ($RawPath in $InputPaths) {
+        $CleanPath = $RawPath.Trim('"').Trim()
+        if (Test-Path $CleanPath) {
+            $Item = Get-Item $CleanPath
+            if ($Item -is [System.IO.DirectoryInfo]) {
+                $FilesToProcess += Get-ChildItem -Path $Item.FullName -File | Where-Object { $_.Extension -match $AudioRegex }
+            } elseif ($Item -is [System.IO.FileInfo]) {
+                if ($Item.Extension -match $AudioRegex) {
+                    $FilesToProcess += $Item
+                }
+            }
+        }
     }
-} else {
-    # Scan script directory for audio files
-    $FilesToProcess = Get-ChildItem -Path $ScriptDir -File | Where-Object { $_.Extension -match '\.(wav|m4a|mp3|aac|ogg|flac|wma|opus)$' }
+}
+
+# If no files were dropped directly, check script directory and input/ folder
+if ($FilesToProcess.Count -eq 0) {
+    $FilesToProcess += Get-ChildItem -Path $ScriptDir -File | Where-Object { $_.Extension -match $AudioRegex }
     
-    # Also check if an 'input' folder exists
     $InputDir = Join-Path $ScriptDir "input"
     if (Test-Path $InputDir) {
-        $FilesToProcess += Get-ChildItem -Path $InputDir -File | Where-Object { $_.Extension -match '\.(wav|m4a|mp3|aac|ogg|flac|wma|opus)$' }
+        $FilesToProcess += Get-ChildItem -Path $InputDir -File | Where-Object { $_.Extension -match $AudioRegex }
     }
+}
+
+# De-duplicate files by full path
+if ($FilesToProcess.Count -gt 0) {
+    $UniqueMap = @{}
+    $Deduped = @()
+    foreach ($F in $FilesToProcess) {
+        if (-not $UniqueMap.ContainsKey($F.FullName.ToLowerInvariant())) {
+            $UniqueMap[$F.FullName.ToLowerInvariant()] = $true
+            $Deduped += $F
+        }
+    }
+    $FilesToProcess = $Deduped
 }
 
 if ($FilesToProcess.Count -eq 0) {
     Write-Host "No audio files found to compress!" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "How to use:" -ForegroundColor Cyan
-    Write-Host "1. Drag and drop any audio file (.wav, .m4a, .mp3) directly onto compress-lectures.bat" -ForegroundColor White
+    Write-Host "1. Select MULTIPLE audio files (.wav, .m4a, .mp3, etc.) with mouse/keyboard" -ForegroundColor White
+    Write-Host "2. Drag and drop all selected files together onto 'compress-lectures.bat'" -ForegroundColor White
     Write-Host "   OR put your audio files into this folder: $ScriptDir" -ForegroundColor Gray
-    Write-Host "2. Double-click compress-lectures.bat" -ForegroundColor White
-    Write-Host "3. Done! Optimized files will appear in 'optimized_output'" -ForegroundColor White
+    Write-Host "3. Double-click compress-lectures.bat" -ForegroundColor White
+    Write-Host "4. Done! All optimized files will appear in 'optimized_output'" -ForegroundColor White
     Write-Host ""
     
     if ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
@@ -102,7 +128,7 @@ if ($FilesToProcess.Count -eq 0) {
     exit 0
 }
 
-Write-Host "Found $($FilesToProcess.Count) audio lecture(s) to optimize:" -ForegroundColor Cyan
+Write-Host "Found $($FilesToProcess.Count) audio lecture(s) to optimize in batch:" -ForegroundColor Cyan
 Write-Host ""
 
 $Index = 1
@@ -142,7 +168,7 @@ foreach ($File in $FilesToProcess) {
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
-Write-Host "Processed $SuccessCount of $($FilesToProcess.Count) lecture(s) successfully!" -ForegroundColor Green
+Write-Host "Successfully converted $SuccessCount of $($FilesToProcess.Count) lecture(s)!" -ForegroundColor Green
 Write-Host "Output Folder: $OutputDir" -ForegroundColor Yellow
 Write-Host "==================================================================" -ForegroundColor Cyan
 Write-Host "These files are now 100% pre-optimized for instant 1-second upload" -ForegroundColor White
