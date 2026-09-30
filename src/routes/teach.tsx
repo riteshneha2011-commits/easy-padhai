@@ -30,6 +30,8 @@ import { parseLessonVideos } from "@/lib/media";
 import { AiAutofill } from "@/components/ai-autofill";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { soundFx } from "@/lib/sound-effects";
+import { Switch } from "@/components/ui/switch";
 import { MathText, MarkdownRenderer } from "@/components/markdown-renderer";
 import { MediaPlayer } from "@/components/media-player";
 import {
@@ -284,7 +286,7 @@ function TeachPage() {
         ...prev,
         [created.id]: {
           prompt: created.prompt,
-          options: [...created.options],
+          options: Array.isArray(created.options) ? [...created.options] : [],
           correct_index: created.correct_index,
           explanation: created.explanation ?? "",
           topic: created.topic ?? "",
@@ -620,6 +622,20 @@ function TeachPage() {
               >
                 <Layers className="size-3.5" />
                 <span>{activeCreatePanel === "subject" ? "Close Subject Form ✕" : "+ New Subject"}</span>
+              </Button>
+
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  soundFx.playClick();
+                  setAddClassDialogOpen(true);
+                }}
+                className="rounded-full text-xs font-semibold gap-1.5 h-8.5 bg-card hover:border-primary/50 shadow-xs text-primary"
+              >
+                <GraduationCap className="size-3.5" />
+                <span>+ Add Class</span>
               </Button>
             </div>
           </div>
@@ -1426,6 +1442,17 @@ function TeachPage() {
                     {classOrdinalLabel(lvl)}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFx.playClick();
+                    setAddClassDialogOpen(true);
+                  }}
+                  className="rounded-full px-3 py-1 text-xs font-bold transition-all border border-dashed border-primary/50 text-primary hover:bg-primary/10 flex items-center gap-1 cursor-pointer"
+                  title="Add another class level (e.g. Class 5th, 6th, 7th, 8th)"
+                >
+                  <Plus className="size-3" /> Add Class
+                </button>
               </div>
 
               {/* Subject & Chapter Filter Dropdowns */}
@@ -2932,6 +2959,17 @@ function TeachPage() {
                       {classOrdinalLabel(lvl)}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundFx.playClick();
+                      setAddClassDialogOpen(true);
+                    }}
+                    className="rounded-full px-3 py-1 text-xs font-bold transition-all border border-dashed border-primary/50 text-primary hover:bg-primary/10 flex items-center gap-1 cursor-pointer"
+                    title="Add another class level (e.g. Class 5th, 6th, 7th, 8th)"
+                  >
+                    <Plus className="size-3" /> Add Class
+                  </button>
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pt-1">
@@ -3146,8 +3184,7 @@ function TeachPage() {
                                     setSelectedManageTestId(null);
                                     setManageQuestions([]);
                                   }
-                                  toast.success("Quiz deleted successfully.");
-                                });
+                                }, "Quiz deleted successfully.");
                               }
                             }}
                             className="rounded-full text-xs text-destructive hover:bg-destructive/10 h-8 px-2.5"
@@ -3465,14 +3502,14 @@ function TeachPage() {
                 <div className="flex items-center gap-2">
                   {previewLessonData.chapter?.slug && (
                     <Button asChild size="sm" variant="outline" className="rounded-full text-xs font-semibold gap-1.5">
-                      <Link
-                        to={`/learn/${previewLessonData.chapter.slug}?lessonId=${previewLessonData.lesson.id}`}
+                      <a
+                        href={`/learn/${previewLessonData.chapter.slug}?lessonId=${previewLessonData.lesson.id}`}
                         target="_blank"
                         rel="noreferrer"
                       >
                         <ExternalLink className="size-3.5" />
                         <span>Open Full Student Page</span>
-                      </Link>
+                      </a>
                     </Button>
                   )}
                   <Button
