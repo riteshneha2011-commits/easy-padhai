@@ -7,6 +7,7 @@ import {
   lessonCost,
 } from "./credits";
 import { parseLessonSchedule, formatScheduleDate } from "./schedule";
+import { type LessonVideo, parseLessonVideos } from "./media";
 
 /** Learner-local day (IST) so the daily bonus rolls over at midnight in India. */
 function today() {
@@ -96,7 +97,12 @@ export type LessonAccess = {
   isScheduled?: boolean;
   scheduledAt?: string | null;
   isStaffPreview?: boolean;
-  media: { audio: string | null; video: string | null; pdf: string | null } | null;
+  media: {
+    audio: string | null;
+    video: string | null;
+    pdf: string | null;
+    videos?: LessonVideo[];
+  } | null;
 };
 
 async function isStaff(userId: string | null): Promise<boolean> {
@@ -208,10 +214,10 @@ export async function getLessonAccessFor(
     isAccessible
       ? Promise.all([
           signMedia(lesson.audio_url),
-          signMedia(lesson.video_url),
+          signVideoMedia(lesson.video_url),
           signMedia(lesson.pdf_url),
         ])
-      : Promise.resolve([null, null, null]),
+      : Promise.resolve([null, { video: null, videos: [] as LessonVideo[] }, null]),
   ]);
 
   let quizPassed = false;
@@ -220,7 +226,7 @@ export async function getLessonAccessFor(
     quizPassed = true;
   }
 
-  const [audio, video, pdf] = signedMedia;
+  const [audio, videoRes, pdf] = signedMedia;
 
   return {
     lessonId,
@@ -234,8 +240,9 @@ export async function getLessonAccessFor(
     isStaffPreview: sched.isScheduled && staff,
     media: {
       audio,
-      video,
+      video: videoRes?.video ?? null,
       pdf,
+      videos: videoRes?.videos ?? [],
     },
   };
 }
@@ -259,6 +266,33 @@ async function signMedia(value: string | null) {
     .from(LESSON_BUCKET)
     .createSignedUrl(value.slice(STORAGE_PREFIX.length), 60 * 60 * 4);
   return data?.signedUrl ?? null;
+}
+
+/**
+ * Resolves all videos attached to a lesson (whether single URL or JSON array of multiple videos).
+ */
+async function signVideoMedia(raw: string | null): Promise<{
+  video: string | null;
+  videos: LessonVideo[];
+}> {
+  if (!raw) return { video: null, videos: [] };
+  const parsed = parseLessonVideos(raw);
+  if (parsed.length === 0) return { video: null, videos: [] };
+
+  const signedVideos = await Promise.all(
+    parsed.map(async (v) => {
+      const signed = await signMedia(v.url);
+      return {
+        ...v,
+        url: signed || v.url,
+      };
+    })
+  );
+
+  return {
+    video: signedVideos[0]?.url ?? null,
+    videos: signedVideos,
+  };
 }
 
 export async function unlockLessonFor(userId: string, lessonId: string): Promise<LessonAccess> {
@@ -304,14 +338,14 @@ export async function unlockLessonFor(userId: string, lessonId: string): Promise
   }
 
   // 2. Concurrently record unlock in DB, deduct credits, and sign media files
-  const [_, newBalance, [audio, video, pdf]] = await Promise.all([
+  const [_, newBalance, [audio, videoRes, pdf]] = await Promise.all([
     supabaseAdmin
       .from("lesson_unlocks")
       .upsert({ user_id: userId, lesson_id: lessonId, cost }, { onConflict: "user_id,lesson_id" }),
     awardCredits(userId, -cost, "Lesson unlocked", `unlock-${lessonId}`),
     Promise.all([
       signMedia(lesson.audio_url),
-      signMedia(lesson.video_url),
+      signVideoMedia(lesson.video_url),
       signMedia(lesson.pdf_url),
     ]),
   ]);
@@ -326,7 +360,12 @@ export async function unlockLessonFor(userId: string, lessonId: string): Promise
     isScheduled: false,
     scheduledAt: sched.scheduledAt,
     isStaffPreview: false,
-    media: { audio, video, pdf },
+    media: {
+      audio,
+      video: videoRes?.video ?? null,
+      pdf,
+      videos: videoRes?.videos ?? [],
+    },
   };
 }
 

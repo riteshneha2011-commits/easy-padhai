@@ -90,3 +90,91 @@ export function classifyMedia(rawUrl: string, kind: "audio" | "video" | "pdf"): 
 
 export const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
+export type VideoKind = "explainer" | "cinematic" | "practice" | "revision" | "other";
+
+export type LessonVideo = {
+  id: string;
+  title: string;
+  url: string;
+  kind?: VideoKind;
+  duration?: string;
+};
+
+export const VIDEO_KINDS: { id: VideoKind; label: string; icon: string; description: string }[] = [
+  { id: "explainer", label: "Concept Explainer", icon: "👨‍🏫", description: "In-depth concept lecture with theory and whiteboard explanations" },
+  { id: "cinematic", label: "Cinematic / 3D Visual", icon: "🎬", description: "3D animations, simulations, or cinematic demonstrations" },
+  { id: "practice", label: "Solved Examples / PYQ", icon: "📝", description: "Problem solving walkthroughs and exam question practice" },
+  { id: "revision", label: "Quick Revision", icon: "⚡", description: "Fast 2-5 min high-yield summary video" },
+  { id: "other", label: "Additional Video", icon: "🎥", description: "Supplemental video, experiment, or case study" },
+];
+
+export function parseLessonVideos(raw: string | null | undefined): LessonVideo[] {
+  if (!raw || !raw.trim()) return [];
+  const text = raw.trim();
+  if (text.startsWith("[") || text.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .filter((v) => v && (typeof v === "string" || typeof v.url === "string"))
+          .map((v, i) => {
+            if (typeof v === "string") {
+              return {
+                id: `v-${i}`,
+                title: i === 0 ? "Main Explainer" : `Video ${i + 1}`,
+                url: v,
+                kind: i === 0 ? "explainer" : "other",
+              };
+            }
+            return {
+              id: v.id || `v-${i}`,
+              title: v.title || (v.kind === "cinematic" ? "Cinematic Video" : `Video ${i + 1}`),
+              url: v.url || "",
+              kind: v.kind || "explainer",
+              duration: v.duration,
+            };
+          })
+          .filter((v) => Boolean(v.url));
+      }
+    } catch {
+      // Fallback to single URL parse
+    }
+  }
+
+  return [
+    {
+      id: "v-0",
+      title: "Video Lecture",
+      url: text,
+      kind: "explainer",
+    },
+  ];
+}
+
+export function serializeLessonVideos(videos: LessonVideo[]): string | null {
+  const valid = videos
+    .map((v, i) => ({
+      id: v.id || `v-${i}`,
+      title: v.title?.trim() || `Video ${i + 1}`,
+      url: v.url?.trim() || "",
+      kind: v.kind || "explainer",
+      duration: v.duration?.trim() || undefined,
+    }))
+    .filter((v) => Boolean(v.url));
+
+  if (valid.length === 0) return null;
+
+  // If only 1 video with standard name & default kind, keep it as plain URL string for maximum backward compatibility
+  if (
+    valid.length === 1 &&
+    (!valid[0].kind || valid[0].kind === "explainer") &&
+    (!valid[0].title || valid[0].title === "Video Lecture" || valid[0].title === "Main Video") &&
+    !valid[0].duration
+  ) {
+    return valid[0].url;
+  }
+
+  return JSON.stringify(valid);
+}
+
+

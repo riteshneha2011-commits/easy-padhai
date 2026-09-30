@@ -25,6 +25,8 @@ import {
 } from "@/lib/questions-parse";
 import { useAuth } from "@/hooks/use-auth";
 import { MediaInput } from "@/components/media-input";
+import { MultiVideoInput } from "@/components/multi-video-input";
+import { parseLessonVideos } from "@/lib/media";
 import { AiAutofill } from "@/components/ai-autofill";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
@@ -1155,8 +1157,8 @@ function TeachPage() {
                 <div className="space-y-1.5 sm:col-span-2">
                   <MediaInput name="audio_url" label="Audio File" type="audio" />
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <MediaInput name="video_url" label="Video File" type="video" />
+                <div className="sm:col-span-2">
+                  <MultiVideoInput name="video_url" />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <MediaInput name="pdf_url" label="PDF Document" type="pdf" />
@@ -1596,7 +1598,7 @@ function TeachPage() {
                             const chapLessons = data.lessons.filter((l) => l.chapter_id === c.id);
                             const isCollapsed = Boolean(collapsedChapters[c.id]) && pubChapterFilter !== c.id;
                             const audioCount = chapLessons.filter((l) => Boolean(l.audio_url)).length;
-                            const videoCount = chapLessons.filter((l) => Boolean(l.video_url)).length;
+                            const videoCount = chapLessons.reduce((acc, l) => acc + (l.video_url ? parseLessonVideos(l.video_url).length : 0), 0);
                             const pdfCount = chapLessons.filter((l) => Boolean(l.pdf_url)).length;
                             const summaryCount = chapLessons.filter((l) => Boolean(l.summary)).length;
 
@@ -1818,11 +1820,18 @@ function TeachPage() {
                                                     <Headphones className="size-3 text-primary" />
                                                   </span>
                                                 )}
-                                                {l.video_url && (
-                                                  <span title="Video available">
-                                                    <Video className="size-3 text-blue-500" />
-                                                  </span>
-                                                )}
+                                                {l.video_url && (() => {
+                                                  const vCount = parseLessonVideos(l.video_url).length;
+                                                  return (
+                                                    <span
+                                                      title={vCount > 1 ? `${vCount} Videos available` : "Video available"}
+                                                      className="inline-flex items-center gap-0.5 text-blue-500 font-bold text-[10px]"
+                                                    >
+                                                      <Video className="size-3" />
+                                                      {vCount > 1 && <span>{vCount}</span>}
+                                                    </span>
+                                                  );
+                                                })()}
                                                 {l.pdf_url && (
                                                   <span title="PDF available">
                                                     <FileText className="size-3 text-orange-500" />
@@ -1922,11 +1931,9 @@ function TeachPage() {
                                                     defaultValue={l.audio_url ?? ""}
                                                   />
                                                 </div>
-                                                <div className="space-y-1.5 sm:col-span-2">
-                                                  <MediaInput
+                                                <div className="sm:col-span-2">
+                                                  <MultiVideoInput
                                                     name="video_url"
-                                                    label="Video File"
-                                                    type="video"
                                                     defaultValue={l.video_url ?? ""}
                                                   />
                                                 </div>

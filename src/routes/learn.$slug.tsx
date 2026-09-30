@@ -1354,6 +1354,7 @@ function LessonPanel({
         return (
           <MediaPlayer
             value={media?.video || ""}
+            videos={media?.videos}
             title={lesson.title}
             kind="video"
             lessonId={lesson.id}

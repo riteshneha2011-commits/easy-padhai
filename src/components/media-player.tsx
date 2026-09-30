@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play, Download, BookOpen } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play, Download, BookOpen, Layers, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
-import { classifyMedia, PLAYBACK_RATES } from "@/lib/media";
+import { classifyMedia, PLAYBACK_RATES, parseLessonVideos, type LessonVideo, VIDEO_KINDS } from "@/lib/media";
 import { getOfflineMediaUrl } from "@/lib/offline-storage";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  value: string;
+  value?: string;
   title: string;
-  kind: "audio" | "video" | "pdf";
+  kind?: "audio" | "video" | "pdf";
   lessonId?: string;
+  audioUrl?: string | null;
+  videoUrl?: string | null;
+  pdfUrl?: string | null;
+  videos?: LessonVideo[];
   /** Reports whether the student is actively watching/listening (drives study credits). */
   onActiveChange?: (active: boolean) => void;
   /** Reports when the student has listened/watched enough to verify learning (>=70% or completion). */
@@ -426,7 +430,21 @@ function CustomAudioPlayer({
 }
 
 /** Plays external links (YouTube/Vimeo/Drive/direct files) or uploaded storage files, with offline IndexedDB sandbox support. */
-export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVerified }: Props) {
+function SingleMediaPlayer({
+  value,
+  title,
+  kind,
+  lessonId,
+  onActiveChange,
+  onVerified,
+}: {
+  value: string;
+  title: string;
+  kind: "audio" | "video" | "pdf";
+  lessonId?: string;
+  onActiveChange?: (active: boolean) => void;
+  onVerified?: () => void;
+}) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
   const [failed, setFailed] = useState(false);
@@ -767,5 +785,143 @@ export function MediaPlayer({ value, title, kind, lessonId, onActiveChange, onVe
       </div>
       <SpeedPicker rate={rate} onChange={setRate} />
     </div>
+  );
+}
+
+/**
+ * Universal media player with support for:
+ * - Single or Multi-Video playlists (Cinematic 3D, Detailed Explainer, Solved PYQs)
+ * - Interactive video module switcher pills
+ * - Audio speech players and PDF interactive readers
+ */
+export function MediaPlayer({
+  value: rawValue,
+  title,
+  kind: rawKind,
+  lessonId,
+  audioUrl,
+  videoUrl,
+  pdfUrl,
+  videos,
+  onActiveChange,
+  onVerified,
+}: Props) {
+  const effectiveKind: "audio" | "video" | "pdf" =
+    rawKind || (videoUrl ? "video" : audioUrl ? "audio" : pdfUrl ? "pdf" : "video");
+
+  const effectiveValue =
+    rawValue !== undefined
+      ? rawValue
+      : effectiveKind === "video"
+      ? (videoUrl ?? "")
+      : effectiveKind === "audio"
+      ? (audioUrl ?? "")
+      : (pdfUrl ?? "");
+
+  const videoList: LessonVideo[] = useMemo(() => {
+    if (effectiveKind !== "video") return [];
+    if (videos && videos.length > 0) return videos;
+    return parseLessonVideos(effectiveValue);
+  }, [effectiveKind, videos, effectiveValue]);
+
+  const [activeVideoIdx, setActiveVideoIdx] = useState(0);
+
+  // Multi-video view: render playlist selector pills on top of player
+  if (effectiveKind === "video" && videoList.length > 1) {
+    const safeIdx = Math.min(activeVideoIdx, videoList.length - 1);
+    const currentVid = videoList[safeIdx] || videoList[0];
+    const currentMeta = VIDEO_KINDS.find((k) => k.id === currentVid.kind) || VIDEO_KINDS[0];
+
+    return (
+      <div className="space-y-3.5">
+        {/* Multi-Video Selector Bar */}
+        <div className="rounded-2xl border border-border/80 bg-secondary/30 p-2.5 sm:p-3 space-y-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+              <Layers className="size-3.5 text-primary" />
+              <span>Available Video Modules ({videoList.length})</span>
+            </div>
+            <span className="text-[11px] text-muted-foreground font-medium">
+              Select module to watch:
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {videoList.map((vid, idx) => {
+              const isSelected = idx === safeIdx;
+              const meta = VIDEO_KINDS.find((k) => k.id === vid.kind) || VIDEO_KINDS[0];
+              return (
+                <button
+                  key={vid.id || idx}
+                  type="button"
+                  onClick={() => setActiveVideoIdx(idx)}
+                  className={cn(
+                    "group inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all shrink-0 cursor-pointer select-none",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-xs font-semibold ring-2 ring-primary/20 scale-[1.01]"
+                      : "bg-background hover:bg-card text-foreground border border-border/70 hover:border-primary/50"
+                  )}
+                >
+                  <span>{meta.icon}</span>
+                  <span>{vid.title || `Video ${idx + 1}`}</span>
+                  {vid.duration && (
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.2 rounded-full font-normal",
+                        isSelected
+                          ? "bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      {vid.duration}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Video Module Title Header */}
+        <div className="flex items-center justify-between text-xs px-1 text-muted-foreground">
+          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+            <span>{currentMeta.icon}</span>
+            <span>{currentVid.title || "Video Lecture"}</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-normal">
+              ({currentMeta.label})
+            </span>
+          </div>
+          <span className="text-[11px] bg-secondary/80 px-2 py-0.5 rounded-md font-medium">
+            Part {safeIdx + 1} of {videoList.length}
+          </span>
+        </div>
+
+        {/* Player Instance */}
+        <SingleMediaPlayer
+          key={`multivid-${safeIdx}-${currentVid.url}`}
+          value={currentVid.url}
+          title={`${title} · ${currentVid.title}`}
+          kind="video"
+          lessonId={lessonId}
+          onActiveChange={onActiveChange}
+          onVerified={onVerified}
+        />
+      </div>
+    );
+  }
+
+  // Single video or audio or pdf:
+  const singleValue =
+    effectiveKind === "video" && videoList.length === 1 ? videoList[0].url : effectiveValue;
+
+  return (
+    <SingleMediaPlayer
+      value={singleValue}
+      title={title}
+      kind={effectiveKind}
+      lessonId={lessonId}
+      onActiveChange={onActiveChange}
+      onVerified={onVerified}
+    />
   );
 }
