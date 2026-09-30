@@ -301,12 +301,12 @@ type FilterCategory =
 function Home() {
   const { data: subjects } = useSuspenseQuery(catalogQuery);
   const { user } = useAuth();
-  const { activeClass, switchClass, classLabel } = useActiveClass();
+  const { activeClass, switchClass, allClasses, classLabel } = useActiveClass();
 
   const availableClasses = useMemo(() => {
     const dbClasses = subjects.map((s) => s.class_level).filter(Boolean);
-    return getAllActiveClasses(dbClasses);
-  }, [subjects]);
+    return getAllActiveClasses([...dbClasses, ...allClasses]);
+  }, [subjects, allClasses]);
 
   const [selectedClass, setSelectedClass] = useState<number>(() => activeClass || DEFAULT_CLASS_LEVEL);
 

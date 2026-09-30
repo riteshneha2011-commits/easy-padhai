@@ -1,5 +1,8 @@
+import { useMemo } from "react";
 import { GraduationCap, Check, ChevronDown } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useActiveClass } from "@/hooks/use-active-class";
+import { getCatalog } from "@/lib/content.functions";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,6 +23,22 @@ interface ClassSwitcherProps {
 export function ClassSwitcher({ className, size = "sm", showLabel = true }: ClassSwitcherProps) {
   const { activeClass, switchClass, allClasses, classLabel } = useActiveClass();
 
+  const { data: catalogSubjects } = useQuery({
+    queryKey: ["catalog"],
+    queryFn: () => getCatalog(),
+    staleTime: 60_000,
+  });
+
+  const subjectCountByClass = useMemo(() => {
+    const map: Record<number, number> = {};
+    (catalogSubjects ?? []).forEach((s) => {
+      if (s.class_level) {
+        map[s.class_level] = (map[s.class_level] || 0) + 1;
+      }
+    });
+    return map;
+  }, [catalogSubjects]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -27,7 +46,7 @@ export function ClassSwitcher({ className, size = "sm", showLabel = true }: Clas
           variant="outline"
           size={size}
           className={cn(
-            "h-7.5 sm:h-8.5 inline-flex items-center gap-1 sm:gap-1.5 rounded-full border-primary/30 bg-primary/5 px-2 sm:px-3 text-[11px] sm:text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary shadow-xs shrink-0",
+            "h-7.5 sm:h-8.5 inline-flex items-center gap-1 sm:gap-1.5 rounded-full border-primary/30 bg-primary/5 px-2 sm:px-3 text-[11px] sm:text-xs font-bold text-primary hover:bg-primary/10 hover:text-primary shadow-xs shrink-0 cursor-pointer",
             className,
           )}
         >
@@ -43,6 +62,7 @@ export function ClassSwitcher({ className, size = "sm", showLabel = true }: Clas
         <DropdownMenuSeparator />
         {allClasses.map((classNum) => {
           const isSelected = activeClass === classNum;
+          const count = subjectCountByClass[classNum] || 0;
           return (
             <DropdownMenuItem
               key={classNum}
@@ -61,22 +81,12 @@ export function ClassSwitcher({ className, size = "sm", showLabel = true }: Clas
                     Live
                   </span>
                 )}
-                {classNum === 10 && (
-                  <span className="rounded-full bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                    2 Subjects
+                {classNum !== 9 && count > 0 && (
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                    {count === 1 ? "1 Subject" : `${count} Subjects`}
                   </span>
                 )}
-                {classNum === 11 && (
-                  <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[10px] font-bold text-purple-600 dark:text-purple-400">
-                    4 Subjects
-                  </span>
-                )}
-                {classNum === 12 && (
-                  <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                    Physics
-                  </span>
-                )}
-                {classNum !== 9 && classNum !== 10 && classNum !== 11 && classNum !== 12 && (
+                {classNum !== 9 && count === 0 && (
                   <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
                     Active
                   </span>

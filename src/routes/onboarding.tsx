@@ -196,7 +196,7 @@ function OnboardingPage() {
               >
                 {allClasses.map((c) => (
                   <option key={c} value={c}>
-                    Class {classOrdinalLabel(c)}
+                    {classOrdinalLabel(c)}
                   </option>
                 ))}
               </select>

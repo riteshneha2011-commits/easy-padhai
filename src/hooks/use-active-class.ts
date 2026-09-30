@@ -1,21 +1,38 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "./use-auth";
 import { updateMyClassLevel } from "@/lib/profile.functions";
+import { getCatalog } from "@/lib/content.functions";
 import {
   DEFAULT_CLASS_LEVEL,
   normalizeClassLevel,
   classOrdinalLabel,
   getAllActiveClasses,
   saveCustomClass,
+  getCustomClasses,
 } from "@/lib/classes";
-import { toast } from "sonner";
 
 const STORAGE_KEY = "easy-padhai-active-class";
 
 export function useActiveClass() {
   const { user, profile, refresh } = useAuth();
 
-  const [classesList, setClassesList] = useState<number[]>(() => getAllActiveClasses());
+  // Query catalog data so all components dynamically discover all classes with content in the database
+  const { data: catalogSubjects } = useQuery({
+    queryKey: ["catalog"],
+    queryFn: () => getCatalog(),
+    staleTime: 60_000,
+  });
+
+  const [customClasses, setCustomClasses] = useState<number[]>(() => getCustomClasses());
+
+  const dbClasses = useMemo(() => {
+    return (catalogSubjects ?? []).map((s) => s.class_level).filter(Boolean);
+  }, [catalogSubjects]);
+
+  const allClasses = useMemo(() => {
+    return getAllActiveClasses([...dbClasses, ...customClasses]);
+  }, [dbClasses, customClasses]);
 
   const [activeClass, setActiveClass] = useState<number>(() => {
     if (typeof window === "undefined") return DEFAULT_CLASS_LEVEL;
@@ -66,7 +83,7 @@ export function useActiveClass() {
     };
 
     const handleClassesChange = () => {
-      setClassesList(getAllActiveClasses());
+      setCustomClasses(getCustomClasses());
     };
 
     const onStorage = (e: StorageEvent) => {
@@ -74,7 +91,7 @@ export function useActiveClass() {
         setActiveClass(normalizeClassLevel(e.newValue));
       }
       if (e.key === "easypadhai_custom_classes") {
-        setClassesList(getAllActiveClasses());
+        setCustomClasses(getCustomClasses());
       }
     };
 
@@ -109,16 +126,14 @@ export function useActiveClass() {
           console.error("profile class update error", err);
         }
       }
-
-      toast.success(`Switched to ${classOrdinalLabel(norm)}`);
+      // Note: Silent switch without popup toast per user request
     },
     [user, refresh],
   );
 
   const addClass = useCallback((newLevel: number) => {
     const updated = saveCustomClass(newLevel);
-    setClassesList(getAllActiveClasses());
-    toast.success(`Added ${classOrdinalLabel(newLevel)} to platform classes!`);
+    setCustomClasses(getCustomClasses());
     return updated;
   }, []);
 
@@ -126,7 +141,7 @@ export function useActiveClass() {
     activeClass,
     switchClass,
     addClass,
-    allClasses: classesList,
+    allClasses,
     classLabel: classOrdinalLabel,
   };
 }

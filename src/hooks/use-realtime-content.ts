@@ -88,7 +88,22 @@ export function useRealtimeContentSync() {
       )
       .subscribe();
 
-    // C. Notifications channel: live alerts and bell badge updates
+    // C. Subjects channel: auto-refetch when subjects/classes are added/updated
+    const subjectsChannel = supabase
+      .channel("realtime:public:subjects")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "subjects" },
+        () => {
+          lastSyncRef.current = Date.now();
+          void qc.invalidateQueries({ queryKey: ["catalog"] });
+          void qc.invalidateQueries({ queryKey: ["admin-catalog"] });
+          void qc.invalidateQueries({ queryKey: ["learn"] });
+        },
+      )
+      .subscribe();
+
+    // D. Notifications channel: live alerts and bell badge updates
     const notificationsChannel = supabase
       .channel("realtime:public:notifications")
       .on(
@@ -118,6 +133,7 @@ export function useRealtimeContentSync() {
     return () => {
       void supabase.removeChannel(lessonsChannel);
       void supabase.removeChannel(chaptersChannel);
+      void supabase.removeChannel(subjectsChannel);
       void supabase.removeChannel(notificationsChannel);
     };
   }, [qc, activeClass]);
