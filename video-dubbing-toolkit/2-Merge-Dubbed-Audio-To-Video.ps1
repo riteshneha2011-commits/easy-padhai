@@ -137,18 +137,19 @@ foreach ($Pair in $PairsToProcess) {
     # Stream copy video (instant, no re-encode) + high quality AAC audio
     $FfmpegArgs = @(
         "-y",
-        "-i", $Pair.Video.FullName,
-        "-i", $Pair.Audio.FullName,
+        "-i", "`"$($Pair.Video.FullName)`"",
+        "-i", "`"$($Pair.Audio.FullName)`"",
         "-c:v", "copy",
         "-c:a", "aac",
         "-b:a", "192k",
         "-map", "0:v:0",
         "-map", "1:a:0",
         "-shortest",
-        $TargetVideoPath
+        "`"$TargetVideoPath`""
     )
 
-    $Process = Start-Process -FilePath $FfmpegExe -ArgumentList $FfmpegArgs -NoNewWindow -PassThru -Wait -RedirectStandardError ([System.IO.Path]::GetTempFileName())
+    $ErrLog = [System.IO.Path]::GetTempFileName()
+    $Process = Start-Process -FilePath $FfmpegExe -ArgumentList ($FfmpegArgs -join " ") -NoNewWindow -PassThru -Wait -RedirectStandardError $ErrLog
 
     $Sw.Stop()
 
@@ -160,7 +161,14 @@ foreach ($Pair in $PairsToProcess) {
         $SuccessCount++
     } else {
         Write-Host "  -> Merge failed for $($Pair.Video.Name)" -ForegroundColor Red
+        if (Test-Path $ErrLog) {
+            $ErrContent = (Get-Content $ErrLog -Tail 5 | Out-String).Trim()
+            if ($ErrContent) {
+                Write-Host "     Detail: $ErrContent" -ForegroundColor DarkRed
+            }
+        }
     }
+    Remove-Item $ErrLog -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""

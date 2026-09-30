@@ -116,16 +116,18 @@ foreach ($VideoFile in $UniqueFiles) {
     # High quality speech extraction: 64kbps, mono, 32kHz
     $FfmpegArgs = @(
         "-y",
-        "-i", $VideoFile.FullName,
+        "-i", "`"$($VideoFile.FullName)`"",
         "-vn",
         "-c:a", "libmp3lame",
         "-b:a", "64k",
         "-ac", "1",
         "-ar", "32000",
-        $TargetAudioPath
+        "-f", "mp3",
+        "`"$TargetAudioPath`""
     )
 
-    $Process = Start-Process -FilePath $FfmpegExe -ArgumentList $FfmpegArgs -NoNewWindow -PassThru -Wait -RedirectStandardError ([System.IO.Path]::GetTempFileName())
+    $ErrLog = [System.IO.Path]::GetTempFileName()
+    $Process = Start-Process -FilePath $FfmpegExe -ArgumentList ($FfmpegArgs -join " ") -NoNewWindow -PassThru -Wait -RedirectStandardError $ErrLog
 
     $Sw.Stop()
 
@@ -139,7 +141,14 @@ foreach ($VideoFile in $UniqueFiles) {
         $SuccessCount++
     } else {
         Write-Host "  -> Failed to extract audio for $($VideoFile.Name)" -ForegroundColor Red
+        if (Test-Path $ErrLog) {
+            $ErrContent = (Get-Content $ErrLog -Tail 5 | Out-String).Trim()
+            if ($ErrContent) {
+                Write-Host "     Detail: $ErrContent" -ForegroundColor DarkRed
+            }
+        }
     }
+    Remove-Item $ErrLog -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host ""
