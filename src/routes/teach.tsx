@@ -48,9 +48,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 
-import { Switch } from "@/components/ui/switch";
-import { ACTIVE_CLASS_LABEL, ACTIVE_CLASS_LEVELS, UPCOMING_CLASS_LABEL, classLabel } from "@/lib/classes";
-import { soundFx } from "@/lib/sound-effects";
+import {
+  ACTIVE_CLASS_LABEL,
+  ACTIVE_CLASS_LEVELS,
+  getAllActiveClasses,
+  saveCustomClass,
+  classOrdinalLabel,
+  classLabel,
+} from "@/lib/classes";
 import {
   Sparkles,
   Wand2,
@@ -82,6 +87,7 @@ import {
   X,
   ListFilter,
   ChevronRight,
+  GraduationCap,
 } from "lucide-react";
 import { 
   formatScheduleDate, 
@@ -341,6 +347,32 @@ function TeachPage() {
       map[c.id] = nextState;
     });
     setCollapsedChapters(map);
+  };
+
+  const dbClassLevels = useMemo(
+    () => (data?.subjects ?? []).map((s) => s.class_level).filter(Boolean),
+    [data?.subjects],
+  );
+  const [extraClasses, setExtraClasses] = useState<number[]>([]);
+  const availableClassLevels = useMemo(
+    () => getAllActiveClasses([...dbClassLevels, ...extraClasses]),
+    [dbClassLevels, extraClasses],
+  );
+
+  const [addClassDialogOpen, setAddClassDialogOpen] = useState(false);
+  const [newClassInput, setNewClassInput] = useState("");
+
+  const handleAddNewClass = (val: string) => {
+    const num = Math.round(Number(val));
+    if (isNaN(num) || num <= 0) {
+      toast.error("Please enter a valid class number (e.g. 5, 6, 7, 8)");
+      return;
+    }
+    saveCustomClass(num);
+    setExtraClasses((prev) => Array.from(new Set([...prev, num])).sort((a, b) => a - b));
+    setNewClassInput("");
+    setAddClassDialogOpen(false);
+    toast.success(`Class ${num} added! You can now create subjects and content for Class ${num}.`);
   };
 
   const [newLessonClass, setNewLessonClass] = useState<number>(9);
@@ -610,6 +642,27 @@ function TeachPage() {
                 </Button>
               </CardHeader>
               <CardContent className="pt-4">
+              {/* Platform Classes Quick Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl bg-secondary/40 border border-border/60 mb-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-bold text-foreground mr-1">Platform Classes:</span>
+                  {availableClassLevels.map((lvl) => (
+                    <Badge key={lvl} variant="secondary" className="rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                      {classOrdinalLabel(lvl)}
+                    </Badge>
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full text-xs font-bold h-7 gap-1"
+                  onClick={() => setAddClassDialogOpen(true)}
+                >
+                  <Plus className="size-3.5" /> Add New Class
+                </Button>
+              </div>
+
               <form
                 className="grid gap-3 sm:grid-cols-2"
                 onSubmit={(e) => {
@@ -622,7 +675,7 @@ function TeachPage() {
                         data: {
                           name: String(f.get("name") ?? ""),
                           slug: slugify(String(f.get("name") ?? "")),
-                          class_level: Number(f.get("class_level") ?? 10),
+                          class_level: Number(f.get("class_level") ?? 9),
                           description: String(f.get("description") ?? "") || null,
                           order_index: Number(f.get("order_index") ?? 1),
                           published: true,
@@ -638,15 +691,24 @@ function TeachPage() {
                   <Input name="name" required placeholder="e.g. Science" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Class</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Class</Label>
+                    <button
+                      type="button"
+                      onClick={() => setAddClassDialogOpen(true)}
+                      className="text-[11px] font-bold text-primary hover:underline"
+                    >
+                      + Add new class
+                    </button>
+                  </div>
                   <select
                     name="class_level"
-                    defaultValue={10}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    defaultValue={availableClassLevels[0] ?? 9}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                    {availableClassLevels.map((lvl) => (
                       <option key={lvl} value={lvl}>
-                        {classLabel(lvl)}
+                        {classOrdinalLabel(lvl)}
                       </option>
                     ))}
                   </select>
@@ -670,7 +732,7 @@ function TeachPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="font-medium">{s.name}</span>{" "}
-                        <Badge variant="secondary">{classLabel(s.class_level)}</Badge>
+                        <Badge variant="secondary">{classOrdinalLabel(s.class_level)}</Badge>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -722,11 +784,11 @@ function TeachPage() {
                           <select
                             name="class_level"
                             defaultValue={s.class_level}
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                           >
-                            {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                            {availableClassLevels.map((lvl) => (
                               <option key={lvl} value={lvl}>
-                                {classLabel(lvl)}
+                                {classOrdinalLabel(lvl)}
                               </option>
                             ))}
                           </select>
@@ -819,9 +881,9 @@ function TeachPage() {
                     }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                    {availableClassLevels.map((lvl) => (
                       <option key={lvl} value={lvl}>
-                        {classLabel(lvl)}
+                        {classOrdinalLabel(lvl)}
                       </option>
                     ))}
                   </select>
@@ -1009,9 +1071,9 @@ function TeachPage() {
                     }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                    {availableClassLevels.map((lvl) => (
                       <option key={lvl} value={lvl}>
-                        {classLabel(lvl)}
+                        {classOrdinalLabel(lvl)}
                       </option>
                     ))}
                   </select>
@@ -1343,7 +1405,7 @@ function TeachPage() {
                 >
                   All Classes
                 </button>
-                {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                {availableClassLevels.map((lvl) => (
                   <button
                     key={lvl}
                     type="button"
@@ -1359,7 +1421,7 @@ function TeachPage() {
                         : "bg-secondary text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {classLabel(lvl)}
+                    {classOrdinalLabel(lvl)}
                   </button>
                 ))}
               </div>
@@ -2030,9 +2092,9 @@ function TeachPage() {
                     }}
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm font-semibold"
                   >
-                    {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                    {availableClassLevels.map((lvl) => (
                       <option key={lvl} value={lvl}>
-                        {classLabel(lvl)}
+                        {classOrdinalLabel(lvl)}
                       </option>
                     ))}
                   </select>
@@ -2845,7 +2907,7 @@ function TeachPage() {
                   >
                     All Classes
                   </button>
-                  {ACTIVE_CLASS_LEVELS.map((lvl) => (
+                  {availableClassLevels.map((lvl) => (
                     <button
                       key={lvl}
                       type="button"
@@ -2860,7 +2922,7 @@ function TeachPage() {
                           : "bg-secondary text-muted-foreground hover:text-foreground",
                       )}
                     >
-                      {classLabel(lvl)}
+                      {classOrdinalLabel(lvl)}
                     </button>
                   ))}
                 </div>
@@ -3701,6 +3763,51 @@ function TeachPage() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Class Modal */}
+      <Dialog open={addClassDialogOpen} onOpenChange={setAddClassDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-display text-xl">
+              <GraduationCap className="size-5 text-primary" />
+              Add New Class Level
+            </DialogTitle>
+            <DialogDescription>
+              Add a new class (e.g. Class 5, 6, 7, 8) to create subjects, chapters, audio lectures, and quizzes for it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Class Number (Grade Level)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={15}
+                placeholder="e.g. 5, 6, 7, 8"
+                value={newClassInput}
+                onChange={(e) => setNewClassInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddNewClass(newClassInput);
+                  }
+                }}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Enter numeric grade (e.g. 8 for Class 8th). It will immediately become available in all dropdowns and filters.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="ghost" onClick={() => setAddClassDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="button" onClick={() => handleAddNewClass(newClassInput)}>
+                Save &amp; Add Class
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

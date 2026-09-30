@@ -12,6 +12,7 @@ import {
   Sparkles,
   Trophy,
   CheckCircle2,
+  Check,
   Play,
   Pause,
   GraduationCap,
@@ -31,7 +32,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { CLASS_RANGE_LABEL } from "@/lib/classes";
+import { useActiveClass } from "@/hooks/use-active-class";
+import { CLASS_RANGE_LABEL, DEFAULT_CLASS_LEVEL, getAllActiveClasses, classOrdinalLabel, classLabel } from "@/lib/classes";
 import { cn } from "@/lib/utils";
 import { resolveMediaUrl } from "@/lib/storage";
 
@@ -299,133 +301,74 @@ type FilterCategory =
 function Home() {
   const { data: subjects } = useSuspenseQuery(catalogQuery);
   const { user } = useAuth();
+  const { activeClass, switchClass, classLabel } = useActiveClass();
 
-  const [selectedFilter, setSelectedFilter] = useState<FilterCategory>("Science");
+  const availableClasses = useMemo(() => {
+    const dbClasses = subjects.map((s) => s.class_level).filter(Boolean);
+    return getAllActiveClasses(dbClasses);
+  }, [subjects]);
 
-  // Flatten chapters and attach proper parent subject + sub-discipline metadata
-  const allChapters = subjects.flatMap((sub) => {
-    return sub.chapters.map((chap) => {
-      const slugKey = chap.slug.toLowerCase().trim();
-      const detectedCat = detectSubjectCategory(chap.slug, chap.title, sub.name, chap.description);
-      const meta = CHAPTER_MARKETING[slugKey] ?? {
-        subjectCategory: detectedCat,
-        hook: "Concept clarity without rote memorization.",
-        outcome: "Master core principles with real-life intuition and instant MCQ testing.",
-      };
-      return {
-        ...chap,
-        parentSubjectName: sub.name,
-        subjectCategory: meta.subjectCategory || detectedCat,
-        hook: meta.hook,
-        outcome: meta.outcome,
-      };
-    });
-  });
+  const [selectedClass, setSelectedClass] = useState<number>(() => activeClass || DEFAULT_CLASS_LEVEL);
 
-  const filteredChapters = allChapters.filter((c) => {
-    if (selectedFilter === "All") return true;
-    if (selectedFilter === "Science") {
-      return (
-        (c.parentSubjectName.toLowerCase().includes("science") &&
-          !c.parentSubjectName.toLowerCase().includes("social")) ||
-        ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)
-      );
+  // Sync if activeClass changes
+  useEffect(() => {
+    if (activeClass && activeClass !== selectedClass) {
+      setSelectedClass(activeClass);
     }
-    if (selectedFilter === "Mathematics") {
-      return (
-        c.parentSubjectName.toLowerCase().includes("math") ||
-        c.subjectCategory === "Mathematics"
-      );
-    }
-    if (selectedFilter === "Social Science") {
-      return (
-        c.parentSubjectName.toLowerCase().includes("social") ||
-        c.subjectCategory === "Social Science"
-      );
-    }
-    return c.subjectCategory === selectedFilter;
-  });
+  }, [activeClass]);
 
-  const counts = {
-    All: allChapters.length,
-    Science: allChapters.filter(
-      (c) =>
-        (c.parentSubjectName.toLowerCase().includes("science") &&
-          !c.parentSubjectName.toLowerCase().includes("social")) ||
-        ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory),
-    ).length,
-    Physics: allChapters.filter((c) => c.subjectCategory === "Physics").length,
-    Chemistry: allChapters.filter((c) => c.subjectCategory === "Chemistry").length,
-    Biology: allChapters.filter((c) => c.subjectCategory === "Biology").length,
-    Mathematics: allChapters.filter(
-      (c) =>
-        c.parentSubjectName.toLowerCase().includes("math") ||
-        c.subjectCategory === "Mathematics",
-    ).length,
-    SocialScience: allChapters.filter(
-      (c) =>
-        c.parentSubjectName.toLowerCase().includes("social") ||
-        c.subjectCategory === "Social Science",
-    ).length,
+  const handleSelectClass = (cls: number) => {
+    setSelectedClass(cls);
+    void switchClass(cls);
   };
 
+  const classSubjects = useMemo(() => {
+    return subjects.filter((s) => s.class_level === selectedClass);
+  }, [subjects, selectedClass]);
+
+  // Flatten chapters for the currently selected class
+  const classChapters = useMemo(() => {
+    return classSubjects.flatMap((sub) => {
+      return sub.chapters.map((chap) => {
+        const slugKey = chap.slug.toLowerCase().trim();
+        const detectedCat = detectSubjectCategory(chap.slug, chap.title, sub.name, chap.description);
+        const meta = CHAPTER_MARKETING[slugKey] ?? {
+          subjectCategory: detectedCat,
+          hook: "Concept clarity without rote memorization.",
+          outcome: "Master core principles with real-life intuition and instant MCQ testing.",
+        };
+        return {
+          ...chap,
+          parentSubjectName: sub.name,
+          subjectCategory: meta.subjectCategory || detectedCat,
+          hook: meta.hook,
+          outcome: meta.outcome,
+        };
+      });
+    });
+  }, [classSubjects]);
+
+  // Overall catalog chapters (for stats/count)
+  const allChapters = useMemo(() => {
+    return subjects.flatMap((s) => s.chapters);
+  }, [subjects]);
+
   const spotlightChapters = useMemo(() => {
-    const scienceChap =
-      allChapters.find(
-        (c) =>
-          c.slug.includes("journey-inside-the-atom") ||
-          c.slug.includes("describing-motion") ||
-          c.slug.includes("atomic-foundations"),
-      ) ??
-      allChapters.find((c) => ["Physics", "Chemistry", "Biology"].includes(c.subjectCategory)) ??
-      allChapters[0];
+    if (classChapters.length === 0) return [];
+    const sample = classChapters.slice(0, 3);
+    const icons = [Atom, Calculator, Globe];
+    const badges = [
+      "🧠 High-Yield · Exam Favourite",
+      "📐 Core Foundation · Essential Concept",
+      "🌍 Crucial Concept · Scoring Topic",
+    ];
 
-    const mathChap =
-      allChapters.find(
-        (c) =>
-          c.slug.includes("polynomials") ||
-          c.slug.includes("numbers") ||
-          c.slug.includes("algebraic"),
-      ) ??
-      allChapters.find((c) => c.subjectCategory === "Mathematics") ??
-      allChapters[1];
-
-    const sstChap =
-      allChapters.find(
-        (c) =>
-          c.slug.includes("democracy") ||
-          c.slug.includes("climate") ||
-          c.slug.includes("elections"),
-      ) ??
-      allChapters.find((c) => c.subjectCategory === "Social Science") ??
-      allChapters[2];
-
-    return [
-      scienceChap
-        ? {
-            ...scienceChap,
-            badge: "🧠 High-Yield Science · Exam Favourite",
-            icon: Atom,
-          }
-        : null,
-      mathChap
-        ? {
-            ...mathChap,
-            badge: "📐 Core Foundation · Essential Concept",
-            icon: Calculator,
-          }
-        : null,
-      sstChap
-        ? {
-            ...sstChap,
-            badge: "🌍 Crucial Concept · Board Scoring",
-            icon: Globe,
-          }
-        : null,
-    ].filter(Boolean) as Array<
-      (typeof allChapters)[0] & { badge: string; icon: typeof Atom }
-    >;
-  }, [allChapters]);
+    return sample.map((chap, idx) => ({
+      ...chap,
+      badge: badges[idx % badges.length],
+      icon: icons[idx % icons.length],
+    }));
+  }, [classChapters]);
 
   return (
     <div className="space-y-16 sm:space-y-24 pb-20">
@@ -444,11 +387,11 @@ function Home() {
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-12 md:items-center">
           <div className="space-y-6 md:col-span-7">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-              <Sparkles className="size-3.5" /> Class 9th Live Now · Class 10th, 11th &amp; 12th Coming Soon
+              <Sparkles className="size-3.5" /> Class 9, 10, 11, 12 &amp; Beyond · Complete Concept Learning
             </span>
 
             <h1 className="text-4xl font-extrabold leading-[1.08] text-foreground sm:text-5xl md:text-6xl tracking-tight">
-              Learn Class 9–12 Science{" "}
+              Learn Class 9–12 Science &amp; Maths{" "}
               <span className="text-primary underline decoration-primary/30 decoration-wavy underline-offset-8">
                 with your ears.
               </span>
@@ -807,7 +750,7 @@ function Home() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Curated Curriculum Library · Class 9th Live Now
+              Curated Curriculum Library · {classOrdinalLabel(selectedClass)}
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               Start with a chapter
@@ -817,158 +760,194 @@ function Home() {
             </p>
           </div>
           <Button asChild className="rounded-full self-start sm:self-auto text-xs font-bold gap-1.5 shadow-xs">
-            <Link to="/learn">
+            <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
               Browse all {allChapters.length} chapters <ArrowRight className="size-3.5" />
             </Link>
           </Button>
         </div>
 
-        {/* 3 Subject Overview Cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Link to="/learn" className="group block">
-            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-primary/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Atom className="size-5" />
-                  </div>
-                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
-                    {counts.Science} Chapters
-                  </Badge>
-                </div>
-                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-                  Class 9 Science
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Physics, Chemistry & Biology with story-driven audio lectures and visual notes.
-                </p>
-              </div>
-              <div className="flex items-center text-xs font-bold text-primary gap-1 pt-2 border-t border-border/40">
-                <span>Explore Science Syllabus</span>
-                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </Card>
-          </Link>
-
-          <Link to="/learn" className="group block">
-            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-blue-500/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    <Calculator className="size-5" />
-                  </div>
-                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
-                    {counts.Mathematics} Chapters
-                  </Badge>
-                </div>
-                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-blue-500 transition-colors">
-                  Class 9 Mathematics
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  Number Systems, Polynomials, Coordinate Geometry and intuitive formulas.
-                </p>
-              </div>
-              <div className="flex items-center text-xs font-bold text-blue-600 dark:text-blue-400 gap-1 pt-2 border-t border-border/40">
-                <span>Explore Math Syllabus</span>
-                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </Card>
-          </Link>
-
-          <Link to="/learn" className="group block">
-            <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-amber-500/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                    <Globe className="size-5" />
-                  </div>
-                  <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
-                    {counts.SocialScience} Chapters
-                  </Badge>
-                </div>
-                <h3 className="font-display text-lg font-bold text-foreground group-hover:text-amber-500 transition-colors">
-                  Class 9 Social Science
-                </h3>
-                <p className="text-xs text-muted-foreground">
-                  History, Geography, Civics & Economics concepts simplified for board mastery.
-                </p>
-              </div>
-              <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 gap-1 pt-2 border-t border-border/40">
-                <span>Explore SST Syllabus</span>
-                <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Featured Spotlight Chapters */}
-        <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sparkles className="size-3.5 text-primary" /> Today's Featured Chapters
-            </span>
-            <Link to="/learn" className="text-xs font-bold text-primary hover:underline">
-              View all {allChapters.length} chapters →
-            </Link>
+        {/* Interactive Class Selector Tabs */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-3xl bg-secondary/50 border border-border/70 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0">
+              <GraduationCap className="size-4.5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-foreground">Select Class to Preview:</p>
+              <p className="text-[11px] text-muted-foreground">Browse subjects and sample lectures for any grade</p>
+            </div>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            {spotlightChapters.map((chapter) => {
-              const Icon = chapter.icon;
+          <div className="flex flex-wrap items-center gap-1.5">
+            {availableClasses.map((cls) => {
+              const isSelected = selectedClass === cls;
               return (
-                <Link key={chapter.id} to="/learn/$slug" params={{ slug: chapter.slug }} className="group block h-full">
-                  <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-5 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all">
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
-                          <Icon className="size-3" />
-                          <span>{chapter.subjectCategory}</span>
-                        </span>
-                        <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
-                          {chapter.badge}
-                        </span>
-                      </div>
-
-                      <h3 className="font-display text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
-                        {chapter.title}
-                      </h3>
-
-                      <div className="space-y-1 text-xs">
-                        <p className="font-bold text-foreground/90 leading-normal">
-                          {chapter.hook}
-                        </p>
-                        <p className="text-muted-foreground leading-relaxed line-clamp-2">
-                          {chapter.outcome}
-                        </p>
-                      </div>
-
-                      {/* Included Lecture Preview */}
-                      {chapter.lessons && chapter.lessons[0] && (
-                        <div className="rounded-xl bg-secondary/60 p-2 text-[11px] flex items-center gap-2 border border-border/50">
-                          <div className="flex size-5 items-center justify-center rounded-full bg-primary/20 text-primary shrink-0">
-                            <Headphones className="size-3" />
-                          </div>
-                          <span className="font-medium text-foreground truncate">
-                            {chapter.lessons[0].title}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span className="flex items-center gap-1 text-primary font-bold">
-                        <Headphones className="size-3.5" /> {chapter.lessonCount || 1} {chapter.lessonCount === 1 ? "Audio Lecture" : "Audio Lectures"}
-                      </span>
-                      <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
-                        Start Chapter <ArrowRight className="size-3" />
-                      </span>
-                    </div>
-                  </Card>
-                </Link>
+                <button
+                  key={cls}
+                  type="button"
+                  onClick={() => handleSelectClass(cls)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer",
+                    isSelected
+                      ? "bg-primary text-primary-foreground scale-105 shadow-sm font-extrabold"
+                      : "bg-card text-muted-foreground hover:text-foreground hover:bg-muted border border-border/60",
+                  )}
+                >
+                  <span>{classOrdinalLabel(cls)}</span>
+                  {isSelected && <Check className="size-3 text-primary-foreground shrink-0" />}
+                </button>
               );
             })}
           </div>
         </div>
+
+        {/* Dynamic Subject Overview Cards for Selected Class */}
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {classSubjects.map((sub) => {
+            const isMath = sub.name.toLowerCase().includes("math");
+            const isSst = sub.name.toLowerCase().includes("social") || sub.name.toLowerCase().includes("history");
+            const Icon = isMath ? Calculator : isSst ? Globe : Atom;
+            const colorClass = isMath
+              ? "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/30"
+              : isSst
+                ? "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30"
+                : "text-primary bg-primary/10 border-primary/30";
+
+            return (
+              <Link
+                key={sub.id}
+                to="/learn"
+                search={{ subject: sub.id }}
+                onClick={() => handleSelectClass(selectedClass)}
+                className="group block h-full"
+              >
+                <Card className="rounded-3xl border-border/70 p-5 bg-card hover:border-primary/50 transition-all hover:shadow-md h-full flex flex-col justify-between space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className={cn("flex size-10 items-center justify-center rounded-2xl", colorClass)}>
+                        <Icon className="size-5" />
+                      </div>
+                      <Badge variant="secondary" className="rounded-full font-bold text-[11px]">
+                        {sub.chapters.length} Chapters
+                      </Badge>
+                    </div>
+                    <h3 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                      {sub.name}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {sub.description ||
+                        `Audio lectures, visual notes, and tests designed for ${classOrdinalLabel(selectedClass)}.`}
+                    </p>
+                  </div>
+                  <div className="flex items-center text-xs font-bold text-primary gap-1 pt-2 border-t border-border/40">
+                    <span>Explore {sub.name} Syllabus</span>
+                    <ChevronRight className="size-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+
+        {classSubjects.length === 0 && (
+          <Card className="rounded-3xl border-border/70 p-8 text-center bg-card/60 space-y-3">
+            <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary mx-auto">
+              <GraduationCap className="size-6" />
+            </div>
+            <h3 className="font-display text-base font-bold text-foreground">
+              Curriculum for {classOrdinalLabel(selectedClass)} is rolling out
+            </h3>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              New subjects and lectures are being uploaded for this grade. Browse our current catalog or check back soon!
+            </p>
+            <Button asChild size="sm" className="rounded-full">
+              <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
+                Browse Curriculum Explorer <ArrowRight className="size-3.5 ml-1.5" />
+              </Link>
+            </Button>
+          </Card>
+        )}
+
+        {/* Featured Spotlight Chapters for Selected Class */}
+        {spotlightChapters.length > 0 && (
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Sparkles className="size-3.5 text-primary" /> {classOrdinalLabel(selectedClass)} Sample Chapters
+              </span>
+              <Link
+                to="/learn"
+                onClick={() => handleSelectClass(selectedClass)}
+                className="text-xs font-bold text-primary hover:underline"
+              >
+                View all in {classOrdinalLabel(selectedClass)} →
+              </Link>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {spotlightChapters.map((chapter) => {
+                const Icon = chapter.icon;
+                return (
+                  <Link
+                    key={chapter.id}
+                    to="/learn/$slug"
+                    params={{ slug: chapter.slug }}
+                    onClick={() => handleSelectClass(selectedClass)}
+                    className="group block h-full"
+                  >
+                    <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-5 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
+                            <Icon className="size-3" />
+                            <span>{chapter.subjectCategory}</span>
+                          </span>
+                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                            {chapter.badge}
+                          </span>
+                        </div>
+
+                        <h3 className="font-display text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
+                          {chapter.title}
+                        </h3>
+
+                        <div className="space-y-1 text-xs">
+                          <p className="font-bold text-foreground/90 leading-normal">
+                            {chapter.hook}
+                          </p>
+                          <p className="text-muted-foreground leading-relaxed line-clamp-2">
+                            {chapter.outcome}
+                          </p>
+                        </div>
+
+                        {/* Included Lecture Preview */}
+                        {chapter.lessons && chapter.lessons[0] && (
+                          <div className="rounded-xl bg-secondary/60 p-2 text-[11px] flex items-center gap-2 border border-border/50">
+                            <div className="flex size-5 items-center justify-center rounded-full bg-primary/20 text-primary shrink-0">
+                              <Headphones className="size-3" />
+                            </div>
+                            <span className="font-medium text-foreground truncate">
+                              {chapter.lessons[0].title}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
+                        <span className="flex items-center gap-1 text-primary font-bold">
+                          <Headphones className="size-3.5" /> {chapter.lessonCount || 1}{" "}
+                          {chapter.lessonCount === 1 ? "Audio Lecture" : "Audio Lectures"}
+                        </span>
+                        <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
+                          Start Chapter <ArrowRight className="size-3" />
+                        </span>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Bottom Full-Width Explorer Banner */}
         <Card className="rounded-3xl border-border/70 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
@@ -981,7 +960,7 @@ function Home() {
             </p>
           </div>
           <Button asChild size="lg" className="rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 shrink-0 gap-2">
-            <Link to="/learn">
+            <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
               Open Curriculum Explorer <ArrowRight className="size-4" />
             </Link>
           </Button>

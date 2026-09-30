@@ -76,6 +76,11 @@ export function ClassSwitcher({ className, size = "sm", showLabel = true }: Clas
                     Physics
                   </span>
                 )}
+                {classNum !== 9 && classNum !== 10 && classNum !== 11 && classNum !== 12 && (
+                  <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    Active
+                  </span>
+                )}
               </div>
               {isSelected && <Check className="size-3.5 text-primary shrink-0" />}
             </DropdownMenuItem>

@@ -64,6 +64,7 @@ export const Route = createFileRoute("/dashboard")({
 
 function DashboardPage() {
   const { user, profile, loading } = useAuth();
+  const { activeClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchDashboard = useServerFn(getDashboard);
@@ -81,8 +82,8 @@ function DashboardPage() {
   }, [loading, user, navigate]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", user?.id],
-    queryFn: () => fetchDashboard(),
+    queryKey: ["dashboard", user?.id, activeClass],
+    queryFn: () => fetchDashboard({ data: { classLevel: activeClass } }),
     enabled: Boolean(user),
   });
 
@@ -108,34 +109,38 @@ function DashboardPage() {
     }
   }
 
+  const dynamicTabs = useMemo(() => {
+    const list = data?.chapterProgress ?? [];
+    const tabs: Array<{ key: string; label: string; count: number }> = [
+      { key: "all", label: "All", count: list.length },
+      { key: "in-progress", label: "🔥 In Progress", count: list.filter((c) => c.percent > 0 && c.percent < 100).length },
+    ];
+
+    const completedCount = list.filter((c) => c.percent === 100).length;
+    if (completedCount > 0) {
+      tabs.push({ key: "completed", label: "✅ Done", count: completedCount });
+    }
+
+    (data?.subjects ?? []).forEach((s: any) => {
+      const count = list.filter((c) => c.subjectId === s.id || c.subjectName === s.name).length;
+      if (count > 0) {
+        tabs.push({
+          key: s.id,
+          label: s.name,
+          count,
+        });
+      }
+    });
+
+    return tabs;
+  }, [data?.chapterProgress, data?.subjects]);
+
   const filteredProgress = useMemo(() => {
     const list = data?.chapterProgress ?? [];
     if (subjectFilter === "all") return list;
     if (subjectFilter === "in-progress") return list.filter((c) => c.percent > 0 && c.percent < 100);
     if (subjectFilter === "completed") return list.filter((c) => c.percent === 100);
-    if (subjectFilter === "science") {
-      return list.filter(
-        (c) =>
-          c.subjectCategory === "Physics" ||
-          c.subjectCategory === "Chemistry" ||
-          c.subjectCategory === "Biology" ||
-          c.subjectName?.toLowerCase().includes("science"),
-      );
-    }
-    if (subjectFilter === "math") {
-      return list.filter(
-        (c) =>
-          c.subjectCategory === "Mathematics" || c.subjectName?.toLowerCase().includes("math"),
-      );
-    }
-    if (subjectFilter === "social") {
-      return list.filter(
-        (c) =>
-          c.subjectCategory === "Social Science" ||
-          c.subjectName?.toLowerCase().includes("social"),
-      );
-    }
-    return list;
+    return list.filter((c) => c.subjectId === subjectFilter || c.subjectName === subjectFilter);
   }, [data?.chapterProgress, subjectFilter]);
 
   if (!user || isLoading || !data) {
@@ -145,27 +150,6 @@ function DashboardPage() {
   const xp = profile?.total_xp ?? data.profile?.total_xp ?? 0;
   const currentGoal = profile?.goal ?? data.profile?.goal ?? null;
   const lvl = levelProgress(xp);
-
-  const filterCounts = {
-    all: data.chapterProgress.length,
-    inProgress: data.chapterProgress.filter((c) => c.percent > 0 && c.percent < 100).length,
-    science: data.chapterProgress.filter(
-      (c) =>
-        c.subjectCategory === "Physics" ||
-        c.subjectCategory === "Chemistry" ||
-        c.subjectCategory === "Biology" ||
-        c.subjectName?.toLowerCase().includes("science"),
-    ).length,
-    math: data.chapterProgress.filter(
-      (c) =>
-        c.subjectCategory === "Mathematics" || c.subjectName?.toLowerCase().includes("math"),
-    ).length,
-    social: data.chapterProgress.filter(
-      (c) =>
-        c.subjectCategory === "Social Science" ||
-        c.subjectName?.toLowerCase().includes("social"),
-    ).length,
-  };
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10 space-y-6 min-w-0 overflow-x-hidden">
@@ -249,12 +233,22 @@ function DashboardPage() {
         <CardContent className="space-y-2">
           <Progress value={lvl.percent} className="h-3" />
           <p className="text-xs sm:text-sm text-muted-foreground">{lvl.toNext} XP to level {lvl.level + 1}</p>
-          {data.nextChapter && (
+          {data.nextChapter ? (
             <div className="pt-2">
               <Button asChild className="rounded-full w-full sm:w-auto h-auto py-2.5 px-4 text-xs sm:text-sm font-semibold whitespace-normal text-left">
                 <Link to="/learn/$slug" params={{ slug: data.nextChapter.slug }} className="flex items-center gap-1.5">
-                  <span className="break-words line-clamp-1">Continue: {data.nextChapter.title}</span>
+                  <span className="break-words line-clamp-1">
+                    Continue: {data.nextChapter.title} ({data.nextChapter.subjectName})
+                  </span>
                   <ArrowRight className="size-3.5 shrink-0" />
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <Button asChild variant="outline" className="rounded-full w-full sm:w-auto text-xs sm:text-sm font-semibold">
+                <Link to="/learn">
+                  Explore {classLabel(activeClass)} Curriculum <ArrowRight className="size-3.5 ml-1.5" />
                 </Link>
               </Button>
             </div>
@@ -263,19 +257,16 @@ function DashboardPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2 min-w-0">
-        {/* Chapter Progress with Subject & In-Progress Filters */}
+        {/* Chapter Progress with Dynamic Subject Filters */}
         <Card className="rounded-3xl border-border/80 shadow-sm min-w-0 overflow-hidden flex flex-col justify-between">
           <div>
             <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <CardTitle className="font-display text-lg">Chapter progress</CardTitle>
+              <div>
+                <CardTitle className="font-display text-lg">Chapter progress</CardTitle>
+                <p className="text-xs text-muted-foreground">{classLabel(activeClass)}</p>
+              </div>
               <div className="flex flex-wrap items-center gap-1">
-                {[
-                  { key: "all", label: "All", count: filterCounts.all },
-                  { key: "in-progress", label: "🔥 In Progress", count: filterCounts.inProgress },
-                  { key: "science", label: "🔬 Science", count: filterCounts.science },
-                  { key: "math", label: "📐 Math", count: filterCounts.math },
-                  { key: "social", label: "🌍 SST", count: filterCounts.social },
-                ].map((tab) => (
+                {dynamicTabs.map((tab) => (
                   <button
                     key={tab.key}
                     type="button"

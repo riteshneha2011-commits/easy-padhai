@@ -148,8 +148,18 @@ function LearnIndex() {
       const raw = localStorage.getItem("easypadhai_last_study");
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Valid if within last 30 days and has slug & lessonId
-        if (parsed?.slug && parsed?.lessonId && Date.now() - (parsed.updatedAt || 0) < 30 * 86400 * 1000) {
+        // Valid if within last 30 days, has slug & lessonId, and belongs strictly to activeClass
+        const matchesClass = parsed?.classLevel ? parsed.classLevel === activeClass : true;
+        const existsInClass = classSubjects.some((s) =>
+          s.chapters?.some((c) => c.slug === parsed?.slug || c.id === parsed?.chapterId),
+        );
+        if (
+          matchesClass &&
+          existsInClass &&
+          parsed?.slug &&
+          parsed?.lessonId &&
+          Date.now() - (parsed.updatedAt || 0) < 30 * 86400 * 1000
+        ) {
           setLastStudy(parsed);
 
           // If launched in PWA standalone mode (app icon on phone screen)
@@ -166,12 +176,17 @@ function LearnIndex() {
               search: { lesson: parsed.lessonId } as any,
             });
           }
+        } else {
+          setLastStudy(null);
         }
+      } else {
+        setLastStudy(null);
       }
     } catch (e) {
       console.warn("[LearnIndex] Could not parse last study record:", e);
+      setLastStudy(null);
     }
-  }, [navigate]);
+  }, [navigate, activeClass, classSubjects]);
 
   // When active class changes, load the saved subject for that class
   useEffect(() => {

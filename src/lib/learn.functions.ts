@@ -2,9 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { completeLessonFor, getChapterProgressFor, getDashboardFor, getUserCompletedLessonsFor } from "./learn.server";
 
-export const getDashboard = createServerFn({ method: "GET" })
+export const getDashboard = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => getDashboardFor(context.userId));
+  .inputValidator((data?: { classLevel?: number }) => data)
+  .handler(async ({ data, context }) => getDashboardFor(context.userId, data?.classLevel));
 
 export const completeLesson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

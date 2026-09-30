@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getMyProfile, saveMyProfile } from "@/lib/profile.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { useActiveClass } from "@/hooks/use-active-class";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ALL_CLASS_LEVELS, DEFAULT_CLASS_LEVEL, isClassActive, normalizeClassLevel } from "@/lib/classes";
+import { DEFAULT_CLASS_LEVEL, isClassActive, normalizeClassLevel, classOrdinalLabel } from "@/lib/classes";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
@@ -66,6 +67,7 @@ const EMPTY: FormState = {
 
 function OnboardingPage() {
   const { user, loading, refresh } = useAuth();
+  const { allClasses, classLabel } = useActiveClass();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
@@ -112,12 +114,13 @@ function OnboardingPage() {
       return toast.error("Please enter a valid mobile number");
 
     setSaving(true);
+    const targetClass = normalizeClassLevel(form.class_level);
     try {
       await save({
         data: {
           full_name: form.full_name,
           phone: form.phone,
-          class_level: normalizeClassLevel(form.class_level),
+          class_level: targetClass,
           guardian_phone: form.guardian_phone,
           school_name: form.school_name,
           city: form.city,
@@ -129,10 +132,19 @@ function OnboardingPage() {
           goal: form.goal,
         },
       });
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("easy-padhai-active-class", String(targetClass));
+          window.dispatchEvent(new Event("easy-padhai-class-changed"));
+        } catch {
+          // ignore
+        }
+      }
       await qc.invalidateQueries({ queryKey: ["my-profile"] });
+      await qc.invalidateQueries({ queryKey: ["dashboard"] });
       await refresh();
       toast.success("Profile saved — happy learning! 🎉");
-      navigate({ to: "/learn" });
+      navigate({ to: "/dashboard" });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save your details");
     } finally {
@@ -182,9 +194,9 @@ function OnboardingPage() {
                 onChange={(e) => set("class_level", e.target.value)}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
-                {ALL_CLASS_LEVELS.map((c) => (
+                {allClasses.map((c) => (
                   <option key={c} value={c}>
-                    Class {c}th
+                    Class {classOrdinalLabel(c)}
                   </option>
                 ))}
               </select>

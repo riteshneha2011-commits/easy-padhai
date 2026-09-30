@@ -146,10 +146,17 @@ function detectSubjectCategory(
   return "Physics";
 }
 
-export async function getDashboardFor(userId: string) {
-  const [profileRes, streakData, progressRes, attemptsRes, badgesRes, lessonsRes, chaptersRes, subjectsRes] =
+export async function getDashboardFor(userId: string, requestedClassLevel?: number) {
+  const profileRes = await supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle();
+  const profile = profileRes.data;
+
+  // Selected class priority: explicitly requested classLevel > profile.class_level > 9
+  const targetClass = requestedClassLevel && requestedClassLevel > 0
+    ? requestedClassLevel
+    : (profile?.class_level ?? 9);
+
+  const [streakData, progressRes, attemptsRes, badgesRes, subjectsRes] =
     await Promise.all([
-      supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle(),
       touchStreak(userId, 1),
       supabaseAdmin.from("lesson_progress").select("lesson_id, completed_at").eq("user_id", userId),
       supabaseAdmin
@@ -159,19 +166,41 @@ export async function getDashboardFor(userId: string) {
         .order("created_at", { ascending: false })
         .limit(10),
       supabaseAdmin.from("user_badges").select("badge_code, earned_at").eq("user_id", userId),
-      supabaseAdmin.from("lessons").select("id, title, chapter_id, kind").eq("published", true),
       supabaseAdmin
-        .from("chapters")
-        .select("id, slug, title, order_index, subject_id, description")
+        .from("subjects")
+        .select("id, name, slug, class_level")
         .eq("published", true)
+        .eq("class_level", targetClass)
         .order("order_index"),
-      supabaseAdmin.from("subjects").select("id, name, slug").eq("published", true),
     ]);
 
-  const done = new Set((progressRes.data ?? []).map((p) => p.lesson_id));
-  const lessons = lessonsRes.data ?? [];
-  const chapters = chaptersRes.data ?? [];
   const subjects = subjectsRes.data ?? [];
+  const subjectIds = subjects.map((s) => s.id);
+
+  let chapters: any[] = [];
+  let lessons: any[] = [];
+
+  if (subjectIds.length > 0) {
+    const chaptersRes = await supabaseAdmin
+      .from("chapters")
+      .select("id, slug, title, order_index, subject_id, description")
+      .eq("published", true)
+      .in("subject_id", subjectIds)
+      .order("order_index");
+    chapters = chaptersRes.data ?? [];
+
+    const chapterIds = chapters.map((c) => c.id);
+    if (chapterIds.length > 0) {
+      const lessonsRes = await supabaseAdmin
+        .from("lessons")
+        .select("id, title, chapter_id, kind")
+        .eq("published", true)
+        .in("chapter_id", chapterIds);
+      lessons = lessonsRes.data ?? [];
+    }
+  }
+
+  const done = new Set((progressRes.data ?? []).map((p) => p.lesson_id));
 
   const chapterProgress = chapters.map((chapter) => {
     const own = lessons.filter((l) => l.chapter_id === chapter.id);
@@ -213,10 +242,16 @@ export async function getDashboardFor(userId: string) {
 
   const { data: allBadges } = await supabaseAdmin.from("badges").select("*");
 
+  // Lessons completed strictly within this class
+  const classLessonIds = new Set(lessons.map((l) => l.id));
+  const classLessonsDone = (progressRes.data ?? []).filter((p) => classLessonIds.has(p.lesson_id)).length;
+
   return {
     profile: profileRes.data,
+    targetClass,
     streak: streakData,
-    lessonsCompleted: done.size,
+    lessonsCompleted: classLessonsDone,
+    totalLessonsCompleted: done.size,
     attempts: attemptsRes.data ?? [],
     badges: (badgesRes.data ?? []).map((b) => ({
       ...b,
@@ -225,6 +260,7 @@ export async function getDashboardFor(userId: string) {
     allBadges: allBadges ?? [],
     chapterProgress,
     nextChapter,
+    subjects,
     weakTopics: Object.entries(weakTopics)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4)
