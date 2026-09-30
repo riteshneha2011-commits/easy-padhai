@@ -1,0 +1,28 @@
+# Exclude binaries
+bin/
+
+# Exclude all media files in processing folders but keep the folders
+1_input_videos/*
+!1_input_videos/.gitkeep
+
+2_audio_for_dubbing/*
+!2_audio_for_dubbing/.gitkeep
+
+3_dubbed_audio_from_elevenlabs/*
+!3_dubbed_audio_from_elevenlabs/.gitkeep
+
+4_final_dubbed_videos/*
+!4_final_dubbed_videos/.gitkeep
+
+# Common media formats anywhere inside toolkit
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.mp3
+*.wav
+*.aac
+*.m4a
+*.flac
+*.ogg
