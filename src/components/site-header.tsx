@@ -259,70 +259,70 @@ export function SiteHeader() {
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
           />
 
-          {/* Sliding Panel */}
-          <aside className="relative z-50 flex h-full w-80 sm:w-96 flex-col bg-background/98 backdrop-blur-2xl border-r border-border/80 shadow-2xl p-5 overflow-y-auto animate-in slide-in-from-left duration-300 space-y-5">
+          {/* Sliding Panel: ~50-60% screen width on mobile so right half of screen stays visible */}
+          <aside className="relative z-50 flex h-full w-[60vw] max-w-[275px] sm:w-[50vw] sm:max-w-[340px] flex-col bg-background/98 backdrop-blur-2xl border-r border-border/80 shadow-2xl p-3.5 sm:p-5 overflow-y-auto animate-in slide-in-from-left duration-300 space-y-3.5 sm:space-y-4">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-border/60">
-              <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2.5">
+            <div className="flex items-center justify-between pb-2.5 border-b border-border/60">
+              <Link to="/" onClick={() => setOpen(false)} className="flex items-center gap-2 min-w-0">
                 <img
                   src={brandMark}
                   alt="Easy Padhai"
-                  className="size-8 rounded-xl object-contain shadow-sm"
+                  className="size-7 rounded-lg object-contain shadow-sm shrink-0"
                 />
-                <div>
-                  <h3 className="font-display text-base font-bold text-foreground">
+                <div className="min-w-0">
+                  <h3 className="font-display text-sm sm:text-base font-bold text-foreground truncate">
                     Easy Padhai
                   </h3>
-                  <p className="text-[10px] font-medium text-muted-foreground">Class 9–12 Audio Learning</p>
+                  <p className="text-[9px] font-medium text-muted-foreground truncate">Class 9–12 Learning</p>
                 </div>
               </Link>
               <button
                 onClick={() => setOpen(false)}
-                className="grid size-8 place-items-center rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                className="grid size-7 place-items-center rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors shrink-0"
                 aria-label="Close menu"
               >
-                <X className="size-5" />
+                <X className="size-4" />
               </button>
             </div>
 
             {/* Profile / Student Card */}
             {user ? (
-              <div className="rounded-2xl border border-border/80 bg-card p-4 space-y-3 shadow-xs">
+              <div className="rounded-xl border border-border/80 bg-card p-3 space-y-2.5 shadow-xs">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="grid size-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary font-bold text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-primary font-bold text-xs">
                       {profile?.full_name ? profile.full_name[0].toUpperCase() : "S"}
                     </div>
                     <div className="min-w-0">
                       <h4 className="text-xs font-bold text-foreground truncate">
                         {profile?.full_name || "Student"}
                       </h4>
-                      <p className="text-[10px] text-muted-foreground truncate">{profile?.phone || user.email}</p>
+                      <p className="text-[9px] text-muted-foreground truncate">{profile?.phone || user.email}</p>
                     </div>
                   </div>
-                  <ClassSwitcher />
+                  <ClassSwitcher size="sm" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-border/40">
                   <Link
                     to="/wallet"
                     onClick={() => setOpen(false)}
-                    className="flex flex-col rounded-xl bg-amber-500/10 p-2 text-center transition-colors hover:bg-amber-500/20"
+                    className="flex flex-col rounded-lg bg-amber-500/10 p-1.5 text-center transition-colors hover:bg-amber-500/20"
                   >
-                    <span className="text-[10px] font-semibold text-muted-foreground flex items-center justify-center gap-1">
-                      <Coins className="size-3 text-amber-500" /> Balance
+                    <span className="text-[9px] font-semibold text-muted-foreground flex items-center justify-center gap-1">
+                      <Coins className="size-2.5 text-amber-500" /> Balance
                     </span>
-                    <span className="text-xs font-extrabold text-amber-700 dark:text-amber-300">
-                      {wallet?.credits ?? profile?.credits ?? 0} Credits
+                    <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300 truncate">
+                      {wallet?.credits ?? profile?.credits ?? 0} Cr
                     </span>
                   </Link>
 
-                  <div className="flex flex-col rounded-xl bg-orange-500/10 p-2 text-center">
-                    <span className="text-[10px] font-semibold text-muted-foreground flex items-center justify-center gap-1">
-                      <Flame className="size-3 text-orange-500" /> Total XP
+                  <div className="flex flex-col rounded-lg bg-orange-500/10 p-1.5 text-center">
+                    <span className="text-[9px] font-semibold text-muted-foreground flex items-center justify-center gap-1">
+                      <Flame className="size-2.5 text-orange-500" /> XP
                     </span>
-                    <span className="text-xs font-extrabold text-orange-700 dark:text-orange-300">
-                      {wallet?.totalXp ?? profile?.total_xp ?? 0} XP
+                    <span className="text-[11px] font-extrabold text-orange-700 dark:text-orange-300 truncate">
+                      {wallet?.totalXp ?? profile?.total_xp ?? 0}
                     </span>
                   </div>
                 </div>
@@ -330,103 +330,103 @@ export function SiteHeader() {
                 <Link
                   to="/wallet"
                   onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/15 transition-colors"
+                  className="flex items-center justify-between rounded-lg bg-primary/10 px-2.5 py-1.5 text-[11px] font-bold text-primary hover:bg-primary/15 transition-colors"
                 >
-                  <span className="flex items-center gap-1.5">
-                    <Gift className="size-3.5" /> Refer Friends (+50 Coins)
+                  <span className="flex items-center gap-1">
+                    <Gift className="size-3" /> Refer (+50)
                   </span>
                   <span>→</span>
                 </Link>
               </div>
             ) : (
-              <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Gift className="size-4 text-emerald-600 dark:text-emerald-400" />
-                  <h4 className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                    100 Free Credits on Sign up
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Gift className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <h4 className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
+                    100 Free Credits
                   </h4>
                 </div>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Track your daily learning streaks, complete tests, and compete on the leaderboard.
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Sign up free for daily streaks, tests, and audio lessons.
                 </p>
-                <Button asChild size="sm" className="w-full rounded-xl shadow-glow font-bold text-xs h-8">
-                  <Link to="/auth" onClick={() => setOpen(false)}>Sign in / Create Account</Link>
+                <Button asChild size="sm" className="w-full rounded-lg shadow-glow font-bold text-[11px] h-7">
+                  <Link to="/auth" onClick={() => setOpen(false)}>Sign in / Join Free</Link>
                 </Button>
               </div>
             )}
 
             {/* Categorized Navigation */}
-            <div className="space-y-4 flex-1">
+            <div className="space-y-3 flex-1">
               {/* Academics */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2">
-                  Learning &amp; Curriculum
+              <div className="space-y-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground px-2">
+                  Curriculum &amp; Study
                 </span>
                 <Link
                   to="/learn"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/learn") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <BookOpen className="size-4 text-primary" />
-                  Browse Curriculum &amp; Chapters
+                  <BookOpen className="size-3.5 text-primary shrink-0" />
+                  <span className="truncate">Curriculum &amp; Chapters</span>
                 </Link>
                 <Link
                   to="/dashboard"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/dashboard") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <LayoutDashboard className="size-4 text-orange-500" />
-                  My Progress &amp; Streaks
+                  <LayoutDashboard className="size-3.5 text-orange-500 shrink-0" />
+                  <span className="truncate">My Progress &amp; Streaks</span>
                 </Link>
                 <Link
                   to="/revision"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/revision") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <RotateCcw className="size-4 text-indigo-500" />
-                  Revision Center &amp; Formulas
+                  <RotateCcw className="size-3.5 text-indigo-500 shrink-0" />
+                  <span className="truncate">Revision Center</span>
                 </Link>
                 <Link
                   to="/offline"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/offline") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <Download className="size-4 text-emerald-500" />
-                  Offline Downloads
+                  <Download className="size-3.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">Offline Downloads</span>
                 </Link>
                 <Link
                   to="/leaderboard"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/leaderboard") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <Trophy className="size-4 text-amber-500" />
-                  Leaderboard &amp; Badges
+                  <Trophy className="size-3.5 text-amber-500 shrink-0" />
+                  <span className="truncate">Leaderboard &amp; Badges</span>
                 </Link>
                 <Link
                   to="/about"
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    "flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-secondary",
                     pathname.startsWith("/about") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
                   )}
                 >
-                  <GraduationCap className="size-4 text-primary" />
-                  About Ritesh Sir &amp; Platform
+                  <GraduationCap className="size-3.5 text-primary shrink-0" />
+                  <span className="truncate">About Ritesh Sir</span>
                 </Link>
               </div>
 

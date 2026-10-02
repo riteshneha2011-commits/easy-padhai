@@ -105,30 +105,14 @@ function LearnIndex() {
 
   const isClassComingSoon = totalChaptersInClass === 0;
 
-  // Navigation & filter state
+  // Navigation & filter state: initialized deterministically so SSR and Client match exactly
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
-    if (targetSubjectFromUrl) return targetSubjectFromUrl.id;
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlSub = urlParams.get("subject");
-      if (urlSub) return urlSub;
-      const saved = localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
-      if (saved) return saved;
-    }
-    return "";
+    return targetSubjectFromUrl?.id || (classSubjects[0]?.id ?? "");
   });
   const [selectedChapterId, setSelectedChapterId] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlChap = urlParams.get("chapter");
-      if (urlChap) return urlChap;
-      const sub = targetSubjectFromUrl?.id || localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
-      if (sub) {
-        const savedChap = localStorage.getItem(`easypadhai_active_chapter_${sub}`);
-        if (savedChap) return savedChap;
-      }
-    }
-    return "";
+    if (searchParams?.chapter) return searchParams.chapter;
+    const sub = targetSubjectFromUrl || classSubjects[0];
+    return sub?.chapters[0]?.id ?? "";
   });
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");

@@ -35,16 +35,26 @@ export function useActiveClass() {
   }, [dbClasses, customClasses]);
 
   const [activeClass, setActiveClass] = useState<number>(() => {
-    if (typeof window === "undefined") return DEFAULT_CLASS_LEVEL;
-    try {
-      if (profile?.class_level) return normalizeClassLevel(profile.class_level);
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return normalizeClassLevel(saved);
-      return DEFAULT_CLASS_LEVEL;
-    } catch {
-      return DEFAULT_CLASS_LEVEL;
-    }
+    if (profile?.class_level) return normalizeClassLevel(profile.class_level);
+    return DEFAULT_CLASS_LEVEL;
   });
+
+  // Client-side initialization from localStorage after initial render to prevent SSR hydration mismatch
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (profile?.class_level) return;
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const norm = normalizeClassLevel(saved);
+        if (norm !== DEFAULT_CLASS_LEVEL) {
+          setActiveClass(norm);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [profile?.class_level]);
 
   // Track whether we synced the logged-in user's profile class
   const syncedUserIdRef = useRef<string | null>(null);
