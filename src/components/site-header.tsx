@@ -288,19 +288,16 @@ export function SiteHeader() {
             {/* Profile / Student Card */}
             {user ? (
               <div className="rounded-xl border border-border/80 bg-card p-3 space-y-2.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-primary font-bold text-xs">
-                      {profile?.full_name ? profile.full_name[0].toUpperCase() : "S"}
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="text-xs font-bold text-foreground truncate">
-                        {profile?.full_name || "Student"}
-                      </h4>
-                      <p className="text-[9px] text-muted-foreground truncate">{profile?.phone || user.email}</p>
-                    </div>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-primary font-bold text-xs">
+                    {profile?.full_name ? profile.full_name[0].toUpperCase() : "S"}
                   </div>
-                  <ClassSwitcher size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-bold text-foreground truncate">
+                      {profile?.full_name || "Student"}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground truncate">{profile?.phone || user.email}</p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-border/40">

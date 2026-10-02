@@ -123,38 +123,42 @@ function ChapterPage() {
   const { user, profile, isStaff, refresh, addCreditsAndXp } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const searchParams = new URLSearchParams(window.location.search);
-        const urlLesson = searchParams.get("lesson");
-        if (urlLesson && lessons.some((l: Lesson) => l.id === urlLesson)) {
-          return urlLesson;
-        }
-
-        const saved = localStorage.getItem(`easypadhai_last_lesson_${chapter.id}`);
-        if (saved && lessons.some((l: Lesson) => l.id === saved)) {
-          return saved;
-        }
-      } catch (err) {
-        console.warn("[Learn] Error reading initial lesson position:", err);
-      }
-    }
-    return lessons[0]?.id ?? null;
-  });
+  const [activeId, setActiveId] = useState<string | null>(lessons[0]?.id ?? null);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [victoryOpen, setVictoryOpen] = useState(false);
   const [victoryXp, setVictoryXp] = useState(10);
   const [victoryCredits, setVictoryCredits] = useState(10);
 
-  // Persistent sidebar collapsed state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("easypadhai_learn_sidebar_collapsed") === "true";
+  // Restore active lesson from URL or localStorage safely after client hydration
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlLesson = searchParams.get("lesson");
+      if (urlLesson && lessons.some((l: Lesson) => l.id === urlLesson)) {
+        setActiveId(urlLesson);
+        return;
+      }
+
+      const saved = localStorage.getItem(`easypadhai_last_lesson_${chapter.id}`);
+      if (saved && lessons.some((l: Lesson) => l.id === saved)) {
+        setActiveId(saved);
+      }
+    } catch (err) {
+      console.warn("[Learn] Error reading initial lesson position:", err);
     }
-    return false;
-  });
+  }, [chapter?.id, lessons]);
+
+  // Persistent sidebar collapsed state (initialized cleanly to false for SSR matching)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("easypadhai_learn_sidebar_collapsed") === "true";
+      if (saved) setSidebarCollapsed(true);
+    }
+  }, []);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {
@@ -1308,12 +1312,14 @@ function LessonPanel({
   }, [locked]);
 
   // Proof of learning verification state (Audio listened, Video watched, Quiz passed, or active study)
-  const [isVerified, setIsVerified] = useState<boolean>(() => {
+  const [isVerified, setIsVerified] = useState<boolean>(false);
+
+  useEffect(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem(`easypadhai_verified_${lesson.id}`) === "true";
+      const saved = localStorage.getItem(`easypadhai_verified_${lesson.id}`) === "true";
+      if (saved) setIsVerified(true);
     }
-    return false;
-  });
+  }, [lesson.id]);
 
   useEffect(() => {
     if (access?.quizPassed) {
