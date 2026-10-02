@@ -933,6 +933,12 @@ function ChapterPage() {
                 onUnlock={() => unlock.mutate(active.id)}
                 onComplete={() => complete.mutate(active.id)}
                 isStaff={Boolean(isStaff)}
+                chapterTitle={chapter.title}
+                subjectName={chapter.subjects?.name}
+                onNextLesson={nextLesson ? () => handleSelectLesson(nextLesson.id) : undefined}
+                onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id) : undefined}
+                hasNextLesson={Boolean(nextLesson)}
+                hasPrevLesson={Boolean(prevLesson)}
               />
             </Card>
           )}
@@ -1130,6 +1136,12 @@ function LessonPanel({
   onUnlock,
   onComplete,
   isStaff,
+  chapterTitle,
+  subjectName,
+  onNextLesson,
+  onPrevLesson,
+  hasNextLesson,
+  hasPrevLesson,
 }: {
   lesson: Lesson;
   isAlreadyUnlocked: boolean;
@@ -1144,6 +1156,12 @@ function LessonPanel({
   onUnlock: () => void;
   onComplete: () => void;
   isStaff?: boolean;
+  chapterTitle?: string;
+  subjectName?: string;
+  onNextLesson?: () => void;
+  onPrevLesson?: () => void;
+  hasNextLesson?: boolean;
+  hasPrevLesson?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
@@ -1418,6 +1436,12 @@ function LessonPanel({
             lessonId={lesson.id}
             onActiveChange={onActiveChange}
             onVerified={() => handleVerified("audio")}
+            chapterTitle={chapterTitle}
+            subjectName={subjectName}
+            onNextTrack={onNextLesson}
+            onPrevTrack={onPrevLesson}
+            hasNextTrack={hasNextLesson}
+            hasPrevTrack={hasPrevLesson}
           />
         );
       },

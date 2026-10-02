@@ -1,9 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, FileText, Gauge, Headphones, Loader2, Pause, Play, Download, BookOpen, Layers, Sparkles } from "lucide-react";
+import {
+  ExternalLink,
+  FileText,
+  Gauge,
+  Headphones,
+  Loader2,
+  Pause,
+  Play,
+  Download,
+  BookOpen,
+  Layers,
+  Sparkles,
+  Moon,
+  Timer,
+  SkipBack,
+  SkipForward,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
 import { classifyMedia, PLAYBACK_RATES, parseLessonVideos, type LessonVideo, VIDEO_KINDS } from "@/lib/media";
 import { getOfflineMediaUrl } from "@/lib/offline-storage";
+import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -19,6 +37,13 @@ type Props = {
   onActiveChange?: (active: boolean) => void;
   /** Reports when the student has listened/watched enough to verify learning (>=70% or completion). */
   onVerified?: () => void;
+  /** Screen-Free Podcast Mode metadata and navigation */
+  chapterTitle?: string;
+  subjectName?: string;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  hasNextTrack?: boolean;
+  hasPrevTrack?: boolean;
 };
 
 
@@ -76,6 +101,12 @@ function CustomAudioPlayer({
   onRateChange,
   onActiveChange,
   onVerified,
+  chapterTitle,
+  subjectName,
+  onNextTrack,
+  onPrevTrack,
+  hasNextTrack,
+  hasPrevTrack,
 }: {
   src: string;
   title: string;
@@ -84,6 +115,12 @@ function CustomAudioPlayer({
   onRateChange: (r: number) => void;
   onActiveChange?: (active: boolean) => void;
   onVerified?: () => void;
+  chapterTitle?: string;
+  subjectName?: string;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  hasNextTrack?: boolean;
+  hasPrevTrack?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -91,6 +128,10 @@ function CustomAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Sleep Timer state: "off" | "15" | "30" | "45" | "end"
+  const [sleepTimer, setSleepTimer] = useState<"off" | "15" | "30" | "45" | "end">("off");
+  const [sleepSecondsLeft, setSleepSecondsLeft] = useState<number | null>(null);
 
   const currentTimeRef = useRef(0);
   const isPlayingRef = useRef(false);
@@ -108,6 +149,131 @@ function CustomAudioPlayer({
     if (!audio) return;
     audio.playbackRate = rate;
   }, [rate]);
+
+  // Sleep Timer countdown interval
+  useEffect(() => {
+    if (sleepTimer === "off" || sleepTimer === "end" || sleepSecondsLeft === null) return;
+    if (sleepSecondsLeft <= 0) {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        onActiveChange?.(false);
+      }
+      setSleepTimer("off");
+      setSleepSecondsLeft(null);
+      haptics.medium();
+      toast.info("🌙 स्लीप टाइमर समाप्त: ऑडियो रोक दिया गया है। शुभ रात्रि!");
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSleepSecondsLeft((prev) => (prev !== null && prev > 0 ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [sleepTimer, sleepSecondsLeft, onActiveChange]);
+
+  const cycleSleepTimer = () => {
+    haptics.light();
+    setSleepTimer((prev) => {
+      if (prev === "off") {
+        setSleepSecondsLeft(15 * 60);
+        toast.success("🌙 स्लीप टाइमर: 15 मिनट सेट किया गया");
+        return "15";
+      }
+      if (prev === "15") {
+        setSleepSecondsLeft(30 * 60);
+        toast.success("🌙 स्लीप टाइमर: 30 मिनट सेट किया गया");
+        return "30";
+      }
+      if (prev === "30") {
+        setSleepSecondsLeft(45 * 60);
+        toast.success("🌙 स्लीप टाइमर: 45 मिनट सेट किया गया");
+        return "45";
+      }
+      if (prev === "45") {
+        setSleepSecondsLeft(null);
+        toast.success("🌙 स्लीप टाइमर: यह लेक्चर समाप्त होने पर बंद होगा");
+        return "end";
+      }
+      setSleepSecondsLeft(null);
+      toast.info("🌙 स्लीप टाइमर बंद (Off)");
+      return "off";
+    });
+  };
+
+  // Screen-Free Podcast Mode: Native MediaSession API for lock-screen & earbud controls
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: title || "Audio Lecture",
+        artist: "Ritesh Sir — Easy Padhai",
+        album: chapterTitle || subjectName || "Easy Padhai",
+        artwork: [
+          { src: "/easy-padhai-mark.png", sizes: "96x96", type: "image/png" },
+          { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+          { src: "/favicon.png", sizes: "192x192", type: "image/png" },
+        ],
+      });
+
+      navigator.mediaSession.setActionHandler("play", () => {
+        void audioRef.current?.play();
+      });
+      navigator.mediaSession.setActionHandler("pause", () => {
+        audioRef.current?.pause();
+      });
+      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
+        skip(-(details.seekOffset || 10));
+      });
+      navigator.mediaSession.setActionHandler("seekforward", (details) => {
+        skip(details.seekOffset || 10);
+      });
+      if (onPrevTrack) {
+        navigator.mediaSession.setActionHandler("previoustrack", () => {
+          onPrevTrack();
+        });
+      }
+      if (onNextTrack) {
+        navigator.mediaSession.setActionHandler("nexttrack", () => {
+          onNextTrack();
+        });
+      }
+    } catch (e) {
+      console.warn("MediaSession setup warning:", e);
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && "mediaSession" in navigator) {
+        try {
+          navigator.mediaSession.setActionHandler("play", null);
+          navigator.mediaSession.setActionHandler("pause", null);
+          navigator.mediaSession.setActionHandler("seekbackward", null);
+          navigator.mediaSession.setActionHandler("seekforward", null);
+          navigator.mediaSession.setActionHandler("previoustrack", null);
+          navigator.mediaSession.setActionHandler("nexttrack", null);
+        } catch {}
+      }
+    };
+  }, [title, chapterTitle, subjectName, onNextTrack, onPrevTrack]);
+
+  // Sync position state with MediaSession
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+    if (duration > 0 && "setPositionState" in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: Math.max(duration, 1),
+          playbackRate: rate || 1,
+          position: Math.max(0, Math.min(currentTime, duration)),
+        });
+      } catch {}
+    }
+  }, [isPlaying, currentTime, duration, rate]);
 
   // Protect against URL query token refreshes resetting current audio playback
   useEffect(() => {
@@ -237,6 +403,26 @@ function CustomAudioPlayer({
     try {
       localStorage.removeItem(storageKey);
     } catch {}
+
+    // 1. Sleep Timer reached end of lecture: stop playback
+    if (sleepTimer === "end") {
+      setSleepTimer("off");
+      setSleepSecondsLeft(null);
+      haptics.medium();
+      toast.info("🌙 स्लीप टाइमर: यह लेक्चर समाप्त हो गया। शुभ रात्रि!");
+      return;
+    }
+
+    // 2. Auto-Next continuous playback for Bedtime / Commute mode
+    if (onNextTrack) {
+      haptics.success();
+      toast.success("🎉 लेक्चर पूरा हुआ! अगला लेक्चर 3 सेकंड में शुरू होगा...", {
+        duration: 3000,
+      });
+      setTimeout(() => {
+        onNextTrack();
+      }, 3000);
+    }
   };
 
   const togglePlay = async () => {
@@ -383,9 +569,23 @@ function CustomAudioPlayer({
         </div>
       </div>
 
-      {/* Playback Controls & Speed */}
+      {/* Playback Controls & Speed & Sleep Timer */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pt-1 w-full">
-        <div className="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
+        <div className="flex items-center justify-center sm:justify-start gap-2 sm:gap-3">
+          {hasPrevTrack && onPrevTrack && (
+            <button
+              type="button"
+              onClick={() => {
+                haptics.light();
+                onPrevTrack();
+              }}
+              title="Previous lecture"
+              className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold shrink-0"
+            >
+              <SkipBack className="size-4" />
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => skip(-10)}
@@ -419,9 +619,47 @@ function CustomAudioPlayer({
           >
             +10s
           </button>
+
+          {hasNextTrack && onNextTrack && (
+            <button
+              type="button"
+              onClick={() => {
+                haptics.light();
+                onNextTrack();
+              }}
+              title="Next lecture"
+              className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-all hover:bg-primary/20 hover:text-primary active:scale-95 text-xs font-bold shrink-0"
+            >
+              <SkipForward className="size-4" />
+            </button>
+          )}
         </div>
 
-        <div className="flex justify-center sm:justify-end">
+        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2">
+          {/* Sleep Timer Button */}
+          <button
+            type="button"
+            onClick={cycleSleepTimer}
+            title="Bedtime Sleep Timer (Tap to cycle: 15m, 30m, 45m, End of Lecture, Off)"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold transition-all shadow-2xs select-none active:scale-95",
+              sleepTimer !== "off"
+                ? "border-indigo-500/60 bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 ring-2 ring-indigo-500/30"
+                : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
+            )}
+          >
+            <Moon className={cn("size-3.5", sleepTimer !== "off" && "text-indigo-500 fill-indigo-500/30")} />
+            <span>
+              {sleepTimer === "off"
+                ? "Sleep Timer"
+                : sleepTimer === "end"
+                ? "🌙 End"
+                : sleepSecondsLeft !== null
+                ? `🌙 ${Math.floor(sleepSecondsLeft / 60)}:${(sleepSecondsLeft % 60).toString().padStart(2, "0")}`
+                : `🌙 ${sleepTimer}m`}
+            </span>
+          </button>
+
           <SpeedPicker rate={rate} onChange={onRateChange} />
         </div>
       </div>
@@ -437,6 +675,12 @@ function SingleMediaPlayer({
   lessonId,
   onActiveChange,
   onVerified,
+  chapterTitle,
+  subjectName,
+  onNextTrack,
+  onPrevTrack,
+  hasNextTrack,
+  hasPrevTrack,
 }: {
   value: string;
   title: string;
@@ -444,6 +688,12 @@ function SingleMediaPlayer({
   lessonId?: string;
   onActiveChange?: (active: boolean) => void;
   onVerified?: () => void;
+  chapterTitle?: string;
+  subjectName?: string;
+  onNextTrack?: () => void;
+  onPrevTrack?: () => void;
+  hasNextTrack?: boolean;
+  hasPrevTrack?: boolean;
 }) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
@@ -753,6 +1003,12 @@ function SingleMediaPlayer({
         onRateChange={setRate}
         onActiveChange={onActiveChange}
         onVerified={onVerified}
+        chapterTitle={chapterTitle}
+        subjectName={subjectName}
+        onNextTrack={onNextTrack}
+        onPrevTrack={onPrevTrack}
+        hasNextTrack={hasNextTrack}
+        hasPrevTrack={hasPrevTrack}
       />
     );
   }
@@ -805,6 +1061,12 @@ export function MediaPlayer({
   videos,
   onActiveChange,
   onVerified,
+  chapterTitle,
+  subjectName,
+  onNextTrack,
+  onPrevTrack,
+  hasNextTrack,
+  hasPrevTrack,
 }: Props) {
   const effectiveKind: "audio" | "video" | "pdf" =
     rawKind || (videoUrl ? "video" : audioUrl ? "audio" : pdfUrl ? "pdf" : "video");
@@ -922,6 +1184,12 @@ export function MediaPlayer({
       lessonId={lessonId}
       onActiveChange={onActiveChange}
       onVerified={onVerified}
+      chapterTitle={chapterTitle}
+      subjectName={subjectName}
+      onNextTrack={onNextTrack}
+      onPrevTrack={onPrevTrack}
+      hasNextTrack={hasNextTrack}
+      hasPrevTrack={hasPrevTrack}
     />
   );
 }

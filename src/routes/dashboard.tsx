@@ -19,7 +19,10 @@ import {
   Footprints,
   BookOpen,
   GraduationCap,
+  Share2,
 } from "lucide-react";
+import { soundFx } from "@/lib/sound-effects";
+import { haptics } from "@/lib/haptics";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getDashboard } from "@/lib/learn.functions";
@@ -151,6 +154,32 @@ function DashboardPage() {
   const currentGoal = profile?.goal ?? data.profile?.goal ?? null;
   const lvl = levelProgress(xp);
 
+  const handleShareToParents = () => {
+    soundFx.playClick();
+    haptics.celebrate();
+    const streakDays = data?.streak?.current_streak ?? 0;
+    const completedCount = data?.lessonsCompleted ?? 0;
+    const studentName = profile?.full_name?.split(" ")[0] || "आपका बच्चा";
+    const className = classLabel(activeClass);
+
+    const message = `नमस्ते मम्मी / पापा! 🙏\n\nमैंने आज Easy Padhai पर अपनी पढ़ाई पूरी की (${className}):\n📚 कुल लेक्चर्स: ${completedCount}\n🔥 पढ़ाई की स्ट्रीक: ${streakDays} दिन\n⚡ टोटल XP: ${xp} XP\n\nमैं रोज़ मन लगाकर पढ़ रहा हूँ। मेरी प्रोग्रेस यहाँ देखें:\n👉 https://ep.studytube.co.in/dashboard`;
+
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      navigator
+        .share({
+          title: `${studentName} की Easy Padhai प्रोग्रेस रिपोर्ट`,
+          text: message,
+          url: "https://ep.studytube.co.in/dashboard",
+        })
+        .catch(() => {
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, "_blank");
+        });
+    } else {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`, "_blank");
+    }
+    toast.success("📲 प्रोग्रेस रिपोर्ट तैयार है! WhatsApp पर शेयर करें।");
+  };
+
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10 space-y-6 min-w-0 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/50">
@@ -224,6 +253,32 @@ function DashboardPage() {
           onClick={() => setBadgesModalOpen(true)}
         />
       </div>
+
+      {/* 1-Click WhatsApp Parent Progress Report */}
+      <Card className="rounded-3xl border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white font-bold shadow-xs">
+            <Share2 className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              Parent Confidence Loop · 1-Click WhatsApp Report
+            </span>
+            <h3 className="font-display text-base sm:text-lg font-bold text-foreground">
+              मम्मी / पापा के साथ प्रोग्रेस रिपोर्ट शेयर करें
+            </h3>
+            <p className="text-xs text-muted-foreground line-clamp-1">
+              {data.streak?.current_streak ?? 0} दिन की स्ट्रीक, {data.lessonsCompleted} लेक्चर्स और {xp} XP की रिपोर्ट WhatsApp पर भेजें!
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={handleShareToParents}
+          className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 self-stretch sm:self-auto shrink-0 shadow-sm text-xs sm:text-sm h-10 px-4 cursor-pointer"
+        >
+          <Share2 className="size-4" /> WhatsApp पर भेजें 📲
+        </Button>
+      </Card>
 
       {/* Level Card */}
       <Card className="rounded-3xl border-border/80 shadow-sm overflow-hidden min-w-0">

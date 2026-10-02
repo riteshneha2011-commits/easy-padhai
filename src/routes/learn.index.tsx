@@ -464,6 +464,42 @@ function LearnIndex() {
         </div>
       )}
 
+      {/* 60-Second Memory Boost (Spaced Repetition & Active Recall) */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm w-full">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full">
+          <div className="size-10 sm:size-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md mt-0.5 sm:mt-0">
+            <Sparkles className="size-5 sm:size-6" />
+          </div>
+          <div className="min-w-0 flex-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/15 px-2.5 py-0.5 rounded-full shrink-0">
+                ⚡ 60-Sec Memory Boost
+              </span>
+              <span className="text-xs text-muted-foreground font-semibold truncate hidden xs:inline">
+                Spaced Repetition & Weak Spot Drill
+              </span>
+            </div>
+            <p className="text-sm font-bold text-foreground">
+              Review saved bookmarks, key concepts & your mistake box
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Scientifically proven to lock 80%+ concepts in long-term memory with 1-minute daily recall.
+            </p>
+          </div>
+        </div>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="rounded-xl font-bold gap-1.5 border-amber-500/40 hover:bg-amber-500/15 text-foreground shrink-0 w-full sm:w-auto h-10 px-4"
+        >
+          <Link to="/revision">
+            <span>Quick Revision</span>
+            <ArrowRight className="size-4 text-amber-600 dark:text-amber-400" />
+          </Link>
+        </Button>
+      </div>
+
       {/* If Class has no chapters yet: High-Impact Launching Soon Screen */}
       {isClassComingSoon && (
         <div className="space-y-8 py-2">
