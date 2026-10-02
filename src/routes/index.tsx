@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useMemo } from "react";
 import {
@@ -301,7 +301,15 @@ type FilterCategory =
 function Home() {
   const { data: subjects } = useSuspenseQuery(catalogQuery);
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { activeClass, switchClass, allClasses, classLabel } = useActiveClass();
+
+  // Redirect logged-in users directly to /learn
+  useEffect(() => {
+    if (user) {
+      void navigate({ to: "/learn", replace: true });
+    }
+  }, [user, navigate]);
 
   const availableClasses = useMemo(() => {
     const dbClasses = subjects.map((s) => s.class_level).filter(Boolean);
@@ -387,13 +395,13 @@ function Home() {
         <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-12 md:items-center">
           <div className="space-y-6 md:col-span-7">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-              <Sparkles className="size-3.5" /> Class 9, 10, 11, 12 &amp; Beyond · Complete Concept Learning
+              <Sparkles className="size-3.5" /> Class 5 to 12 · 100% Free Concept Learning
             </span>
 
             <h1 className="text-4xl font-extrabold leading-[1.08] text-foreground sm:text-5xl md:text-6xl tracking-tight">
-              Learn Class 9–12 Science &amp; Maths{" "}
+              Learn Class 5–12 Science &amp; Maths{" "}
               <span className="text-primary underline decoration-primary/30 decoration-wavy underline-offset-8">
-                with your ears.
+                with your ears &amp; eyes.
               </span>
             </h1>
 
@@ -415,28 +423,37 @@ function Home() {
             </div>
 
             <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Learn Class 9–12 Science on your commute, while walking, or before bed. 
-              Story-driven audio lectures guided by Ritesh Sir — 21+ years of teaching experience, one of the best faculty of Central India. 
+              Master complex Science and Maths concepts without screen fatigue. 
+              Story-driven audio lectures guided by Ritesh Sir — 21+ years of teaching experience, Ex-Resonance Kota. 
               Complete with one-screen summaries and instant-feedback tests in one daily loop.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
               <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-sm sm:text-base px-8 h-12">
-                <Link to={user ? "/dashboard" : "/auth"}>
-                  {user ? "Continue learning" : "Start learning completely free"}
+                <Link to="/learn">
+                  Start learning completely free
                   <ArrowRight className="size-4 ml-1.5" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full font-semibold h-12">
-                <Link to="/learn">Browse chapters</Link>
+                <Link to="/about">About Ritesh Sir (21+ yrs exp) →</Link>
               </Button>
             </div>
 
-            {/* Pricing Clarity Strip */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-sm">
-              <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span>🎉 100% Completely Free for Now — All Lectures, Notes &amp; Tests for ₹0</span>
+            {/* Trust and Pricing Strip */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Link
+                to="/about"
+                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all shadow-xs"
+              >
+                <GraduationCap className="size-3.5" />
+                <span>Guided by 21+ Years Kota Faculty · Read Story →</span>
+              </Link>
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-sm">
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span>🎉 100% Free for All Students</span>
+              </div>
             </div>
 
             {/* Confidence Metrics */}
@@ -448,7 +465,7 @@ function Home() {
                 <Trophy className="size-4 text-amber-500" /> XP &amp; badges
               </span>
               <span className="flex items-center gap-1.5">
-                <BookOpen className="size-4 text-primary" /> Class 9 Science &amp; Maths · Lectures added regularly
+                <BookOpen className="size-4 text-primary" /> Class 5 to 12 Curated Curriculum
               </span>
             </div>
 
@@ -506,11 +523,10 @@ function Home() {
 
       {/* 2. FOUNDER CREDIBILITY STRIP (Academic Authority) */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="relative overflow-hidden rounded-3xl border border-border/90 bg-card p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row items-center gap-6 sm:gap-8">
-            {/* Educator Photo & Verified Badge */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-5 p-5 sm:p-6 rounded-3xl border border-border/80 bg-card/90 shadow-xs">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="relative shrink-0">
-              <div className="size-24 sm:size-28 rounded-full border-4 border-primary/50 p-0.5 bg-gradient-to-br from-primary to-amber-500 shadow-xl overflow-hidden">
+              <div className="size-16 sm:size-20 rounded-full border-2 border-primary/50 p-0.5 bg-gradient-to-br from-primary to-amber-500 overflow-hidden shadow-md">
                 <img
                   src="/ritesh-sir.jpg"
                   alt="Ritesh Sir - Physics Educator & Founder"
@@ -518,51 +534,30 @@ function Home() {
                 />
               </div>
               <span
-                className="absolute -bottom-1 -right-1 grid size-8 place-items-center rounded-full bg-emerald-600 text-white shadow-md ring-4 ring-card"
+                className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-card"
                 title="Verified Master Educator"
               >
-                <ShieldCheck className="size-4" />
+                <ShieldCheck className="size-3.5" />
               </span>
             </div>
 
-            {/* Educator Credentials */}
-            <div className="space-y-3 text-center md:text-left flex-1 min-w-0">
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary">
-                <GraduationCap className="size-4" /> Guided by 21+ Years of Kota Teaching Experience
-              </span>
-
-              <div className="space-y-1">
-                <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                  Ritesh Sir
-                </h2>
-                <p className="text-sm font-semibold text-primary">
-                  Physics Educator · IIT-Trained · Former Faculty at Resonance Kota
-                </p>
+            <div className="space-y-0.5 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Academic Director</span>
+                <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0">21+ Yrs Kota Faculty</Badge>
               </div>
-
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-3xl">
-                Creator of <strong>Physics by Ritesh</strong>, mentor to thousands of CBSE, JEE, and NEET
-                students across India. Easy Padhai's audio lectures are prepared under the guidance of Ritesh Sir with 21+ years of classroom teaching
-                intuition — breaking dense science topics into clear, audio-first stories that stick forever.
+              <h3 className="font-display text-lg sm:text-xl font-extrabold text-foreground">Guided by Ritesh Sir</h3>
+              <p className="text-xs text-muted-foreground truncate">
+                Physics Educator · Ex-Resonance Kota · Mentor to 10,000+ CBSE, NEET &amp; JEE Students
               </p>
-
-              {/* Credibility Chips */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1">
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
-                  🎓 21+ years teaching
-                </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
-                  🏛️ Resonance Kota faculty alumnus
-                </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
-                  ⚡ Mentor to thousands of CBSE, NEET, and JEE students
-                </Badge>
-                <Badge variant="secondary" className="rounded-full text-xs font-semibold px-3 py-1 bg-secondary/80 text-foreground">
-                  🇮🇳 Founder, Physics by Ritesh
-                </Badge>
-              </div>
             </div>
           </div>
+
+          <Button asChild variant="outline" size="sm" className="rounded-full shrink-0 font-bold border-primary/40 text-primary hover:bg-primary/10 w-full sm:w-auto h-9">
+            <Link to="/about">
+              Read Founder's Story &amp; Vision →
+            </Link>
+          </Button>
         </div>
       </section>
 
@@ -967,71 +962,19 @@ function Home() {
         </Card>
       </section>
 
-      {/* 4.5. WHATSAPP COMMUNITY & UPDATES CHANNEL */}
-      <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/15 via-card to-teal-500/10 p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
-            <div className="space-y-3 text-center md:text-left flex-1 min-w-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 shadow-sm">
-                <span>📱 Official WhatsApp Community</span>
-              </span>
-
-              <div className="space-y-1">
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-                  Connect with Easy Padhai &amp; Ritesh Sir on WhatsApp
-                </h3>
-                <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                  For Class 9–12 Students &amp; Parents
-                </p>
-              </div>
-
-              <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed max-w-xl">
-                Get instant notifications for new chapter uploads, daily NCERT concepts, formula revision sheets, and direct guidance from Ritesh Sir on your phone.
-              </p>
-
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-2">
-                <a
-                  href="https://chat.whatsapp.com/EoYLQlgFRTnAQila8ajGE7"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-xs sm:text-sm font-bold shadow-md inline-flex items-center gap-2 transition-colors"
-                >
-                  <span>📲 Tap to Join WhatsApp Community</span>
-                </a>
-                <span className="text-xs text-muted-foreground font-medium hidden sm:inline">
-                  or scan the QR code 👉
-                </span>
-              </div>
-            </div>
-
-            {/* QR Code Container */}
-            <div className="shrink-0 flex flex-col items-center gap-2 p-4 rounded-2xl bg-white border border-emerald-500/30 shadow-lg">
-              <img
-                src="/whatsapp-channel-qr.png"
-                alt="Easy Padhai WhatsApp Channel QR Code"
-                className="size-36 sm:size-44 object-contain rounded-xl"
-              />
-              <span className="text-[11px] font-extrabold text-slate-900 tracking-wide text-center">
-                Scan with Google Lens / Camera
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* 5. CALL TO ACTION FOOTER */}
       <section className="mx-auto w-full max-w-6xl px-4">
         <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-8 sm:p-12 text-center space-y-6 shadow-sm">
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto">
-            Ready to make Class 9–12 Science &amp; Maths easy?
+            Ready to make Class 5–12 Science &amp; Maths easy?
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
-            Join students learning everyday with audio lectures prepared under the guidance of Ritesh Sir.
+            Join thousands of students learning everyday with audio lectures, notes, and tests prepared under the guidance of Ritesh Sir.
           </p>
           <div>
             <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12">
-              <Link to={user ? "/dashboard" : "/auth"}>
-                {user ? "Go to My Dashboard" : "Start Learning Completely Free Now"}
+              <Link to="/learn">
+                Start Learning Completely Free Now
                 <ArrowRight className="size-4 ml-1.5" />
               </Link>
             </Button>

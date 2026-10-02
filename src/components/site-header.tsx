@@ -117,6 +117,17 @@ export function SiteHeader() {
             >
               Curriculum
             </Link>
+            <Link
+              to="/about"
+              className={cn(
+                "rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                pathname.startsWith("/about")
+                  ? "bg-primary/15 text-primary font-bold"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              )}
+            >
+              About Ritesh Sir
+            </Link>
             {user && (
               <>
                 <Link
@@ -405,6 +416,17 @@ export function SiteHeader() {
                 >
                   <Trophy className="size-4 text-amber-500" />
                   Leaderboard &amp; Badges
+                </Link>
+                <Link
+                  to="/about"
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-semibold transition-colors hover:bg-secondary",
+                    pathname.startsWith("/about") ? "bg-primary/15 text-primary font-bold" : "text-foreground",
+                  )}
+                >
+                  <GraduationCap className="size-4 text-primary" />
+                  About Ritesh Sir &amp; Platform
                 </Link>
               </div>
 

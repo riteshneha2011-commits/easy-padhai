@@ -277,6 +277,15 @@ function ChapterPage() {
       }
     }
 
+    // Auto-hide sidebar so user gets 100% full-screen focus on the lesson
+    setSidebarCollapsed(true);
+    setMobileDrawerOpen(false);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("easypadhai_learn_sidebar_collapsed", "true");
+      } catch {}
+    }
+
     const playerEl = document.getElementById("lesson-player");
     if (playerEl) {
       playerEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -538,11 +547,11 @@ function ChapterPage() {
               variant="outline"
               size="sm"
               onClick={toggleSidebar}
-              className="inline-flex items-center gap-1.5 rounded-xl h-8 px-2.5 text-xs font-semibold shadow-sm hover:border-primary/50"
-              title="Open Playlist Sidebar"
+              className="inline-flex items-center gap-1.5 rounded-xl h-8 px-3 text-xs font-bold shadow-xs border-primary/30 text-primary hover:bg-primary/10 transition-all"
+              title="Open Chapters & Lessons Sidebar"
             >
-              <PanelLeftOpen className="size-4 text-primary" />
-              <span>Playlist ({lessons.length})</span>
+              <PanelLeftOpen className="size-4" />
+              <span>Chapters &amp; Lessons ({lessons.length})</span>
             </Button>
           )}
           <Link

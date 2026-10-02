@@ -43,7 +43,7 @@ function AuthPage() {
   const [referralCode, setReferralCode] = useState("");
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/dashboard", replace: true });
+    if (!loading && user) navigate({ to: "/learn", replace: true });
   }, [loading, user, navigate]);
 
   useEffect(() => {
@@ -68,7 +68,7 @@ function AuthPage() {
     setBusy(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back!");
-    navigate({ to: "/dashboard" });
+    navigate({ to: "/learn" });
   }
 
   async function signUp(e: React.FormEvent) {
@@ -81,7 +81,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/learn`,
         data: { full_name: fullName, class_level: DEFAULT_CLASS_LEVEL },
       },
     });
@@ -89,7 +89,7 @@ function AuthPage() {
     if (error) return toast.error(error.message);
     if (data?.session) {
       toast.success("Account created! Welcome to Easy Padhai.");
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/learn" });
     } else {
       toast.success("Account created. Check your email for confirmation or try signing in.");
     }
@@ -102,7 +102,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}/learn`,
       },
     });
     if (error) toast.error(error.message);
