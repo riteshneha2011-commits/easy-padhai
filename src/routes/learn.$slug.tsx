@@ -404,7 +404,7 @@ function ChapterPage() {
   const renderChapterSwitcher = () => {
     if (!siblingChapters || siblingChapters.length <= 1) return null;
     return (
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
@@ -423,17 +423,18 @@ function ChapterPage() {
             Chapters in {chapter.subjects?.name ?? "Subject"}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {siblingChapters.map((sc: any) => {
+          {siblingChapters.map((sc: any, idx: number) => {
             const isCurrent = sc.id === chapter.id;
             return (
               <DropdownMenuItem asChild key={sc.id} className={cn(isCurrent && "bg-primary/10 font-bold")}>
                 <Link
                   to="/learn/$slug"
                   params={{ slug: sc.slug }}
+                  onClick={() => setMobileDrawerOpen(false)}
                   className="w-full flex items-center justify-between text-xs py-1.5 cursor-pointer"
                 >
                   <span className="truncate">
-                    {sc.order_index + 1}. {sc.title}
+                    {idx + 1}. {sc.title}
                   </span>
                   {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-1" />}
                 </Link>
@@ -643,7 +644,11 @@ function ChapterPage() {
 
       {/* Mobile Sheet Drawer: Concise ~50% screen width so main screen stays visible */}
       <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-        <SheetContent side="left" className="w-[58vw] sm:w-[50vw] max-w-[320px] min-w-[240px] p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto">
+        <SheetContent
+          side="left"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+          className="w-[58vw] sm:w-[50vw] max-w-[320px] min-w-[240px] p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto"
+        >
           <SheetHeader className="text-left pb-2 border-b border-border/60">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
