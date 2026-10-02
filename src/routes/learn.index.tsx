@@ -34,6 +34,11 @@ import { cn } from "@/lib/utils";
 const catalogQuery = queryOptions({ queryKey: ["catalog"], queryFn: () => getCatalog() });
 
 export const Route = createFileRoute("/learn/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    class: search.class ? Number(search.class) : undefined,
+    subject: (search.subject as string) || undefined,
+    chapter: (search.chapter as string) || undefined,
+  }),
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
   head: () => ({
     meta: [
@@ -58,11 +63,31 @@ function LearnIndex() {
   const { data: allSubjects } = useSuspenseQuery(catalogQuery);
   const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
-  const searchParams = useSearch({ strict: false }) as { subject?: string; chapter?: string };
+  const searchParams = useSearch({ strict: false }) as { class?: number; subject?: string; chapter?: string };
 
-  // Filter subjects for active class, prioritizing subjects with available content
+  // Find requested subject from URL across the entire catalog (regardless of current active class)
+  const targetSubjectFromUrl = useMemo(() => {
+    if (!searchParams?.subject) return null;
+    return allSubjects.find((s) => s.id === searchParams.subject || s.slug === searchParams.subject) ?? null;
+  }, [allSubjects, searchParams?.subject]);
+
+  // Determine the effective class level
+  const effectiveClass = useMemo(() => {
+    if (targetSubjectFromUrl) return targetSubjectFromUrl.class_level;
+    if (searchParams?.class) return Number(searchParams.class);
+    return activeClass;
+  }, [targetSubjectFromUrl, searchParams?.class, activeClass]);
+
+  // Synchronize global activeClass if effectiveClass differs
+  useEffect(() => {
+    if (effectiveClass && effectiveClass !== activeClass) {
+      void switchClass(effectiveClass);
+    }
+  }, [effectiveClass, activeClass, switchClass]);
+
+  // Filter subjects for effective class, prioritizing subjects with available content
   const classSubjects = useMemo(() => {
-    const subjects = allSubjects.filter((s) => s.class_level === activeClass);
+    const subjects = allSubjects.filter((s) => s.class_level === effectiveClass);
     return [...subjects].sort((a, b) => {
       const aLessons = a.chapters?.reduce((acc, c) => acc + (c.lessonCount ?? c.lessons?.length ?? 0), 0) ?? 0;
       const bLessons = b.chapters?.reduce((acc, c) => acc + (c.lessonCount ?? c.lessons?.length ?? 0), 0) ?? 0;
@@ -71,7 +96,7 @@ function LearnIndex() {
       if (aHas !== bHas) return bHas - aHas; // subjects with active content first
       return (a.order_index ?? 0) - (b.order_index ?? 0);
     });
-  }, [allSubjects, activeClass]);
+  }, [allSubjects, effectiveClass]);
 
   // Check if any chapters exist for this class
   const totalChaptersInClass = useMemo(() => {
@@ -82,11 +107,12 @@ function LearnIndex() {
 
   // Navigation & filter state
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
+    if (targetSubjectFromUrl) return targetSubjectFromUrl.id;
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       const urlSub = urlParams.get("subject");
       if (urlSub) return urlSub;
-      const saved = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+      const saved = localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
       if (saved) return saved;
     }
     return "";
@@ -96,7 +122,7 @@ function LearnIndex() {
       const urlParams = new URLSearchParams(window.location.search);
       const urlChap = urlParams.get("chapter");
       if (urlChap) return urlChap;
-      const sub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+      const sub = targetSubjectFromUrl?.id || localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
       if (sub) {
         const savedChap = localStorage.getItem(`easypadhai_active_chapter_${sub}`);
         if (savedChap) return savedChap;
@@ -188,10 +214,31 @@ function LearnIndex() {
     }
   }, [navigate, activeClass, classSubjects]);
 
-  // When active class changes, load the saved subject for that class
+  // Priority-based subject & chapter synchronization:
+  // 1. If targetSubjectFromUrl exists, it ALWAYS takes first priority.
+  // 2. Otherwise load saved subject for effectiveClass, falling back to classSubjects[0].
   useEffect(() => {
+    if (targetSubjectFromUrl) {
+      setSelectedSubjectId(targetSubjectFromUrl.id);
+      const queryChap = searchParams?.chapter;
+      const validChap =
+        queryChap && targetSubjectFromUrl.chapters.some((c) => c.id === queryChap)
+          ? queryChap
+          : targetSubjectFromUrl.chapters[0]?.id ?? "";
+      setSelectedChapterId(validChap);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`easypadhai_active_subject_${targetSubjectFromUrl.class_level}`, targetSubjectFromUrl.id);
+          if (validChap) {
+            localStorage.setItem(`easypadhai_active_chapter_${targetSubjectFromUrl.id}`, validChap);
+          }
+        } catch {}
+      }
+      return;
+    }
+
     if (classSubjects.length === 0) return;
-    const savedSub = localStorage.getItem(`easypadhai_active_subject_${activeClass}`);
+    const savedSub = localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
     const validSub =
       savedSub && classSubjects.some((s) => s.id === savedSub) ? savedSub : classSubjects[0]?.id ?? "";
     setSelectedSubjectId(validSub);
@@ -202,30 +249,13 @@ function LearnIndex() {
         ? savedChap
         : targetSub?.chapters[0]?.id ?? "";
     setSelectedChapterId(validChap);
-  }, [activeClass]);
-
-  // Sync from URL if changed via external browser navigation (e.g. back/forward)
-  useEffect(() => {
-    if (
-      searchParams?.subject &&
-      searchParams.subject !== selectedSubjectId &&
-      classSubjects.some((s) => s.id === searchParams.subject)
-    ) {
-      setSelectedSubjectId(searchParams.subject);
-    }
-  }, [searchParams?.subject]);
-
-  useEffect(() => {
-    if (searchParams?.chapter && searchParams.chapter !== selectedChapterId) {
-      setSelectedChapterId(searchParams.chapter);
-    }
-  }, [searchParams?.chapter]);
+  }, [targetSubjectFromUrl, effectiveClass, classSubjects, searchParams?.chapter]);
 
   const handleSubjectChange = (newSubjectId: string) => {
     setSelectedSubjectId(newSubjectId);
     if (typeof window !== "undefined") {
       try {
-        localStorage.setItem(`easypadhai_active_subject_${activeClass}`, newSubjectId);
+        localStorage.setItem(`easypadhai_active_subject_${effectiveClass}`, newSubjectId);
         const savedChap = localStorage.getItem(`easypadhai_active_chapter_${newSubjectId}`);
         const targetSub = classSubjects.find((s) => s.id === newSubjectId);
         const nextChapId =
@@ -236,7 +266,7 @@ function LearnIndex() {
 
         void navigate({
           to: "/learn",
-          search: { subject: newSubjectId, chapter: nextChapId || undefined } as any,
+          search: { class: effectiveClass, subject: newSubjectId, chapter: nextChapId || undefined } as any,
           replace: true,
         });
       } catch (e) {
@@ -252,7 +282,7 @@ function LearnIndex() {
         localStorage.setItem(`easypadhai_active_chapter_${activeSubject.id}`, newChapterId);
         void navigate({
           to: "/learn",
-          search: { subject: activeSubject.id, chapter: newChapterId } as any,
+          search: { class: effectiveClass, subject: activeSubject.id, chapter: newChapterId } as any,
           replace: true,
         });
       } catch (e) {

@@ -590,65 +590,73 @@ function ChapterPage() {
       </div>
 
       {/* Mobile Sticky Bar & Trigger (Visible only on < lg) */}
-      <div className="lg:hidden flex flex-col gap-2 mb-4">
-        <div className="flex items-center justify-between gap-2">
-          <Link
-            to="/learn"
-            search={{ subject: chapter.subject_id, chapter: chapter.id } as any}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground"
-          >
-            ← Chapters
-          </Link>
-          {chapter.subjects?.name && (
-            <span className="text-[11px] font-semibold text-muted-foreground truncate">
-              {chapter.subjects.name} · Class {chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL}
-            </span>
-          )}
-        </div>
-
+      <div className="lg:hidden sticky top-0 z-20 -mx-3 px-3 py-2 bg-background/95 backdrop-blur-md border-b border-border/70 flex items-center justify-between gap-2 shadow-xs mb-3">
         <button
           type="button"
           onClick={() => setMobileDrawerOpen(true)}
-          className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl bg-card border border-border/80 shadow-sm text-left hover:border-primary/50 transition-all active:scale-[0.99]"
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-card border border-border/80 text-left min-w-0 flex-1 hover:border-primary/50 shadow-xs active:scale-[0.98] transition-all"
+          title="Open Playlist & Chapters"
         >
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-primary">
-              <Layers className="size-3" />
-              <span>Playlist · Lecture {activeIndex + 1} of {lessons.length}</span>
-            </div>
-            <p className="text-xs font-semibold text-foreground truncate mt-0.5">
-              {active?.title ?? "Select a lecture"}
-            </p>
+          <div className="size-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Layers className="size-3.5" />
           </div>
-          <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1.5 rounded-lg shrink-0">
-            Lectures ▾
-          </span>
+          <div className="min-w-0 flex-1 truncate">
+            <span className="text-[10px] font-bold text-primary block leading-none">
+              Chapters &amp; Lectures ▾
+            </span>
+            <span className="text-xs font-semibold text-foreground truncate block mt-0.5">
+              {active?.title ?? chapter.title}
+            </span>
+          </div>
         </button>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            size="icon"
+            variant="outline"
+            disabled={prevLesson === null}
+            onClick={() => prevLesson && handleSelectLesson(prevLesson.id)}
+            className="size-8 rounded-lg h-8 w-8"
+            title="Previous lecture"
+          >
+            <ChevronLeft className="size-4" />
+          </Button>
+          <span className="text-[11px] font-bold text-muted-foreground px-1">
+            {activeIndex + 1}/{lessons.length}
+          </span>
+          <Button
+            size="icon"
+            variant="outline"
+            disabled={nextLesson === null}
+            onClick={() => nextLesson && handleSelectLesson(nextLesson.id)}
+            className="size-8 rounded-lg h-8 w-8"
+            title="Next lecture"
+          >
+            <ChevronRight className="size-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Mobile Sheet Drawer */}
+      {/* Mobile Sheet Drawer: Concise ~50% screen width so main screen stays visible */}
       <Sheet open={mobileDrawerOpen} onOpenChange={setMobileDrawerOpen}>
-        <SheetContent side="left" className="w-[85vw] max-w-sm p-4 flex flex-col gap-4 overflow-y-auto">
+        <SheetContent side="left" className="w-[58vw] sm:w-[50vw] max-w-[320px] min-w-[240px] p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto">
           <SheetHeader className="text-left pb-2 border-b border-border/60">
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                 Class {chapter.subjects?.class_level ?? DEFAULT_CLASS_LEVEL}
               </span>
-              <span className="text-xs text-muted-foreground font-semibold truncate">
+              <span className="text-[11px] text-muted-foreground font-semibold truncate">
                 {chapter.subjects?.name}
               </span>
             </div>
-            <SheetTitle className="text-base font-bold text-foreground mt-1">
+            <SheetTitle className="text-sm font-bold text-foreground mt-0.5 truncate" title={chapter.title}>
               {chapter.title}
             </SheetTitle>
-            <SheetDescription className="text-xs text-muted-foreground">
-              Choose a lecture or take the chapter test below.
-            </SheetDescription>
           </SheetHeader>
 
           {siblingChapters && siblingChapters.length > 1 && (
             <div className="space-y-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
                 Switch Chapter
               </span>
               {renderChapterSwitcher()}
@@ -656,19 +664,19 @@ function ChapterPage() {
           )}
 
           {user && lessons.length > 0 && (
-            <div className="rounded-xl bg-secondary/50 p-2.5">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-muted-foreground">Chapter progress</span>
+            <div className="rounded-xl bg-secondary/50 p-2">
+              <div className="flex justify-between text-[11px] font-semibold">
+                <span className="text-muted-foreground">Progress</span>
                 <span className="text-primary font-bold">{percent}%</span>
               </div>
-              <Progress value={percent} className="mt-1.5 h-1.5" />
+              <Progress value={percent} className="mt-1 h-1.5" />
             </div>
           )}
 
           {test && (
             <Button
               size="sm"
-              className="w-full rounded-xl shadow-glow font-semibold"
+              className="w-full rounded-xl shadow-glow font-semibold text-xs h-8"
               onClick={() => {
                 setMobileDrawerOpen(false);
                 user
@@ -676,17 +684,71 @@ function ChapterPage() {
                   : navigate({ to: "/auth" });
               }}
             >
-              <Sparkles className="size-4 mr-1" /> Take Chapter Test
+              <Sparkles className="size-3.5 mr-1" /> Chapter Test
             </Button>
           )}
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground block">
-              All Lectures ({lessons.length})
-            </span>
-            {lessons.map((lesson: Lesson, idx: number) =>
-              renderLessonCard(lesson, idx, () => setMobileDrawerOpen(false))
-            )}
+          <div className="flex-1 overflow-y-auto space-y-1.5 pr-0.5 min-h-0">
+            <div className="flex items-center justify-between pb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Lectures ({lessons.length})
+              </span>
+            </div>
+            {lessons.map((lesson: Lesson, idx: number) => {
+              const isDone = done.has(lesson.id);
+              const isActive = active?.id === lesson.id;
+              const isLessonScheduled = !isStaff && Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
+              const isUnlocked = Boolean(isStaff) || (!isLessonScheduled && (lesson.isFree || idx === 0 || unlockedLessonIds.has(lesson.id)));
+              const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
+
+              return (
+                <button
+                  key={lesson.id}
+                  type="button"
+                  onClick={() => {
+                    handleSelectLesson(lesson.id);
+                    setMobileDrawerOpen(false);
+                  }}
+                  className={cn(
+                    "w-full text-left p-2 rounded-xl border transition-all flex items-center gap-2",
+                    isActive
+                      ? "bg-primary/15 border-primary text-foreground shadow-xs ring-1 ring-primary/40 font-bold"
+                      : "bg-card/90 border-border/70 hover:border-primary/40 text-foreground"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "size-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    )}
+                  >
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-xs truncate leading-snug", isActive ? "font-bold text-primary" : "font-medium text-foreground")}>
+                      {lesson.title}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5 text-[9px] text-muted-foreground">
+                      <span>{meta.label}</span>
+                      {isLessonScheduled ? (
+                        <span className="text-amber-600 font-semibold">· Scheduled</span>
+                      ) : isUnlocked ? (
+                        <span className="text-emerald-600 font-semibold">· Free</span>
+                      ) : (
+                        <span className="text-amber-600 font-semibold">· 10 cr</span>
+                      )}
+                    </div>
+                  </div>
+                  {isDone ? (
+                    <CheckCircle2 className="size-3.5 text-accent shrink-0" />
+                  ) : (
+                    <Circle className="size-3 text-muted-foreground/30 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </SheetContent>
       </Sheet>
@@ -955,6 +1017,49 @@ function ChapterPage() {
             </div>
           )}
         </main>
+      </div>
+
+      {/* Floating Mobile Bottom Mini-Bar for Zero-Scroll Next/Prev */}
+      <div className="lg:hidden fixed bottom-4 inset-x-0 z-20 flex justify-center px-4 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+        <div className="pointer-events-auto bg-card/95 backdrop-blur-md border border-border/80 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={prevLesson === null}
+            onClick={() => prevLesson && handleSelectLesson(prevLesson.id)}
+            className="rounded-full text-xs h-7 px-2 font-semibold"
+          >
+            <ChevronLeft className="size-3.5 mr-0.5" /> Prev
+          </Button>
+          <span className="text-[11px] font-bold text-foreground px-1.5 border-x border-border/60">
+            {activeIndex + 1} of {lessons.length}
+          </span>
+          {nextLesson ? (
+            <Button
+              size="sm"
+              onClick={() => handleSelectLesson(nextLesson.id)}
+              className="rounded-full text-xs h-7 px-3 font-bold bg-primary text-primary-foreground shadow-xs"
+            >
+              Next <ChevronRight className="size-3.5 ml-0.5" />
+            </Button>
+          ) : test ? (
+            <Button
+              size="sm"
+              onClick={() => (user ? navigate({ to: "/test/$testId", params: { testId: test.id } }) : navigate({ to: "/auth" }))}
+              className="rounded-full text-xs h-7 px-3 font-bold bg-primary text-primary-foreground shadow-glow"
+            >
+              <Sparkles className="size-3 mr-1" /> Quiz
+            </Button>
+          ) : nextChapter ? (
+            <Button
+              size="sm"
+              onClick={() => navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } })}
+              className="rounded-full text-xs h-7 px-3 font-bold bg-primary text-primary-foreground shadow-xs"
+            >
+              Next Ch <ChevronRight className="size-3.5 ml-0.5" />
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <VictoryModal
@@ -1856,14 +1961,14 @@ function LessonPanel({
           )}
 
           {tabs.length > 1 && (
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-1.5 sm:gap-2 rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setTabKey(tab.key)}
                   className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-2.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all min-w-0",
+                    "flex shrink-0 sm:flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all min-w-0",
                     activeTab?.key === tab.key
                       ? "bg-card text-foreground shadow-card"
                       : "text-muted-foreground hover:text-foreground",

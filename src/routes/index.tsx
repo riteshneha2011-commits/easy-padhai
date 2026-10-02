@@ -755,7 +755,7 @@ function Home() {
             </p>
           </div>
           <Button asChild className="rounded-full self-start sm:self-auto text-xs font-bold gap-1.5 shadow-xs">
-            <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
+            <Link to="/learn" search={{ class: selectedClass }} onClick={() => handleSelectClass(selectedClass)}>
               Browse all {allChapters.length} chapters <ArrowRight className="size-3.5" />
             </Link>
           </Button>
@@ -811,7 +811,7 @@ function Home() {
               <Link
                 key={sub.id}
                 to="/learn"
-                search={{ subject: sub.id }}
+                search={{ class: sub.class_level, subject: sub.id }}
                 onClick={() => handleSelectClass(selectedClass)}
                 className="group block h-full"
               >
@@ -855,7 +855,7 @@ function Home() {
               New subjects and lectures are being uploaded for this grade. Browse our current catalog or check back soon!
             </p>
             <Button asChild size="sm" className="rounded-full">
-              <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
+              <Link to="/learn" search={{ class: selectedClass }} onClick={() => handleSelectClass(selectedClass)}>
                 Browse Curriculum Explorer <ArrowRight className="size-3.5 ml-1.5" />
               </Link>
             </Button>
@@ -871,6 +871,7 @@ function Home() {
               </span>
               <Link
                 to="/learn"
+                search={{ class: selectedClass }}
                 onClick={() => handleSelectClass(selectedClass)}
                 className="text-xs font-bold text-primary hover:underline"
               >
@@ -955,7 +956,7 @@ function Home() {
             </p>
           </div>
           <Button asChild size="lg" className="rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 shrink-0 gap-2">
-            <Link to="/learn" onClick={() => handleSelectClass(selectedClass)}>
+            <Link to="/learn" search={{ class: selectedClass }} onClick={() => handleSelectClass(selectedClass)}>
               Open Curriculum Explorer <ArrowRight className="size-4" />
             </Link>
           </Button>
