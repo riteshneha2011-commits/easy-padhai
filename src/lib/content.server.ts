@@ -155,7 +155,7 @@ export async function fetchChapterBySlug(slug: string) {
       .eq("published", true),
     supabase
       .from("chapters")
-      .select("id, title, slug, order_index")
+      .select("id, title, slug, order_index, lessons(id, audio_url, published)")
       .eq("subject_id", chapter.subject_id)
       .eq("published", true)
       .order("order_index"),
@@ -216,7 +216,15 @@ export async function fetchChapterBySlug(slug: string) {
     };
   });
 
-  return { chapter, lessons: safeLessons, test: chapterTest, siblingChapters: siblingChapters ?? [] };
+  const safeSiblingChapters = ((siblingChapters as any[]) ?? []).map((sc: any) => ({
+    id: sc.id,
+    title: sc.title,
+    slug: sc.slug,
+    order_index: sc.order_index,
+    hasAudio: Array.isArray(sc.lessons) && sc.lessons.some((l: any) => Boolean(l.audio_url) && l.published !== false),
+  }));
+
+  return { chapter, lessons: safeLessons, test: chapterTest, siblingChapters: safeSiblingChapters };
 }
 
 export async function fetchLeaderboard(userId?: string | null) {

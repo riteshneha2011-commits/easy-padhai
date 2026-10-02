@@ -247,6 +247,44 @@ function ChapterPage() {
       ? siblingChapters[currentChapterIndex + 1]
       : null;
 
+  // In continuous podcast mode: find the next chapter that HAS audio lectures (ignore non-audio chapters)
+  const nextAudioChapter =
+    currentChapterIndex >= 0
+      ? siblingChapters.slice(currentChapterIndex + 1).find((sc: any) => sc.hasAudio)
+      : null;
+
+  const targetNextChapter = nextAudioChapter || nextChapter;
+
+  const [isAutoplay, setIsAutoplay] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const search = new URLSearchParams(window.location.search);
+      if (search.get("autoplay") === "true") {
+        setIsAutoplay(true);
+        // Clear autoplay from query string without full page reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete("autoplay");
+        window.history.replaceState({}, "", url.toString());
+      }
+    }
+  }, [chapter.id]);
+
+  const handleAdvanceToNextChapter = (nextChap: any) => {
+    soundFx.playClick();
+    toast.info(`🎉 अध्याय समाप्त! अगला अध्याय: "${nextChap.title}"`, {
+      duration: 3500,
+    });
+
+    soundFx.playChapterTransition(nextChap.title, () => {
+      void navigate({
+        to: "/learn/$slug",
+        params: { slug: nextChap.slug },
+        search: { autoplay: "true" } as any,
+      });
+    });
+  };
+
   const handleSelectLesson = (lessonId: string) => {
     setActiveId(lessonId);
     soundFx.playClick();
@@ -404,45 +442,32 @@ function ChapterPage() {
   const renderChapterSwitcher = () => {
     if (!siblingChapters || siblingChapters.length <= 1) return null;
     return (
-      <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-between text-xs font-semibold h-9 px-2.5 bg-card/80 border-border/80 hover:bg-accent/40 rounded-xl"
-          >
-            <span className="truncate flex items-center gap-1.5 text-left">
-              <Layers className="size-3.5 text-primary shrink-0" />
-              <span className="truncate">{chapter.title}</span>
-            </span>
-            <ChevronDown className="size-3 text-muted-foreground shrink-0 ml-1" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64 max-h-72 overflow-y-auto">
-          <DropdownMenuLabel className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-            Chapters in {chapter.subjects?.name ?? "Subject"}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {siblingChapters.map((sc: any, idx: number) => {
-            const isCurrent = sc.id === chapter.id;
-            return (
-              <DropdownMenuItem asChild key={sc.id} className={cn(isCurrent && "bg-primary/10 font-bold")}>
-                <Link
-                  to="/learn/$slug"
-                  params={{ slug: sc.slug }}
-                  onClick={() => setMobileDrawerOpen(false)}
-                  className="w-full flex items-center justify-between text-xs py-1.5 cursor-pointer"
-                >
-                  <span className="truncate">
-                    {idx + 1}. {sc.title}
-                  </span>
-                  {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-1" />}
-                </Link>
-              </DropdownMenuItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="relative w-full">
+        <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-primary flex items-center">
+          <Layers className="size-3.5" />
+        </div>
+        <select
+          value={chapter.id}
+          onChange={(e) => {
+            const selected = siblingChapters.find((sc: any) => sc.id === e.target.value);
+            if (selected && selected.id !== chapter.id) {
+              setMobileDrawerOpen(false);
+              void navigate({ to: "/learn/$slug", params: { slug: selected.slug } });
+            }
+          }}
+          aria-label={`Switch Chapter in ${chapter.subjects?.name ?? "Subject"}`}
+          className="w-full appearance-none rounded-xl border border-border/80 bg-card pl-8 pr-7 py-2 text-xs font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40 cursor-pointer truncate hover:border-primary/50 transition-colors"
+        >
+          {siblingChapters.map((sc: any, idx: number) => (
+            <option key={sc.id} value={sc.id} className="bg-popover text-foreground py-1 font-medium">
+              {idx + 1}. {sc.title}{sc.hasAudio ? " 🎙️" : ""}
+            </option>
+          ))}
+        </select>
+        <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground flex items-center">
+          <ChevronDown className="size-3.5" />
+        </div>
+      </div>
     );
   };
 
@@ -935,10 +960,17 @@ function ChapterPage() {
                 isStaff={Boolean(isStaff)}
                 chapterTitle={chapter.title}
                 subjectName={chapter.subjects?.name}
-                onNextLesson={nextLesson ? () => handleSelectLesson(nextLesson.id) : undefined}
+                onNextLesson={
+                  nextLesson
+                    ? () => handleSelectLesson(nextLesson.id)
+                    : targetNextChapter
+                    ? () => handleAdvanceToNextChapter(targetNextChapter)
+                    : undefined
+                }
                 onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id) : undefined}
-                hasNextLesson={Boolean(nextLesson)}
+                hasNextLesson={Boolean(nextLesson || targetNextChapter)}
                 hasPrevLesson={Boolean(prevLesson)}
+                autoPlay={isAutoplay}
               />
             </Card>
           )}
@@ -980,14 +1012,14 @@ function ChapterPage() {
                     <Sparkles className="size-3 mr-1" /> Chapter Test
                   </Button>
                 )}
-                {nextChapter ? (
+                {targetNextChapter ? (
                   <Button
                     size="sm"
                     variant={test ? "outline" : "default"}
-                    onClick={() => navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } })}
+                    onClick={() => handleAdvanceToNextChapter(targetNextChapter)}
                     className="rounded-full gap-1 text-xs font-semibold"
                   >
-                    <span className="truncate max-w-[130px] sm:max-w-[200px]">Next: {nextChapter.title}</span>
+                    <span className="truncate max-w-[130px] sm:max-w-[200px]">Next: {targetNextChapter.title}</span>
                     <ChevronRight className="size-3.5 shrink-0" />
                   </Button>
                 ) : !test ? (
@@ -1065,10 +1097,10 @@ function ChapterPage() {
             >
               <Sparkles className="size-3 mr-1" /> Quiz
             </Button>
-          ) : nextChapter ? (
+          ) : targetNextChapter ? (
             <Button
               size="sm"
-              onClick={() => navigate({ to: "/learn/$slug", params: { slug: nextChapter.slug } })}
+              onClick={() => handleAdvanceToNextChapter(targetNextChapter)}
               className="rounded-full text-xs h-7 px-3 font-bold bg-primary text-primary-foreground shadow-xs"
             >
               Next Ch <ChevronRight className="size-3.5 ml-0.5" />
@@ -1142,6 +1174,7 @@ function LessonPanel({
   onPrevLesson,
   hasNextLesson,
   hasPrevLesson,
+  autoPlay,
 }: {
   lesson: Lesson;
   isAlreadyUnlocked: boolean;
@@ -1162,6 +1195,7 @@ function LessonPanel({
   onPrevLesson?: () => void;
   hasNextLesson?: boolean;
   hasPrevLesson?: boolean;
+  autoPlay?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
@@ -1442,6 +1476,7 @@ function LessonPanel({
             onPrevTrack={onPrevLesson}
             hasNextTrack={hasNextLesson}
             hasPrevTrack={hasPrevLesson}
+            autoPlay={autoPlay}
           />
         );
       },

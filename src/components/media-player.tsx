@@ -44,6 +44,7 @@ type Props = {
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  autoPlay?: boolean;
 };
 
 
@@ -107,6 +108,7 @@ function CustomAudioPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  autoPlay,
 }: {
   src: string;
   title: string;
@@ -121,6 +123,7 @@ function CustomAudioPlayer({
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  autoPlay?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -143,6 +146,22 @@ function CustomAudioPlayer({
   const storageKey = lessonId
     ? `easypadhai_audio_pos_${lessonId}`
     : `easypadhai_audio_pos_${encodeURIComponent(cleanSrc)}`;
+
+  const updateMediaSessionPosition = useCallback(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    const dur = audio.duration || duration;
+    if (dur > 0 && "setPositionState" in navigator.mediaSession) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: Math.max(dur, 1),
+          playbackRate: audio.playbackRate || rate || 1,
+          position: Math.max(0, Math.min(audio.currentTime, dur)),
+        });
+      } catch {}
+    }
+  }, [duration, rate]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -204,43 +223,89 @@ function CustomAudioPlayer({
     });
   };
 
+  // Auto-play trigger for seamless podcast chapter-to-chapter transition
+  useEffect(() => {
+    if (!autoPlay) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    const timer = setTimeout(() => {
+      audio.play().then(() => {
+        setIsPlaying(true);
+        isPlayingRef.current = true;
+        onActiveChange?.(true);
+        if ("mediaSession" in navigator) {
+          navigator.mediaSession.playbackState = "playing";
+        }
+      }).catch((err) => {
+        console.warn("Autoplay was prevented by browser policy:", err);
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [autoPlay, cleanSrc, onActiveChange]);
+
   // Screen-Free Podcast Mode: Native MediaSession API for lock-screen & earbud controls
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
 
     try {
+      const origin = window.location.origin;
       navigator.mediaSession.metadata = new MediaMetadata({
         title: title || "Audio Lecture",
         artist: "Ritesh Sir — Easy Padhai",
         album: chapterTitle || subjectName || "Easy Padhai",
         artwork: [
-          { src: "/easy-padhai-mark.png", sizes: "96x96", type: "image/png" },
-          { src: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-          { src: "/favicon.png", sizes: "192x192", type: "image/png" },
+          { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
+          { src: `${origin}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+          { src: `${origin}/favicon.png`, sizes: "192x192", type: "image/png" },
+          { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
         ],
       });
 
       navigator.mediaSession.setActionHandler("play", () => {
         void audioRef.current?.play();
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
       });
       navigator.mediaSession.setActionHandler("pause", () => {
         audioRef.current?.pause();
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+      });
+      navigator.mediaSession.setActionHandler("stop", () => {
+        audioRef.current?.pause();
+        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
       });
       navigator.mediaSession.setActionHandler("seekbackward", (details) => {
         skip(-(details.seekOffset || 10));
+        updateMediaSessionPosition();
       });
       navigator.mediaSession.setActionHandler("seekforward", (details) => {
         skip(details.seekOffset || 10);
+        updateMediaSessionPosition();
       });
+      try {
+        navigator.mediaSession.setActionHandler("seekto", (details) => {
+          if (details.seekTime != null && audioRef.current) {
+            audioRef.current.currentTime = details.seekTime;
+            setCurrentTime(details.seekTime);
+            currentTimeRef.current = details.seekTime;
+            updateMediaSessionPosition();
+          }
+        });
+      } catch {}
+
       if (onPrevTrack) {
         navigator.mediaSession.setActionHandler("previoustrack", () => {
           onPrevTrack();
         });
+      } else {
+        try { navigator.mediaSession.setActionHandler("previoustrack", null); } catch {}
       }
+
       if (onNextTrack) {
         navigator.mediaSession.setActionHandler("nexttrack", () => {
           onNextTrack();
         });
+      } else {
+        try { navigator.mediaSession.setActionHandler("nexttrack", null); } catch {}
       }
     } catch (e) {
       console.warn("MediaSession setup warning:", e);
@@ -251,29 +316,23 @@ function CustomAudioPlayer({
         try {
           navigator.mediaSession.setActionHandler("play", null);
           navigator.mediaSession.setActionHandler("pause", null);
+          navigator.mediaSession.setActionHandler("stop", null);
           navigator.mediaSession.setActionHandler("seekbackward", null);
           navigator.mediaSession.setActionHandler("seekforward", null);
+          navigator.mediaSession.setActionHandler("seekto", null);
           navigator.mediaSession.setActionHandler("previoustrack", null);
           navigator.mediaSession.setActionHandler("nexttrack", null);
         } catch {}
       }
     };
-  }, [title, chapterTitle, subjectName, onNextTrack, onPrevTrack]);
+  }, [title, chapterTitle, subjectName, onNextTrack, onPrevTrack, updateMediaSessionPosition]);
 
-  // Sync position state with MediaSession
+  // Sync playbackState and position with MediaSession without flooding the IPC bridge
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
-    if (duration > 0 && "setPositionState" in navigator.mediaSession) {
-      try {
-        navigator.mediaSession.setPositionState({
-          duration: Math.max(duration, 1),
-          playbackRate: rate || 1,
-          position: Math.max(0, Math.min(currentTime, duration)),
-        });
-      } catch {}
-    }
-  }, [isPlaying, currentTime, duration, rate]);
+    updateMediaSessionPosition();
+  }, [isPlaying, updateMediaSessionPosition]);
 
   // Protect against URL query token refreshes resetting current audio playback
   useEffect(() => {
@@ -479,6 +538,7 @@ function CustomAudioPlayer({
     audio.currentTime = target;
     setCurrentTime(target);
     currentTimeRef.current = target;
+    updateMediaSessionPosition();
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -488,6 +548,7 @@ function CustomAudioPlayer({
     audio.currentTime = target;
     setCurrentTime(target);
     currentTimeRef.current = target;
+    updateMediaSessionPosition();
   };
 
   return (
@@ -495,7 +556,8 @@ function CustomAudioPlayer({
       <audio
         ref={audioRef}
         src={src}
-        preload="metadata"
+        preload="auto"
+        playsInline
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleTimeUpdate}
         onError={handleAudioError}
@@ -506,17 +568,22 @@ function CustomAudioPlayer({
           setIsPlaying(true);
           isPlayingRef.current = true;
           setErrorMsg(null);
+          if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
         }}
         onCanPlay={() => setIsBuffering(false)}
         onPlay={() => {
           setIsPlaying(true);
           isPlayingRef.current = true;
           onActiveChange?.(true);
+          if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+          updateMediaSessionPosition();
         }}
         onPause={() => {
           setIsPlaying(false);
           isPlayingRef.current = false;
           onActiveChange?.(false);
+          if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+          updateMediaSessionPosition();
         }}
       />
 
@@ -681,6 +748,7 @@ function SingleMediaPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  autoPlay,
 }: {
   value: string;
   title: string;
@@ -694,6 +762,7 @@ function SingleMediaPlayer({
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  autoPlay?: boolean;
 }) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
@@ -1009,6 +1078,7 @@ function SingleMediaPlayer({
         onPrevTrack={onPrevTrack}
         hasNextTrack={hasNextTrack}
         hasPrevTrack={hasPrevTrack}
+        autoPlay={autoPlay}
       />
     );
   }
@@ -1067,6 +1137,7 @@ export function MediaPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  autoPlay,
 }: Props) {
   const effectiveKind: "audio" | "video" | "pdf" =
     rawKind || (videoUrl ? "video" : audioUrl ? "audio" : pdfUrl ? "pdf" : "video");
@@ -1190,6 +1261,7 @@ export function MediaPlayer({
       onPrevTrack={onPrevTrack}
       hasNextTrack={hasNextTrack}
       hasPrevTrack={hasPrevTrack}
+      autoPlay={autoPlay}
     />
   );
 }

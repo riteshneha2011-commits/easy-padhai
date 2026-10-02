@@ -95,6 +95,57 @@ class SoundEngine {
       osc.stop(now + 0.05);
     } catch {}
   }
+
+  playChapterTransition(chapterTitle: string, onDone?: () => void) {
+    const ctx = this.getContext();
+    if (ctx) {
+      try {
+        const now = ctx.currentTime;
+        // Warm 3-tone chime (F4 -> A4 -> C5)
+        const freqs = [349.23, 440.0, 523.25];
+        freqs.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + i * 0.14);
+          gain.gain.setValueAtTime(0.18, now + i * 0.14);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.5);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.14);
+          osc.stop(now + i * 0.14 + 0.55);
+        });
+      } catch {}
+    }
+
+    let finished = false;
+    const triggerDone = () => {
+      if (!finished) {
+        finished = true;
+        onDone?.();
+      }
+    };
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+        const text = `Moving on to the next chapter: ${chapterTitle}`;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = "en-IN";
+        utterance.onend = triggerDone;
+        utterance.onerror = triggerDone;
+        setTimeout(triggerDone, 3000);
+        window.speechSynthesis.speak(utterance);
+        return;
+      } catch {
+        triggerDone();
+      }
+    } else {
+      setTimeout(triggerDone, 1200);
+    }
+  }
 }
 
 export const soundFx = new SoundEngine();
