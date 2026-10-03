@@ -881,6 +881,7 @@ function SingleMediaPlayer({
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
   const [failed, setFailed] = useState(false);
+  const [isOfflineSource, setIsOfflineSource] = useState(false);
   const [rate, setRateState] = useState<number>(() => {
     if (typeof window === "undefined") return 1;
     try {
