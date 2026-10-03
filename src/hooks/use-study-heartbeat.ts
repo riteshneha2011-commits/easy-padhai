@@ -78,7 +78,7 @@ export function useStudyHeartbeat(lessonId: string | null, active: boolean, enab
           totalMinutes: res.totalMinutesToday || 10,
         });
 
-        toast.success(`शाबाश! 🎉 +${res.awarded} Credits earned for 10 min of study!`);
+        toast.success(`Great job! 🎉 +${res.awarded} Credits earned for 10 min of study!`);
 
         void queryClient.invalidateQueries({ queryKey: ["wallet"] });
         void queryClient.invalidateQueries({ queryKey: ["my-profile"] });

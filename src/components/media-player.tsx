@@ -211,7 +211,7 @@ function CustomAudioPlayer({
       setSleepTimer("off");
       setSleepSecondsLeft(null);
       haptics.medium();
-      toast.info("🌙 स्लीप टाइमर समाप्त: ऑडियो रोक दिया गया है। शुभ रात्रि!");
+      toast.info("🌙 Sleep Timer: Finished! Pausing audio. Goodnight!");
       return;
     }
 
@@ -227,26 +227,26 @@ function CustomAudioPlayer({
     setSleepTimer((prev) => {
       if (prev === "off") {
         setSleepSecondsLeft(15 * 60);
-        toast.success("🌙 स्लीप टाइमर: 15 मिनट सेट किया गया");
+        toast.success("🌙 Sleep Timer: Set for 15 minutes");
         return "15";
       }
       if (prev === "15") {
         setSleepSecondsLeft(30 * 60);
-        toast.success("🌙 स्लीप टाइमर: 30 मिनट सेट किया गया");
+        toast.success("🌙 Sleep Timer: Set for 30 minutes");
         return "30";
       }
       if (prev === "30") {
         setSleepSecondsLeft(45 * 60);
-        toast.success("🌙 स्लीप टाइमर: 45 मिनट सेट किया गया");
+        toast.success("🌙 Sleep Timer: Set for 45 minutes");
         return "45";
       }
       if (prev === "45") {
         setSleepSecondsLeft(null);
-        toast.success("🌙 स्लीप टाइमर: यह लेक्चर समाप्त होने पर बंद होगा");
+        toast.success("🌙 Sleep Timer: Will pause at end of lecture");
         return "end";
       }
       setSleepSecondsLeft(null);
-      toast.info("🌙 स्लीप टाइमर बंद (Off)");
+      toast.info("🌙 Sleep Timer: Turned OFF");
       return "off";
     });
   };
@@ -382,6 +382,9 @@ function CustomAudioPlayer({
   const handleLoadedMetadata = () => {
     const audio = audioRef.current;
     if (!audio) return;
+    if (rate) {
+      audio.playbackRate = rate;
+    }
     setDuration(audio.duration || 0);
     setIsBuffering(false);
     setErrorMsg(null);
@@ -496,22 +499,20 @@ function CustomAudioPlayer({
       setSleepTimer("off");
       setSleepSecondsLeft(null);
       haptics.medium();
-      toast.info("🌙 स्लीप टाइमर: यह लेक्चर समाप्त हो गया। शुभ रात्रि!");
+      toast.info("🌙 Sleep Timer: Reached end of lecture. Pausing playback. Goodnight!");
       return;
     }
 
     // 2. Auto-Next continuous playback for Bedtime / Commute mode
     if (onNextTrack) {
       if (effectivePodcastMode) {
-        haptics.success();
-        toast.success("🎉 लेक्चर पूरा हुआ! पॉडकास्ट मोड: अगला लेक्चर 2 सेकंड में शुरू होगा...", {
-          duration: 3000,
-        });
+        // In Podcast Mode: immediate silent transition without distracting toasts or autoplay-blocking delays
+        haptics.light();
         setTimeout(() => {
           onNextTrack();
-        }, 2000);
+        }, 150);
       } else {
-        toast.info("🎉 लेक्चर समाप्त हुआ! अगला लेक्चर सुनने के लिए 'Next' बटन दबाएं।", {
+        toast.info("🎉 Lesson ended! Tap 'Next' to play the next lecture.", {
           duration: 3500,
         });
       }
@@ -594,9 +595,9 @@ function CustomAudioPlayer({
     setPodcastModeStorage(next);
     onTogglePodcastMode?.(next);
     if (next) {
-      toast.success("🎙️ पॉडकास्ट मोड चालू: लेक्चर्स बिना रुके लगातार चलेंगे!");
+      toast.success("🎙️ Podcast Mode ON: Continuous playback enabled!");
     } else {
-      toast.info("🎙️ पॉडकास्ट मोड बंद: सामान्य प्लेबैक मोड सक्रिय");
+      toast.info("🎙️ Podcast Mode OFF: Standard playback mode active");
     }
   };
 
@@ -641,6 +642,9 @@ function CustomAudioPlayer({
         }}
         onCanPlay={() => setIsBuffering(false)}
         onPlay={() => {
+          if (audioRef.current && rate) {
+            audioRef.current.playbackRate = rate;
+          }
           setIsPlaying(true);
           isPlayingRef.current = true;
           onActiveChange?.(true);
@@ -681,7 +685,7 @@ function CustomAudioPlayer({
           <button
             type="button"
             onClick={togglePodcastMode}
-            title={effectivePodcastMode ? "पॉडकास्ट मोड चालू है (लगातार प्लेबैक)" : "पॉडकास्ट मोड बंद है"}
+            title={effectivePodcastMode ? "Podcast Mode is ON (Continuous playback)" : "Podcast Mode is OFF (Single lesson playback)"}
             className={cn(
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none active:scale-95 border",
               effectivePodcastMode
@@ -695,7 +699,7 @@ function CustomAudioPlayer({
           <button
             type="button"
             onClick={() => setShowPodcastDialog(true)}
-            title="पॉडकास्ट मोड की जानकारी (Click to know more)"
+            title="Podcast Mode details and settings (Click to know more)"
             className="size-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground bg-secondary/80 hover:bg-secondary text-xs font-bold border border-border transition-colors"
           >
             ℹ️
@@ -877,8 +881,26 @@ function SingleMediaPlayer({
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
   const [failed, setFailed] = useState(false);
-  const [isOfflineSource, setIsOfflineSource] = useState(false);
-  const [rate, setRate] = useState(1);
+  const [rate, setRateState] = useState<number>(() => {
+    if (typeof window === "undefined") return 1;
+    try {
+      const saved = localStorage.getItem("easypadhai_playback_rate");
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (PLAYBACK_RATES.includes(parsed)) return parsed;
+      }
+    } catch {}
+    return 1;
+  });
+
+  const setRate = useCallback((newRate: number) => {
+    setRateState(newRate);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("easypadhai_playback_rate", newRate.toString());
+      } catch {}
+    }
+  }, []);
   const [isCheckingOffline, setIsCheckingOffline] = useState(() =>
     Boolean(lessonId && !value && (kind === "audio" || kind === "pdf")),
   );

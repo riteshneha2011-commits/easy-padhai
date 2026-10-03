@@ -288,12 +288,14 @@ function ChapterPage() {
   const targetNextChapter = nextAudioChapter || nextChapter;
 
   const handleAdvanceToNextChapter = (nextChap: any) => {
-    soundFx.playClick();
-    toast.info(`🎉 अध्याय समाप्त! अगला अध्याय: "${nextChap.title}"`, {
-      duration: 3500,
-    });
+    if (!isPodcastMode) {
+      soundFx.playClick();
+      toast.info(`🎉 Chapter completed! Next chapter: "${nextChap.title}"`, {
+        duration: 3500,
+      });
+    }
 
-    soundFx.playChapterTransition(nextChap.title, () => {
+    soundFx.playChapterTransition(() => {
       void navigate({
         to: "/learn/$slug",
         params: { slug: nextChap.slug },
@@ -440,8 +442,10 @@ function ChapterPage() {
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["chapter-unlocks"] });
       void refresh();
-      soundFx.playSuccess();
-      toast.success(`Unlocked! −${access.cost} credits · yours forever`);
+      if (!isPodcastMode) {
+        soundFx.playSuccess();
+        toast.success(`Unlocked! −${access.cost} credits · yours forever`);
+      }
     },
     onError: (error: Error, _lessonId, context) => {
       if (context?.prevUnlocks) {
@@ -453,6 +457,18 @@ function ChapterPage() {
       toast.error(error.message);
     },
   });
+
+  // Pre-unlock the next lesson in Podcast Mode so track transitions are instantaneous without autoplay blocks
+  const preUnlockedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isPodcastMode || !user || isStaff || !nextLesson) return;
+    if (nextLesson.isFree || unlockedLessonIds.has(nextLesson.id) || preUnlockedRef.current.has(nextLesson.id)) return;
+    const balance = profile?.credits ?? 0;
+    if (balance >= 10 && !unlock.isPending) {
+      preUnlockedRef.current.add(nextLesson.id);
+      unlock.mutate(nextLesson.id);
+    }
+  }, [isPodcastMode, user, isStaff, nextLesson, unlockedLessonIds, profile?.credits, unlock]);
 
   const active = lessons.find((l: Lesson) => l.id === activeId) ?? lessons[0] ?? null;
 
@@ -1317,18 +1333,15 @@ function LessonPanel({
     }
 
     if (!signedIn) {
-      toast.info("🎙️ पॉडकास्ट मोड: अगला लेक्चर अनलॉक करने के लिए कृपया लॉगिन करें।");
+      toast.info("🎙️ Podcast Mode: Please sign in to unlock the next lecture.");
       return;
     }
 
     if (currentBalance >= 10) {
       isAutoUnlockingRef.current = true;
-      toast.info("🎙️ पॉडकास्ट मोड: लेक्चर ऑटो-अनलॉक हो रहा है (10 Credits)...", {
-        duration: 2500,
-      });
       onUnlock();
     } else {
-      toast.error("⚠️ अपर्याप्त क्रेडिट्स: पॉडकास्ट मोड रोक दिया गया है। जारी रखने के लिए क्रेडिट्स प्राप्त करें।", {
+      toast.error("⚠️ Low credits: Podcast Mode paused. Top up credits to continue.", {
         duration: 5000,
       });
     }
@@ -1487,13 +1500,13 @@ function LessonPanel({
                   <Headphones className="size-6" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-base font-bold text-foreground">पॉडकास्ट मोड: लेक्चर अनलॉक हो रहा है...</p>
+                  <p className="text-base font-bold text-foreground">Podcast Mode: Auto-Unlocking Lecture...</p>
                   <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
-                    10 क्रेडिट्स का उपयोग कर अगला लेक्चर स्वतः शुरू किया जा रहा है।
+                    Using 10 credits to seamlessly continue your listening session.
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-xs font-semibold text-primary">
-                  <Loader2 className="size-4 animate-spin" /> लोड हो रहा है...
+                  <Loader2 className="size-4 animate-spin" /> Loading audio stream...
                 </div>
               </div>
             );

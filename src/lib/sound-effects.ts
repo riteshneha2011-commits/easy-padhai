@@ -96,7 +96,7 @@ class SoundEngine {
     } catch {}
   }
 
-  playChapterTransition(chapterTitle: string, onDone?: () => void) {
+  playChapterTransition(onDone?: () => void) {
     const ctx = this.getContext();
     if (ctx) {
       try {
@@ -107,44 +107,19 @@ class SoundEngine {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, now + i * 0.14);
-          gain.gain.setValueAtTime(0.18, now + i * 0.14);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.5);
+          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+          gain.gain.setValueAtTime(0.15, now + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
           osc.connect(gain);
           gain.connect(ctx.destination);
-          osc.start(now + i * 0.14);
-          osc.stop(now + i * 0.14 + 0.55);
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.4);
         });
       } catch {}
     }
-
-    let finished = false;
-    const triggerDone = () => {
-      if (!finished) {
-        finished = true;
-        onDone?.();
-      }
-    };
-
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      try {
-        window.speechSynthesis.cancel();
-        const text = `Moving on to the next chapter: ${chapterTitle}`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.lang = "en-IN";
-        utterance.onend = triggerDone;
-        utterance.onerror = triggerDone;
-        setTimeout(triggerDone, 3000);
-        window.speechSynthesis.speak(utterance);
-        return;
-      } catch {
-        triggerDone();
-      }
-    } else {
-      setTimeout(triggerDone, 1200);
-    }
+    setTimeout(() => {
+      onDone?.();
+    }, 450);
   }
 }
 

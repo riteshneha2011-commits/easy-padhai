@@ -45,12 +45,12 @@ export function StudyCelebrationModal({
 
         <DialogHeader>
           <DialogTitle className="font-display text-2xl font-bold text-foreground">
-            शाबाश! शानदार पढ़ाई! 🎉
+            Great Job! Keep It Up! 🎉
           </DialogTitle>
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground leading-relaxed">
-          आपने ध्यान से <span className="font-bold text-foreground">{totalMinutesToday} मिनट</span> की पढ़ाई पूरी कर ली है!
+          You have completed <span className="font-bold text-foreground">{totalMinutesToday} minutes</span> of focused study!
         </p>
 
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-1 my-1">
@@ -60,13 +60,13 @@ export function StudyCelebrationModal({
             <Coins className="size-5" />
           </div>
           <p className="text-xs text-muted-foreground">
-            ये क्रेडिट्स आपके बैलेंस में जोड़ दिए गए हैं।
+            These credits have been added to your balance.
           </p>
         </div>
 
         <div className="rounded-xl bg-secondary/50 p-2.5 text-xs text-muted-foreground flex items-center justify-center gap-1.5 font-medium">
           <CheckCircle2 className="size-3.5 text-emerald-500 shrink-0" />
-          <span>अगले 10 मिनट सीखने पर फिर मिलेंगे +5 क्रेडिट्स!</span>
+          <span>Study another 10 minutes to earn +5 bonus credits!</span>
         </div>
 
         <div className="mt-2">
@@ -74,7 +74,7 @@ export function StudyCelebrationModal({
             className="w-full rounded-full gap-2 py-5 text-sm font-semibold shadow-md bg-amber-500 hover:bg-amber-600 text-white"
             onClick={onClose}
           >
-            <span>पढ़ाई जारी रखें</span>
+            <span>Continue Learning</span>
             <ArrowRight className="size-4 animate-pulse" />
           </Button>
         </div>
