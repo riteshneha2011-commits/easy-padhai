@@ -295,7 +295,25 @@ function ChapterPage() {
       });
     }
 
-    soundFx.playChapterTransition(() => {
+    // Keep lock screen notification active with chapter transition info:
+    if (typeof window !== "undefined" && "mediaSession" in navigator) {
+      try {
+        const origin = window.location.origin;
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `Next: ${nextChap.title}`,
+          artist: "Moving to next chapter...",
+          album: "Easy Padhai",
+          artwork: [
+            { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
+            { src: `${origin}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+            { src: `${origin}/favicon.png`, sizes: "192x192", type: "image/png" },
+            { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
+          ],
+        });
+      } catch {}
+    }
+
+    soundFx.playChapterTransition(nextChap.title, () => {
       void navigate({
         to: "/learn/$slug",
         params: { slug: nextChap.slug },
@@ -977,7 +995,6 @@ function ChapterPage() {
           {active && (
             <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-16">
               <LessonPanel
-                key={active.id}
                 lesson={active}
                 isAlreadyUnlocked={Boolean(isStaff) || unlockedLessonIds.has(active.id)}
                 isFirstLesson={activeIndex === 0}
@@ -1934,6 +1951,9 @@ function LessonPanel({
             : "";
 
   const [tabKey, setTabKey] = useState(defaultTabKey);
+  useEffect(() => {
+    setTabKey(defaultTabKey);
+  }, [lesson.id, defaultTabKey]);
   const activeTab = tabs.find((t) => t.key === (tabKey || defaultTabKey)) ?? tabs[0] ?? null;
 
   const currentTabKey = activeTab?.key ?? defaultTabKey;

@@ -388,8 +388,9 @@ function CustomAudioPlayer({
     updateMediaSessionPosition();
   }, [isPlaying, updateMediaSessionPosition]);
 
-  // Protect against URL query token refreshes resetting current audio playback
+  // Seamless track-to-track continuity for Podcast Mode and Autoplay
   useEffect(() => {
+    if (!cleanSrc) return;
     if (lastCleanSrcRef.current === cleanSrc) {
       return;
     }
@@ -399,11 +400,26 @@ function CustomAudioPlayer({
     if (audio) {
       setCurrentTime(0);
       currentTimeRef.current = 0;
-      setIsPlaying(false);
-      isPlayingRef.current = false;
-      setErrorMsg(null);
+      if (autoPlay || effectivePodcastMode) {
+        setIsBuffering(true);
+        audio.load();
+        void audio.play().then(() => {
+          setIsPlaying(true);
+          isPlayingRef.current = true;
+          onActiveChange?.(true);
+          if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+          }
+        }).catch((err) => {
+          console.warn("Autoplay continuation:", err);
+        });
+      } else {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        setErrorMsg(null);
+      }
     }
-  }, [cleanSrc]);
+  }, [cleanSrc, autoPlay, effectivePodcastMode, onActiveChange]);
 
   const handleLoadedMetadata = () => {
     const audio = audioRef.current;
@@ -1058,6 +1074,30 @@ function SingleMediaPlayer({
     );
   }
 
+  if (kind === "audio") {
+    return (
+      <CustomAudioPlayer
+        src={url || ""}
+        title={title}
+        lessonId={lessonId}
+        rate={rate}
+        onRateChange={setRate}
+        onActiveChange={onActiveChange}
+        onVerified={onVerified}
+        chapterTitle={chapterTitle}
+        subjectName={subjectName}
+        onNextTrack={onNextTrack}
+        onPrevTrack={onPrevTrack}
+        hasNextTrack={hasNextTrack}
+        hasPrevTrack={hasPrevTrack}
+        autoPlay={autoPlay}
+        isPodcastMode={isPodcastMode}
+        onTogglePodcastMode={onTogglePodcastMode}
+        userCredits={userCredits}
+      />
+    );
+  }
+
   if (!url) {
     return (
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -1221,29 +1261,6 @@ function SingleMediaPlayer({
     );
   }
 
-  if (kind === "audio") {
-    return (
-      <CustomAudioPlayer
-        src={source.src}
-        title={title}
-        lessonId={lessonId}
-        rate={rate}
-        onRateChange={setRate}
-        onActiveChange={onActiveChange}
-        onVerified={onVerified}
-        chapterTitle={chapterTitle}
-        subjectName={subjectName}
-        onNextTrack={onNextTrack}
-        onPrevTrack={onPrevTrack}
-        hasNextTrack={hasNextTrack}
-        hasPrevTrack={hasPrevTrack}
-        autoPlay={autoPlay}
-        isPodcastMode={isPodcastMode}
-        onTogglePodcastMode={onTogglePodcastMode}
-        userCredits={userCredits}
-      />
-    );
-  }
 
   return (
     <div className="space-y-3">

@@ -96,30 +96,64 @@ class SoundEngine {
     } catch {}
   }
 
-  playChapterTransition(onDone?: () => void) {
+  playChapterTransition(chapterTitle?: string, onDone?: () => void) {
     const ctx = this.getContext();
     if (ctx) {
       try {
         const now = ctx.currentTime;
-        // Warm 3-tone chime (F4 -> A4 -> C5)
-        const freqs = [349.23, 440.0, 523.25];
+        // Warm 4-tone ascending transition chime (C4 -> E4 -> G4 -> C5)
+        const freqs = [261.63, 329.63, 392.0, 523.25];
         freqs.forEach((freq, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, now + i * 0.12);
-          gain.gain.setValueAtTime(0.15, now + i * 0.12);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.35);
+          osc.frequency.setValueAtTime(freq, now + i * 0.15);
+          gain.gain.setValueAtTime(0.2, now + i * 0.15);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.5);
           osc.connect(gain);
           gain.connect(ctx.destination);
-          osc.start(now + i * 0.12);
-          osc.stop(now + i * 0.12 + 0.4);
+          osc.start(now + i * 0.15);
+          osc.stop(now + i * 0.15 + 0.6);
         });
       } catch {}
     }
-    setTimeout(() => {
-      onDone?.();
-    }, 450);
+
+    // Voice announcement: "Moving on to next chapter: [Chapter Title]"
+    let speechHandled = false;
+    if (typeof window !== "undefined" && "speechSynthesis" in window && chapterTitle) {
+      try {
+        window.speechSynthesis.cancel();
+        const text = `Moving on to next chapter: ${chapterTitle}`;
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.lang = "en-US";
+
+        let finished = false;
+        const complete = () => {
+          if (!finished) {
+            finished = true;
+            onDone?.();
+          }
+        };
+
+        utterance.onend = complete;
+        utterance.onerror = complete;
+        window.speechSynthesis.speak(utterance);
+        speechHandled = true;
+
+        // Fallback in case speech synthesis stalls or screen is locked
+        setTimeout(complete, 2400);
+      } catch {
+        speechHandled = false;
+      }
+    }
+
+    if (!speechHandled) {
+      setTimeout(() => {
+        onDone?.();
+      }, 1200);
+    }
   }
 }
 
