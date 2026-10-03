@@ -180,12 +180,13 @@ function CustomAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
     const dur = audio.duration || duration;
-    if (dur > 0 && "setPositionState" in navigator.mediaSession) {
+    const cur = audio.currentTime || 0;
+    if (Number.isFinite(dur) && dur > 0 && Number.isFinite(cur) && "setPositionState" in navigator.mediaSession) {
       try {
         navigator.mediaSession.setPositionState({
           duration: Math.max(dur, 1),
           playbackRate: audio.playbackRate || rate || 1,
-          position: Math.max(0, Math.min(audio.currentTime, dur)),
+          position: Math.max(0, Math.min(cur, dur)),
         });
       } catch {}
     }
@@ -271,7 +272,15 @@ function CustomAudioPlayer({
     return () => clearTimeout(timer);
   }, [autoPlay, cleanSrc, onActiveChange]);
 
-  // Screen-Free Podcast Mode: Native MediaSession API for lock-screen & earbud controls
+  // Maintain stable refs for MediaSession track actions to prevent detaching handlers on re-render
+  const onNextTrackRef = useRef(onNextTrack);
+  const onPrevTrackRef = useRef(onPrevTrack);
+  useEffect(() => {
+    onNextTrackRef.current = onNextTrack;
+    onPrevTrackRef.current = onPrevTrack;
+  }, [onNextTrack, onPrevTrack]);
+
+  // Screen-Free Podcast Mode: Set MediaSession Metadata (Title, Artist, Album, Artwork)
   useEffect(() => {
     if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
 
@@ -288,72 +297,89 @@ function CustomAudioPlayer({
           { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
         ],
       });
-
-      navigator.mediaSession.setActionHandler("play", () => {
-        void audioRef.current?.play();
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
-      });
-      navigator.mediaSession.setActionHandler("pause", () => {
-        audioRef.current?.pause();
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
-      });
-      navigator.mediaSession.setActionHandler("stop", () => {
-        audioRef.current?.pause();
-        if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
-      });
-      navigator.mediaSession.setActionHandler("seekbackward", (details) => {
-        skip(-(details.seekOffset || 10));
-        updateMediaSessionPosition();
-      });
-      navigator.mediaSession.setActionHandler("seekforward", (details) => {
-        skip(details.seekOffset || 10);
-        updateMediaSessionPosition();
-      });
-      try {
-        navigator.mediaSession.setActionHandler("seekto", (details) => {
-          if (details.seekTime != null && audioRef.current) {
-            audioRef.current.currentTime = details.seekTime;
-            setCurrentTime(details.seekTime);
-            currentTimeRef.current = details.seekTime;
-            updateMediaSessionPosition();
-          }
-        });
-      } catch {}
-
-      if (onPrevTrack) {
-        navigator.mediaSession.setActionHandler("previoustrack", () => {
-          onPrevTrack();
-        });
-      } else {
-        try { navigator.mediaSession.setActionHandler("previoustrack", null); } catch {}
-      }
-
-      if (onNextTrack) {
-        navigator.mediaSession.setActionHandler("nexttrack", () => {
-          onNextTrack();
-        });
-      } else {
-        try { navigator.mediaSession.setActionHandler("nexttrack", null); } catch {}
-      }
     } catch (e) {
-      console.warn("MediaSession setup warning:", e);
+      console.warn("MediaSession metadata warning:", e);
     }
+  }, [title, chapterTitle, subjectName]);
+
+  // Screen-Free Podcast Mode: Register stable MediaSession Action Handlers for lock screen & bluetooth earbuds
+  useEffect(() => {
+    if (typeof window === "undefined" || !("mediaSession" in navigator)) return;
+
+    const ms = navigator.mediaSession;
+    const safeSetHandler = (action: MediaSessionAction, handler: MediaSessionActionHandler | null) => {
+      try {
+        ms.setActionHandler(action, handler);
+      } catch {}
+    };
+
+    safeSetHandler("play", () => {
+      void audioRef.current?.play();
+      ms.playbackState = "playing";
+    });
+
+    safeSetHandler("pause", () => {
+      audioRef.current?.pause();
+      ms.playbackState = "paused";
+    });
+
+    safeSetHandler("stop", () => {
+      audioRef.current?.pause();
+      ms.playbackState = "paused";
+    });
+
+    safeSetHandler("seekbackward", (details) => {
+      const offset = details?.seekOffset || 10;
+      if (audioRef.current) {
+        audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - offset);
+        setCurrentTime(audioRef.current.currentTime);
+        currentTimeRef.current = audioRef.current.currentTime;
+        updateMediaSessionPosition();
+      }
+    });
+
+    safeSetHandler("seekforward", (details) => {
+      const offset = details?.seekOffset || 10;
+      if (audioRef.current) {
+        audioRef.current.currentTime = Math.min(audioRef.current.duration || 99999, audioRef.current.currentTime + offset);
+        setCurrentTime(audioRef.current.currentTime);
+        currentTimeRef.current = audioRef.current.currentTime;
+        updateMediaSessionPosition();
+      }
+    });
+
+    safeSetHandler("seekto", (details) => {
+      if (details.seekTime != null && audioRef.current) {
+        audioRef.current.currentTime = details.seekTime;
+        setCurrentTime(details.seekTime);
+        currentTimeRef.current = details.seekTime;
+        updateMediaSessionPosition();
+      }
+    });
+
+    safeSetHandler("previoustrack", () => {
+      if (onPrevTrackRef.current) {
+        onPrevTrackRef.current();
+      }
+    });
+
+    safeSetHandler("nexttrack", () => {
+      if (onNextTrackRef.current) {
+        onNextTrackRef.current();
+      }
+    });
 
     return () => {
-      if (typeof window !== "undefined" && "mediaSession" in navigator) {
-        try {
-          navigator.mediaSession.setActionHandler("play", null);
-          navigator.mediaSession.setActionHandler("pause", null);
-          navigator.mediaSession.setActionHandler("stop", null);
-          navigator.mediaSession.setActionHandler("seekbackward", null);
-          navigator.mediaSession.setActionHandler("seekforward", null);
-          navigator.mediaSession.setActionHandler("seekto", null);
-          navigator.mediaSession.setActionHandler("previoustrack", null);
-          navigator.mediaSession.setActionHandler("nexttrack", null);
-        } catch {}
-      }
+      safeSetHandler("play", null);
+      safeSetHandler("pause", null);
+      safeSetHandler("stop", null);
+      safeSetHandler("seekbackward", null);
+      safeSetHandler("seekforward", null);
+      safeSetHandler("seekto", null);
+      safeSetHandler("previoustrack", null);
+      safeSetHandler("nexttrack", null);
     };
-  }, [title, chapterTitle, subjectName, onNextTrack, onPrevTrack, updateMediaSessionPosition]);
+  }, [updateMediaSessionPosition]);
 
   // Sync playbackState and position with MediaSession without flooding the IPC bridge
   useEffect(() => {
