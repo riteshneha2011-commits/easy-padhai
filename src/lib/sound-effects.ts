@@ -96,7 +96,7 @@ class SoundEngine {
     } catch {}
   }
 
-  playChapterTransition(chapterTitle?: string, onDone?: () => void) {
+  playChapterTransition(_chapterTitle?: string, onDone?: () => void) {
     const ctx = this.getContext();
     if (ctx) {
       try {
@@ -118,42 +118,10 @@ class SoundEngine {
       } catch {}
     }
 
-    // Voice announcement: "Moving on to next chapter: [Chapter Title]"
-    let speechHandled = false;
-    if (typeof window !== "undefined" && "speechSynthesis" in window && chapterTitle) {
-      try {
-        window.speechSynthesis.cancel();
-        const text = `Moving on to next chapter: ${chapterTitle}`;
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.lang = "en-US";
-
-        let finished = false;
-        const complete = () => {
-          if (!finished) {
-            finished = true;
-            onDone?.();
-          }
-        };
-
-        utterance.onend = complete;
-        utterance.onerror = complete;
-        window.speechSynthesis.speak(utterance);
-        speechHandled = true;
-
-        // Fallback in case speech synthesis stalls or screen is locked
-        setTimeout(complete, 2400);
-      } catch {
-        speechHandled = false;
-      }
-    }
-
-    if (!speechHandled) {
-      setTimeout(() => {
-        onDone?.();
-      }, 1200);
-    }
+    // Wait for chime to complete, then invoke callback
+    setTimeout(() => {
+      onDone?.();
+    }, 900);
   }
 }
 

@@ -388,38 +388,17 @@ function CustomAudioPlayer({
     updateMediaSessionPosition();
   }, [isPlaying, updateMediaSessionPosition]);
 
-  // Seamless track-to-track continuity for Podcast Mode and Autoplay
+  // Reset state when track changes (different audio file/lesson)
   useEffect(() => {
     if (!cleanSrc) return;
-    if (lastCleanSrcRef.current === cleanSrc) {
-      return;
-    }
-    // Genuinely a different audio file/lesson
+    if (lastCleanSrcRef.current === cleanSrc) return;
     lastCleanSrcRef.current = cleanSrc;
-    const audio = audioRef.current;
-    if (audio) {
-      setCurrentTime(0);
-      currentTimeRef.current = 0;
-      if (autoPlay || effectivePodcastMode) {
-        setIsBuffering(true);
-        audio.load();
-        void audio.play().then(() => {
-          setIsPlaying(true);
-          isPlayingRef.current = true;
-          onActiveChange?.(true);
-          if ("mediaSession" in navigator) {
-            navigator.mediaSession.playbackState = "playing";
-          }
-        }).catch((err) => {
-          console.warn("Autoplay continuation:", err);
-        });
-      } else {
-        setIsPlaying(false);
-        isPlayingRef.current = false;
-        setErrorMsg(null);
-      }
-    }
-  }, [cleanSrc, autoPlay, effectivePodcastMode, onActiveChange]);
+    setCurrentTime(0);
+    currentTimeRef.current = 0;
+    setIsPlaying(false);
+    isPlayingRef.current = false;
+    setErrorMsg(null);
+  }, [cleanSrc]);
 
   const handleLoadedMetadata = () => {
     const audio = audioRef.current;
@@ -1074,10 +1053,18 @@ function SingleMediaPlayer({
     );
   }
 
+  if (!url) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Loading media…
+      </p>
+    );
+  }
+
   if (kind === "audio") {
     return (
       <CustomAudioPlayer
-        src={url || ""}
+        src={url}
         title={title}
         lessonId={lessonId}
         rate={rate}
@@ -1095,14 +1082,6 @@ function SingleMediaPlayer({
         onTogglePodcastMode={onTogglePodcastMode}
         userCredits={userCredits}
       />
-    );
-  }
-
-  if (!url) {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" /> Loading media…
-      </p>
     );
   }
 

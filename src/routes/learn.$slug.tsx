@@ -995,6 +995,7 @@ function ChapterPage() {
           {active && (
             <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-16">
               <LessonPanel
+                key={active.id}
                 lesson={active}
                 isAlreadyUnlocked={Boolean(isStaff) || unlockedLessonIds.has(active.id)}
                 isFirstLesson={activeIndex === 0}
