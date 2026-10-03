@@ -23,6 +23,13 @@ import { classifyMedia, PLAYBACK_RATES, parseLessonVideos, type LessonVideo, VID
 import { getOfflineMediaUrl } from "@/lib/offline-storage";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { PodcastModeDialog } from "@/components/podcast-mode-dialog";
+import {
+  getPodcastMode,
+  setPodcastModeStorage,
+  isPodcastPromptDismissed,
+  setPodcastPromptDismissed,
+} from "@/lib/podcast";
 
 type Props = {
   value?: string;
@@ -45,6 +52,10 @@ type Props = {
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
   autoPlay?: boolean;
+  /** Screen-Free Podcast continuous mode toggle & credits */
+  isPodcastMode?: boolean;
+  onTogglePodcastMode?: (enabled: boolean) => void;
+  userCredits?: number;
 };
 
 
@@ -109,6 +120,9 @@ function CustomAudioPlayer({
   hasNextTrack,
   hasPrevTrack,
   autoPlay,
+  isPodcastMode,
+  onTogglePodcastMode,
+  userCredits = 0,
 }: {
   src: string;
   title: string;
@@ -124,6 +138,9 @@ function CustomAudioPlayer({
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
   autoPlay?: boolean;
+  isPodcastMode?: boolean;
+  onTogglePodcastMode?: (enabled: boolean) => void;
+  userCredits?: number;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -131,6 +148,17 @@ function CustomAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [isBuffering, setIsBuffering] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Podcast Mode state (screen-free continuous listening)
+  const [localPodcastMode, setLocalPodcastMode] = useState<boolean>(() => isPodcastMode ?? getPodcastMode());
+  const effectivePodcastMode = isPodcastMode !== undefined ? isPodcastMode : localPodcastMode;
+  const [showPodcastDialog, setShowPodcastDialog] = useState(false);
+
+  useEffect(() => {
+    if (isPodcastMode !== undefined) {
+      setLocalPodcastMode(isPodcastMode);
+    }
+  }, [isPodcastMode]);
 
   // Sleep Timer state: "off" | "15" | "30" | "45" | "end"
   const [sleepTimer, setSleepTimer] = useState<"off" | "15" | "30" | "45" | "end">("off");
@@ -474,13 +502,58 @@ function CustomAudioPlayer({
 
     // 2. Auto-Next continuous playback for Bedtime / Commute mode
     if (onNextTrack) {
-      haptics.success();
-      toast.success("🎉 लेक्चर पूरा हुआ! अगला लेक्चर 3 सेकंड में शुरू होगा...", {
-        duration: 3000,
-      });
-      setTimeout(() => {
-        onNextTrack();
-      }, 3000);
+      if (effectivePodcastMode) {
+        haptics.success();
+        toast.success("🎉 लेक्चर पूरा हुआ! पॉडकास्ट मोड: अगला लेक्चर 2 सेकंड में शुरू होगा...", {
+          duration: 3000,
+        });
+        setTimeout(() => {
+          onNextTrack();
+        }, 2000);
+      } else {
+        toast.info("🎉 लेक्चर समाप्त हुआ! अगला लेक्चर सुनने के लिए 'Next' बटन दबाएं।", {
+          duration: 3500,
+        });
+      }
+    }
+  };
+
+  const startPlayback = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setErrorMsg(null);
+    setIsBuffering(true);
+
+    try {
+      if (audio.error || !audio.src) {
+        audio.load();
+        if (currentTimeRef.current > 0) {
+          audio.currentTime = currentTimeRef.current;
+        }
+      }
+      await audio.play();
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+      onActiveChange?.(true);
+    } catch (err) {
+      console.warn("Play error, attempting stream reload:", err);
+      try {
+        audio.load();
+        if (currentTimeRef.current > 0) {
+          audio.currentTime = currentTimeRef.current;
+        }
+        await audio.play();
+        setIsPlaying(true);
+        isPlayingRef.current = true;
+        onActiveChange?.(true);
+      } catch (finalErr) {
+        console.error("Audio playback recovery failed:", finalErr);
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+        setErrorMsg("Playback issue. Tap to retry.");
+      }
+    } finally {
+      setIsBuffering(false);
     }
   };
 
@@ -494,40 +567,36 @@ function CustomAudioPlayer({
       isPlayingRef.current = false;
       onActiveChange?.(false);
     } else {
-      setErrorMsg(null);
-      setIsBuffering(true);
-
-      try {
-        if (audio.error || !audio.src) {
-          audio.load();
-          if (currentTimeRef.current > 0) {
-            audio.currentTime = currentTimeRef.current;
-          }
-        }
-        await audio.play();
-        setIsPlaying(true);
-        isPlayingRef.current = true;
-        onActiveChange?.(true);
-      } catch (err) {
-        console.warn("Play error, attempting stream reload:", err);
-        try {
-          audio.load();
-          if (currentTimeRef.current > 0) {
-            audio.currentTime = currentTimeRef.current;
-          }
-          await audio.play();
-          setIsPlaying(true);
-          isPlayingRef.current = true;
-          onActiveChange?.(true);
-        } catch (finalErr) {
-          console.error("Audio playback recovery failed:", finalErr);
-          setIsPlaying(false);
-          isPlayingRef.current = false;
-          setErrorMsg("Playback issue. Tap to retry.");
-        }
-      } finally {
-        setIsBuffering(false);
+      // First time playing: check if user hasn't seen the podcast prompt
+      if (!isPodcastPromptDismissed()) {
+        setShowPodcastDialog(true);
+        return;
       }
+      await startPlayback();
+    }
+  };
+
+  const handleSelectPodcastMode = (mode: "podcast" | "normal", remember: boolean) => {
+    const enabled = mode === "podcast";
+    setLocalPodcastMode(enabled);
+    setPodcastModeStorage(enabled);
+    onTogglePodcastMode?.(enabled);
+    if (remember) {
+      setPodcastPromptDismissed(true);
+    }
+    void startPlayback();
+  };
+
+  const togglePodcastMode = () => {
+    haptics.light();
+    const next = !effectivePodcastMode;
+    setLocalPodcastMode(next);
+    setPodcastModeStorage(next);
+    onTogglePodcastMode?.(next);
+    if (next) {
+      toast.success("🎙️ पॉडकास्ट मोड चालू: लेक्चर्स बिना रुके लगातार चलेंगे!");
+    } else {
+      toast.info("🎙️ पॉडकास्ट मोड बंद: सामान्य प्लेबैक मोड सक्रिय");
     }
   };
 
@@ -587,22 +656,50 @@ function CustomAudioPlayer({
         }}
       />
 
-      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-        <div className="flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Headphones className="size-5 sm:size-6" />
-        </div>
-        <div className="min-w-0 flex-1 overflow-hidden">
-          <div className="flex items-center gap-2">
-            <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">
-              Audio Lecture · CDN Edge Stream
-            </p>
-            {isBuffering && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
-                <Loader2 className="size-2.5 animate-spin" /> Buffering
-              </span>
-            )}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <div className="flex size-10 sm:size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Headphones className="size-5 sm:size-6" />
           </div>
-          <h4 className="truncate text-sm sm:text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">
+                Audio Lecture · CDN Edge Stream
+              </p>
+              {isBuffering && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
+                  <Loader2 className="size-2.5 animate-spin" /> Buffering
+                </span>
+              )}
+            </div>
+            <h4 className="truncate text-sm sm:text-base font-bold text-foreground">{title || "Audio Lesson"}</h4>
+          </div>
+        </div>
+
+        {/* Podcast Mode Pill Toggle & Info Trigger */}
+        <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={togglePodcastMode}
+            title={effectivePodcastMode ? "पॉडकास्ट मोड चालू है (लगातार प्लेबैक)" : "पॉडकास्ट मोड बंद है"}
+            className={cn(
+              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none active:scale-95 border",
+              effectivePodcastMode
+                ? "bg-primary text-primary-foreground border-primary shadow-xs ring-2 ring-primary/20"
+                : "bg-secondary text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+            )}
+          >
+            <Sparkles className="size-3.5" />
+            <span>Podcast: {effectivePodcastMode ? "ON" : "OFF"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowPodcastDialog(true)}
+            title="पॉडकास्ट मोड की जानकारी (Click to know more)"
+            className="size-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground bg-secondary/80 hover:bg-secondary text-xs font-bold border border-border transition-colors"
+          >
+            ℹ️
+          </button>
         </div>
       </div>
 
@@ -730,6 +827,13 @@ function CustomAudioPlayer({
           <SpeedPicker rate={rate} onChange={onRateChange} />
         </div>
       </div>
+
+      <PodcastModeDialog
+        open={showPodcastDialog}
+        onOpenChange={setShowPodcastDialog}
+        onSelectMode={handleSelectPodcastMode}
+        userCredits={userCredits}
+      />
     </div>
   );
 }
@@ -749,6 +853,9 @@ function SingleMediaPlayer({
   hasNextTrack,
   hasPrevTrack,
   autoPlay,
+  isPodcastMode,
+  onTogglePodcastMode,
+  userCredits,
 }: {
   value: string;
   title: string;
@@ -763,6 +870,9 @@ function SingleMediaPlayer({
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
   autoPlay?: boolean;
+  isPodcastMode?: boolean;
+  onTogglePodcastMode?: (enabled: boolean) => void;
+  userCredits?: number;
 }) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
@@ -1079,6 +1189,9 @@ function SingleMediaPlayer({
         hasNextTrack={hasNextTrack}
         hasPrevTrack={hasPrevTrack}
         autoPlay={autoPlay}
+        isPodcastMode={isPodcastMode}
+        onTogglePodcastMode={onTogglePodcastMode}
+        userCredits={userCredits}
       />
     );
   }
@@ -1138,6 +1251,9 @@ export function MediaPlayer({
   hasNextTrack,
   hasPrevTrack,
   autoPlay,
+  isPodcastMode,
+  onTogglePodcastMode,
+  userCredits,
 }: Props) {
   const effectiveKind: "audio" | "video" | "pdf" =
     rawKind || (videoUrl ? "video" : audioUrl ? "audio" : pdfUrl ? "pdf" : "video");
@@ -1262,6 +1378,9 @@ export function MediaPlayer({
       hasNextTrack={hasNextTrack}
       hasPrevTrack={hasPrevTrack}
       autoPlay={autoPlay}
+      isPodcastMode={isPodcastMode}
+      onTogglePodcastMode={onTogglePodcastMode}
+      userCredits={userCredits}
     />
   );
 }

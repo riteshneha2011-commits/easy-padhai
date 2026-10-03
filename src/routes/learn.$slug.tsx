@@ -62,6 +62,7 @@ import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import { classLabel, DEFAULT_CLASS_LEVEL } from "@/lib/classes";
 import { Badge } from "@/components/ui/badge";
+import { getPodcastMode, setPodcastModeStorage } from "@/lib/podcast";
 
 
 
@@ -84,6 +85,10 @@ type Lesson = {
 
 
 export const Route = createFileRoute("/learn/$slug")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    lesson: (search.lesson as string) || undefined,
+    autoplay: search.autoplay === "true" || search.autoplay === true ? "true" : undefined,
+  }),
   loader: async ({ params }) => {
     const data = await getChapter({ data: { slug: params.slug } });
     if (!data) throw notFound();
@@ -129,11 +134,32 @@ function ChapterPage() {
   const [victoryXp, setVictoryXp] = useState(10);
   const [victoryCredits, setVictoryCredits] = useState(10);
 
+  // Screen-free continuous Podcast Mode state
+  const [isPodcastMode, setIsPodcastMode] = useState<boolean>(() => getPodcastMode());
+  const [isAutoplay, setIsAutoplay] = useState(false);
+
+  const handleTogglePodcastMode = (enabled: boolean) => {
+    setIsPodcastMode(enabled);
+    setPodcastModeStorage(enabled);
+  };
+
   // Restore active lesson from URL or localStorage safely after client hydration
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const searchParams = new URLSearchParams(window.location.search);
+      const isAutoplayParam = searchParams.get("autoplay") === "true";
+
+      // If arriving from previous chapter in autoplay/podcast mode, start from the first lecture:
+      if (isAutoplayParam && lessons.length > 0) {
+        setIsAutoplay(true);
+        setActiveId(lessons[0].id);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("autoplay");
+        window.history.replaceState({}, "", url.toString());
+        return;
+      }
+
       const urlLesson = searchParams.get("lesson");
       if (urlLesson && lessons.some((l: Lesson) => l.id === urlLesson)) {
         setActiveId(urlLesson);
@@ -143,6 +169,12 @@ function ChapterPage() {
       const saved = localStorage.getItem(`easypadhai_last_lesson_${chapter.id}`);
       if (saved && lessons.some((l: Lesson) => l.id === saved)) {
         setActiveId(saved);
+        return;
+      }
+
+      // Default to first lesson of this chapter
+      if (lessons.length > 0 && (!activeId || !lessons.some((l: Lesson) => l.id === activeId))) {
+        setActiveId(lessons[0].id);
       }
     } catch (err) {
       console.warn("[Learn] Error reading initial lesson position:", err);
@@ -254,21 +286,6 @@ function ChapterPage() {
       : null;
 
   const targetNextChapter = nextAudioChapter || nextChapter;
-
-  const [isAutoplay, setIsAutoplay] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const search = new URLSearchParams(window.location.search);
-      if (search.get("autoplay") === "true") {
-        setIsAutoplay(true);
-        // Clear autoplay from query string without full page reload
-        const url = new URL(window.location.href);
-        url.searchParams.delete("autoplay");
-        window.history.replaceState({}, "", url.toString());
-      }
-    }
-  }, [chapter.id]);
 
   const handleAdvanceToNextChapter = (nextChap: any) => {
     soundFx.playClick();
@@ -970,7 +987,9 @@ function ChapterPage() {
                 onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id) : undefined}
                 hasNextLesson={Boolean(nextLesson || targetNextChapter)}
                 hasPrevLesson={Boolean(prevLesson)}
-                autoPlay={isAutoplay}
+                autoPlay={isAutoplay || isPodcastMode}
+                isPodcastMode={isPodcastMode}
+                onTogglePodcastMode={handleTogglePodcastMode}
               />
             </Card>
           )}
@@ -1175,6 +1194,8 @@ function LessonPanel({
   hasNextLesson,
   hasPrevLesson,
   autoPlay,
+  isPodcastMode,
+  onTogglePodcastMode,
 }: {
   lesson: Lesson;
   isAlreadyUnlocked: boolean;
@@ -1196,6 +1217,8 @@ function LessonPanel({
   hasNextLesson?: boolean;
   hasPrevLesson?: boolean;
   autoPlay?: boolean;
+  isPodcastMode?: boolean;
+  onTogglePodcastMode?: (enabled: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
@@ -1280,6 +1303,37 @@ function LessonPanel({
             ? false
             : !isFirstLesson;
   const currentBalance = userCredits > 0 ? userCredits : (access?.balance ?? 0);
+
+  // Auto-unlock in Podcast Mode for screen-free continuous listening:
+  const isAutoUnlockingRef = useRef(false);
+
+  useEffect(() => {
+    isAutoUnlockingRef.current = false;
+  }, [lesson.id]);
+
+  useEffect(() => {
+    if (!isPodcastMode || !locked || isUnlocksLoading || unlocking || isAutoUnlockingRef.current) {
+      return;
+    }
+
+    if (!signedIn) {
+      toast.info("🎙️ पॉडकास्ट मोड: अगला लेक्चर अनलॉक करने के लिए कृपया लॉगिन करें।");
+      return;
+    }
+
+    if (currentBalance >= 10) {
+      isAutoUnlockingRef.current = true;
+      toast.info("🎙️ पॉडकास्ट मोड: लेक्चर ऑटो-अनलॉक हो रहा है (10 Credits)...", {
+        duration: 2500,
+      });
+      onUnlock();
+    } else {
+      toast.error("⚠️ अपर्याप्त क्रेडिट्स: पॉडकास्ट मोड रोक दिया गया है। जारी रखने के लिए क्रेडिट्स प्राप्त करें।", {
+        duration: 5000,
+      });
+    }
+  }, [isPodcastMode, locked, isUnlocksLoading, unlocking, signedIn, currentBalance, onUnlock]);
+
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   const bookmarkQuery = useQuery({
@@ -1426,6 +1480,25 @@ function LessonPanel({
           );
         }
         if (locked && !media?.audio && !isOfflineReady) {
+          if (isPodcastMode && (unlocking || isAutoUnlockingRef.current)) {
+            return (
+              <div className="rounded-2xl border border-primary/30 bg-primary/5 p-8 text-center space-y-3">
+                <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary animate-pulse">
+                  <Headphones className="size-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-base font-bold text-foreground">पॉडकास्ट मोड: लेक्चर अनलॉक हो रहा है...</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
+                    10 क्रेडिट्स का उपयोग कर अगला लेक्चर स्वतः शुरू किया जा रहा है।
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-xs font-semibold text-primary">
+                  <Loader2 className="size-4 animate-spin" /> लोड हो रहा है...
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-6 sm:p-8 text-center space-y-3">
               <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -1477,6 +1550,9 @@ function LessonPanel({
             hasNextTrack={hasNextLesson}
             hasPrevTrack={hasPrevLesson}
             autoPlay={autoPlay}
+            isPodcastMode={isPodcastMode}
+            onTogglePodcastMode={onTogglePodcastMode}
+            userCredits={currentBalance}
           />
         );
       },

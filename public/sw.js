@@ -1,5 +1,5 @@
-// Easy Padhai Bulletproof Offline Service Worker v9
-const CACHE_NAME = "easy-padhai-v9";
+// Easy Padhai Bulletproof Offline Service Worker v10
+const CACHE_NAME = "easy-padhai-v10";
 const STATIC_ASSETS = [
   "/offline.html",
   "/favicon.png",
