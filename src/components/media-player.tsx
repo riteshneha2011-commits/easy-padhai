@@ -22,6 +22,7 @@ import { isStorageRef, resolveMediaUrl } from "@/lib/storage";
 import { classifyMedia, PLAYBACK_RATES, parseLessonVideos, type LessonVideo, VIDEO_KINDS } from "@/lib/media";
 import { getOfflineMediaUrl } from "@/lib/offline-storage";
 import { haptics } from "@/lib/haptics";
+import { soundFx } from "@/lib/sound-effects";
 import { cn } from "@/lib/utils";
 import { PodcastModeDialog } from "@/components/podcast-mode-dialog";
 import {
@@ -51,6 +52,7 @@ type Props = {
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  nextTrackTitle?: string;
   autoPlay?: boolean;
   /** Screen-Free Podcast continuous mode toggle & credits */
   isPodcastMode?: boolean;
@@ -119,10 +121,12 @@ function CustomAudioPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  nextTrackTitle,
   autoPlay,
   isPodcastMode,
   onTogglePodcastMode,
   userCredits = 0,
+  isLoadingUrl = false,
 }: {
   src: string;
   title: string;
@@ -137,10 +141,12 @@ function CustomAudioPlayer({
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  nextTrackTitle?: string;
   autoPlay?: boolean;
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
   userCredits?: number;
+  isLoadingUrl?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -396,17 +402,36 @@ function CustomAudioPlayer({
     updateMediaSessionPosition();
   }, [isPlaying, updateMediaSessionPosition]);
 
-  // Reset state when track changes (different audio file/lesson)
+  // Handle seamless track-to-track change
   useEffect(() => {
     if (!cleanSrc) return;
     if (lastCleanSrcRef.current === cleanSrc) return;
     lastCleanSrcRef.current = cleanSrc;
     setCurrentTime(0);
     currentTimeRef.current = 0;
-    setIsPlaying(false);
-    isPlayingRef.current = false;
     setErrorMsg(null);
-  }, [cleanSrc]);
+
+    const audio = audioRef.current;
+    if (audio) {
+      if (autoPlay) {
+        setIsBuffering(true);
+        audio.load();
+        void audio.play().then(() => {
+          setIsPlaying(true);
+          isPlayingRef.current = true;
+          onActiveChange?.(true);
+          if ("mediaSession" in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+          }
+        }).catch((err) => {
+          console.warn("Autoplay continuation:", err);
+        });
+      } else {
+        setIsPlaying(false);
+        isPlayingRef.current = false;
+      }
+    }
+  }, [cleanSrc, autoPlay, onActiveChange]);
 
   const handleLoadedMetadata = () => {
     const audio = audioRef.current;
@@ -535,14 +560,17 @@ function CustomAudioPlayer({
     // 2. Auto-Next continuous playback for Bedtime / Commute mode
     if (onNextTrack) {
       if (effectivePodcastMode) {
+        haptics.light();
+        const nextTitle = nextTrackTitle || "next lecture";
+
         // Update lock screen to show transition is happening
         if (typeof window !== "undefined" && "mediaSession" in navigator) {
           try {
             const origin = window.location.origin;
             navigator.mediaSession.metadata = new MediaMetadata({
-              title: "▶ Moving to next lecture...",
-              artist: chapterTitle || "Easy Padhai",
-              album: subjectName || "Easy Padhai",
+              title: `▶ Next: ${nextTitle}`,
+              artist: "Moving to next lecture...",
+              album: chapterTitle || "Easy Padhai",
               artwork: [
                 { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
                 { src: `${origin}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
@@ -552,10 +580,12 @@ function CustomAudioPlayer({
             });
           } catch {}
         }
-        haptics.light();
-        setTimeout(() => {
+
+        toast.info(`🎙️ Up Next: "${nextTitle}"`, { duration: 3000 });
+
+        soundFx.playTransitionAnnouncement(`Next lecture: ${nextTitle}`, () => {
           onNextTrack();
-        }, 300);
+        }, false);
       } else {
         toast.info("🎉 Lesson ended! Tap 'Next' to play the next lecture.", {
           duration: 3500,
@@ -670,7 +700,7 @@ function CustomAudioPlayer({
     <div className="rounded-2xl sm:rounded-3xl border border-border/80 bg-linear-to-b from-card to-secondary/30 p-4 sm:p-6 shadow-sm space-y-4 min-w-0 w-full overflow-hidden">
       <audio
         ref={audioRef}
-        src={src}
+        src={cleanSrc || undefined}
         preload="auto"
         playsInline
         onLoadedMetadata={handleLoadedMetadata}
@@ -715,9 +745,9 @@ function CustomAudioPlayer({
               <p className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-primary truncate">
                 Audio Lecture · CDN Edge Stream
               </p>
-              {isBuffering && (
+              {(isBuffering || isLoadingUrl) && (
                 <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground animate-pulse">
-                  <Loader2 className="size-2.5 animate-spin" /> Buffering
+                  <Loader2 className="size-2.5 animate-spin" /> {isLoadingUrl ? "Loading lecture…" : "Buffering"}
                 </span>
               )}
             </div>
@@ -901,6 +931,7 @@ function SingleMediaPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  nextTrackTitle,
   autoPlay,
   isPodcastMode,
   onTogglePodcastMode,
@@ -918,6 +949,7 @@ function SingleMediaPlayer({
   onPrevTrack?: () => void;
   hasNextTrack?: boolean;
   hasPrevTrack?: boolean;
+  nextTrackTitle?: string;
   autoPlay?: boolean;
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
@@ -1077,18 +1109,11 @@ function SingleMediaPlayer({
     );
   }
 
-  if (!url) {
-    return (
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" /> Loading media…
-      </p>
-    );
-  }
-
   if (kind === "audio") {
     return (
       <CustomAudioPlayer
-        src={url}
+        src={url || ""}
+        isLoadingUrl={!url && Boolean(value)}
         title={title}
         lessonId={lessonId}
         rate={rate}
@@ -1101,11 +1126,20 @@ function SingleMediaPlayer({
         onPrevTrack={onPrevTrack}
         hasNextTrack={hasNextTrack}
         hasPrevTrack={hasPrevTrack}
+        nextTrackTitle={nextTrackTitle}
         autoPlay={autoPlay}
         isPodcastMode={isPodcastMode}
         onTogglePodcastMode={onTogglePodcastMode}
         userCredits={userCredits}
       />
+    );
+  }
+
+  if (!url) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" /> Loading media…
+      </p>
     );
   }
 
@@ -1319,6 +1353,7 @@ export function MediaPlayer({
   onPrevTrack,
   hasNextTrack,
   hasPrevTrack,
+  nextTrackTitle,
   autoPlay,
   isPodcastMode,
   onTogglePodcastMode,
@@ -1446,6 +1481,7 @@ export function MediaPlayer({
       onPrevTrack={onPrevTrack}
       hasNextTrack={hasNextTrack}
       hasPrevTrack={hasPrevTrack}
+      nextTrackTitle={nextTrackTitle}
       autoPlay={autoPlay}
       isPodcastMode={isPodcastMode}
       onTogglePodcastMode={onTogglePodcastMode}

@@ -96,46 +96,78 @@ class SoundEngine {
     } catch {}
   }
 
-  playChapterTransition(chapterTitle?: string, onDone?: () => void) {
+  playTransitionAnnouncement(text: string, onDone?: () => void, isChapter = false) {
     const ctx = this.getContext();
     if (ctx) {
       try {
         const now = ctx.currentTime;
-        const freqs = [261.63, 329.63, 392.0, 523.25];
-        freqs.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.setValueAtTime(freq, now + i * 0.15);
-          gain.gain.setValueAtTime(0.2, now + i * 0.15);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.5);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(now + i * 0.15);
-          osc.stop(now + i * 0.15 + 0.6);
-        });
+        if (isChapter) {
+          // Warm 4-tone triumphant celebration chime (C4 -> E4 -> G4 -> C5)
+          const freqs = [261.63, 329.63, 392.0, 523.25];
+          freqs.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, now + i * 0.14);
+            gain.gain.setValueAtTime(0.18, now + i * 0.14);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.14 + 0.45);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.14);
+            osc.stop(now + i * 0.14 + 0.5);
+          });
+        } else {
+          // Crisp 3-tone melodic "up next" chime (E5 -> G#5 -> B5)
+          const freqs = [659.25, 830.61, 987.77];
+          freqs.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, now + i * 0.1);
+            gain.gain.setValueAtTime(0.14, now + i * 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.1);
+            osc.stop(now + i * 0.1 + 0.35);
+          });
+        }
       } catch {}
     }
 
-    // Update lock screen to show chapter transition
-    if (typeof window !== "undefined" && "mediaSession" in navigator && chapterTitle) {
+    // Voice announcement via SpeechSynthesis with non-blocking safety timer
+    let completed = false;
+    const finish = () => {
+      if (!completed) {
+        completed = true;
+        onDone?.();
+      }
+    };
+
+    if (typeof window !== "undefined" && "speechSynthesis" in window && text) {
       try {
-        const origin = window.location.origin;
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: `▶ Next: ${chapterTitle}`,
-          artist: "Moving to next chapter...",
-          album: "Easy Padhai",
-          artwork: [
-            { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
-            { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
-          ],
-        });
-      } catch {}
-    }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.05;
+        utterance.pitch = 1.0;
+        utterance.lang = "en-US";
+        utterance.onend = finish;
+        utterance.onerror = finish;
+        window.speechSynthesis.speak(utterance);
 
-    setTimeout(() => {
-      onDone?.();
-    }, 900);
+        // Fallback timer: ensure onDone fires even if speech stalls or screen is locked
+        setTimeout(finish, isChapter ? 2200 : 1600);
+      } catch {
+        setTimeout(finish, isChapter ? 1200 : 700);
+      }
+    } else {
+      setTimeout(finish, isChapter ? 1200 : 700);
+    }
+  }
+
+  playChapterTransition(chapterTitle?: string, onDone?: () => void) {
+    const text = chapterTitle ? `Moving on to next chapter: ${chapterTitle}` : "Moving on to next chapter";
+    this.playTransitionAnnouncement(text, onDone, true);
   }
 }
 

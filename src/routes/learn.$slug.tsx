@@ -140,7 +140,7 @@ function ChapterPage() {
 
   // Tracks whether the next lesson change was triggered by handleEnded (podcast continuation)
   // vs a fresh page load. Only set to true by onNextTrack/onPrevTrack handlers.
-  const playbackContinuationRef = useRef(false);
+  const [playbackContinuation, setPlaybackContinuation] = useState(false);
 
   const handleTogglePodcastMode = (enabled: boolean) => {
     setIsPodcastMode(enabled);
@@ -187,13 +187,13 @@ function ChapterPage() {
 
   // Reset continuation flag after a short delay to prevent stale autoplay on refresh
   useEffect(() => {
-    if (playbackContinuationRef.current) {
+    if (playbackContinuation) {
       const timer = setTimeout(() => {
-        playbackContinuationRef.current = false;
-      }, 3000);
+        setPlaybackContinuation(false);
+      }, 4000);
       return () => clearTimeout(timer);
     }
-  }, [activeId]);
+  }, [activeId, playbackContinuation]);
 
   // Persistent sidebar collapsed state (initialized cleanly to false for SSR matching)
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -302,19 +302,16 @@ function ChapterPage() {
   const targetNextChapter = nextAudioChapter || nextChapter;
 
   const handleAdvanceToNextChapter = (nextChap: any) => {
-    if (!isPodcastMode) {
-      soundFx.playClick();
-      toast.info(`🎉 Chapter completed! Next chapter: "${nextChap.title}"`, {
-        duration: 3500,
-      });
-    }
+    toast.info(`🎉 Chapter completed! Moving to next chapter: "${nextChap.title}"`, {
+      duration: 3500,
+    });
 
     // Keep lock screen notification active with chapter transition info:
     if (typeof window !== "undefined" && "mediaSession" in navigator) {
       try {
         const origin = window.location.origin;
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: `Next: ${nextChap.title}`,
+          title: `▶ Next: ${nextChap.title}`,
           artist: "Moving to next chapter...",
           album: "Easy Padhai",
           artwork: [
@@ -327,7 +324,7 @@ function ChapterPage() {
       } catch {}
     }
 
-    playbackContinuationRef.current = true;
+    setPlaybackContinuation(true);
     soundFx.playChapterTransition(nextChap.title, () => {
       void navigate({
         to: "/learn/$slug",
@@ -338,7 +335,7 @@ function ChapterPage() {
   };
 
   const handleSelectLesson = (lessonId: string, continuation = false) => {
-    playbackContinuationRef.current = continuation;
+    setPlaybackContinuation(continuation);
     setActiveId(lessonId);
     soundFx.playClick();
 
@@ -1026,6 +1023,7 @@ function ChapterPage() {
                 isStaff={Boolean(isStaff)}
                 chapterTitle={chapter.title}
                 subjectName={chapter.subjects?.name}
+                nextLessonTitle={nextLesson?.title || (targetNextChapter ? `Chapter: ${targetNextChapter.title}` : undefined)}
                 onNextLesson={
                   nextLesson
                     ? () => handleSelectLesson(nextLesson.id, true)
@@ -1036,7 +1034,7 @@ function ChapterPage() {
                 onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id, true) : undefined}
                 hasNextLesson={Boolean(nextLesson || targetNextChapter)}
                 hasPrevLesson={Boolean(prevLesson)}
-                autoPlay={isAutoplay || playbackContinuationRef.current}
+                autoPlay={isAutoplay || playbackContinuation}
                 isPodcastMode={isPodcastMode}
                 onTogglePodcastMode={handleTogglePodcastMode}
               />
@@ -1242,6 +1240,7 @@ function LessonPanel({
   onPrevLesson,
   hasNextLesson,
   hasPrevLesson,
+  nextLessonTitle,
   autoPlay,
   isPodcastMode,
   onTogglePodcastMode,
@@ -1265,6 +1264,7 @@ function LessonPanel({
   onPrevLesson?: () => void;
   hasNextLesson?: boolean;
   hasPrevLesson?: boolean;
+  nextLessonTitle?: string;
   autoPlay?: boolean;
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
@@ -1603,6 +1603,7 @@ function LessonPanel({
             onPrevTrack={onPrevLesson}
             hasNextTrack={hasNextLesson}
             hasPrevTrack={hasPrevLesson}
+            nextTrackTitle={nextLessonTitle}
             autoPlay={autoPlay}
             isPodcastMode={isPodcastMode}
             onTogglePodcastMode={onTogglePodcastMode}
