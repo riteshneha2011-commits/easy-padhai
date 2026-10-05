@@ -252,12 +252,13 @@ function CustomAudioPlayer({
     });
   };
 
-  // Auto-play trigger for seamless podcast chapter-to-chapter transition
+  // Auto-play trigger for seamless podcast continuation and chapter transitions
   useEffect(() => {
     if (!autoPlay) return;
     const audio = audioRef.current;
-    if (!audio) return;
-    const timer = setTimeout(() => {
+    if (!audio || !src) return;
+
+    const attemptPlay = () => {
       audio.play().then(() => {
         setIsPlaying(true);
         isPlayingRef.current = true;
@@ -268,9 +269,25 @@ function CustomAudioPlayer({
       }).catch((err) => {
         console.warn("Autoplay was prevented by browser policy:", err);
       });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [autoPlay, cleanSrc, onActiveChange]);
+    };
+
+    // If audio is ready, play after short delay; otherwise wait for canplay
+    if (audio.readyState >= 2) {
+      const timer = setTimeout(attemptPlay, 200);
+      return () => clearTimeout(timer);
+    } else {
+      const onCanPlay = () => {
+        attemptPlay();
+        audio.removeEventListener("canplay", onCanPlay);
+      };
+      audio.addEventListener("canplay", onCanPlay);
+      // Also try loading if needed
+      if (audio.readyState === 0) {
+        audio.load();
+      }
+      return () => audio.removeEventListener("canplay", onCanPlay);
+    }
+  }, [autoPlay, src, onActiveChange]);
 
   // Maintain stable refs for MediaSession track actions to prevent detaching handlers on re-render
   const onNextTrackRef = useRef(onNextTrack);
@@ -369,16 +386,7 @@ function CustomAudioPlayer({
       }
     });
 
-    return () => {
-      safeSetHandler("play", null);
-      safeSetHandler("pause", null);
-      safeSetHandler("stop", null);
-      safeSetHandler("seekbackward", null);
-      safeSetHandler("seekforward", null);
-      safeSetHandler("seekto", null);
-      safeSetHandler("previoustrack", null);
-      safeSetHandler("nexttrack", null);
-    };
+    return () => {};
   }, [updateMediaSessionPosition]);
 
   // Sync playbackState and position with MediaSession without flooding the IPC bridge
@@ -527,11 +535,27 @@ function CustomAudioPlayer({
     // 2. Auto-Next continuous playback for Bedtime / Commute mode
     if (onNextTrack) {
       if (effectivePodcastMode) {
-        // In Podcast Mode: immediate silent transition without distracting toasts or autoplay-blocking delays
+        // Update lock screen to show transition is happening
+        if (typeof window !== "undefined" && "mediaSession" in navigator) {
+          try {
+            const origin = window.location.origin;
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: "▶ Moving to next lecture...",
+              artist: chapterTitle || "Easy Padhai",
+              album: subjectName || "Easy Padhai",
+              artwork: [
+                { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
+                { src: `${origin}/apple-touch-icon.png`, sizes: "180x180", type: "image/png" },
+                { src: `${origin}/favicon.png`, sizes: "192x192", type: "image/png" },
+                { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
+              ],
+            });
+          } catch {}
+        }
         haptics.light();
         setTimeout(() => {
           onNextTrack();
-        }, 150);
+        }, 300);
       } else {
         toast.info("🎉 Lesson ended! Tap 'Next' to play the next lecture.", {
           duration: 3500,

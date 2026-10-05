@@ -96,12 +96,11 @@ class SoundEngine {
     } catch {}
   }
 
-  playChapterTransition(_chapterTitle?: string, onDone?: () => void) {
+  playChapterTransition(chapterTitle?: string, onDone?: () => void) {
     const ctx = this.getContext();
     if (ctx) {
       try {
         const now = ctx.currentTime;
-        // Warm 4-tone ascending transition chime (C4 -> E4 -> G4 -> C5)
         const freqs = [261.63, 329.63, 392.0, 523.25];
         freqs.forEach((freq, i) => {
           const osc = ctx.createOscillator();
@@ -118,7 +117,22 @@ class SoundEngine {
       } catch {}
     }
 
-    // Wait for chime to complete, then invoke callback
+    // Update lock screen to show chapter transition
+    if (typeof window !== "undefined" && "mediaSession" in navigator && chapterTitle) {
+      try {
+        const origin = window.location.origin;
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: `▶ Next: ${chapterTitle}`,
+          artist: "Moving to next chapter...",
+          album: "Easy Padhai",
+          artwork: [
+            { src: `${origin}/easy-padhai-mark.png`, sizes: "96x96", type: "image/png" },
+            { src: `${origin}/easy-padhai-mark.png`, sizes: "512x512", type: "image/png" },
+          ],
+        });
+      } catch {}
+    }
+
     setTimeout(() => {
       onDone?.();
     }, 900);

@@ -138,6 +138,10 @@ function ChapterPage() {
   const [isPodcastMode, setIsPodcastMode] = useState<boolean>(() => getPodcastMode());
   const [isAutoplay, setIsAutoplay] = useState(false);
 
+  // Tracks whether the next lesson change was triggered by handleEnded (podcast continuation)
+  // vs a fresh page load. Only set to true by onNextTrack/onPrevTrack handlers.
+  const playbackContinuationRef = useRef(false);
+
   const handleTogglePodcastMode = (enabled: boolean) => {
     setIsPodcastMode(enabled);
     setPodcastModeStorage(enabled);
@@ -180,6 +184,16 @@ function ChapterPage() {
       console.warn("[Learn] Error reading initial lesson position:", err);
     }
   }, [chapter?.id, lessons]);
+
+  // Reset continuation flag after a short delay to prevent stale autoplay on refresh
+  useEffect(() => {
+    if (playbackContinuationRef.current) {
+      const timer = setTimeout(() => {
+        playbackContinuationRef.current = false;
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeId]);
 
   // Persistent sidebar collapsed state (initialized cleanly to false for SSR matching)
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -313,6 +327,7 @@ function ChapterPage() {
       } catch {}
     }
 
+    playbackContinuationRef.current = true;
     soundFx.playChapterTransition(nextChap.title, () => {
       void navigate({
         to: "/learn/$slug",
@@ -322,7 +337,8 @@ function ChapterPage() {
     });
   };
 
-  const handleSelectLesson = (lessonId: string) => {
+  const handleSelectLesson = (lessonId: string, continuation = false) => {
+    playbackContinuationRef.current = continuation;
     setActiveId(lessonId);
     soundFx.playClick();
 
@@ -995,7 +1011,6 @@ function ChapterPage() {
           {active && (
             <Card id="lesson-player" className="shadow-card rounded-2xl sm:rounded-3xl border-border/70 p-4 sm:p-6 w-full min-w-0 overflow-hidden scroll-mt-16">
               <LessonPanel
-                key={active.id}
                 lesson={active}
                 isAlreadyUnlocked={Boolean(isStaff) || unlockedLessonIds.has(active.id)}
                 isFirstLesson={activeIndex === 0}
@@ -1013,15 +1028,15 @@ function ChapterPage() {
                 subjectName={chapter.subjects?.name}
                 onNextLesson={
                   nextLesson
-                    ? () => handleSelectLesson(nextLesson.id)
+                    ? () => handleSelectLesson(nextLesson.id, true)
                     : targetNextChapter
                     ? () => handleAdvanceToNextChapter(targetNextChapter)
                     : undefined
                 }
-                onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id) : undefined}
+                onPrevLesson={prevLesson ? () => handleSelectLesson(prevLesson.id, true) : undefined}
                 hasNextLesson={Boolean(nextLesson || targetNextChapter)}
                 hasPrevLesson={Boolean(prevLesson)}
-                autoPlay={isAutoplay || isPodcastMode}
+                autoPlay={isAutoplay || playbackContinuationRef.current}
                 isPodcastMode={isPodcastMode}
                 onTogglePodcastMode={handleTogglePodcastMode}
               />
@@ -1452,6 +1467,14 @@ function LessonPanel({
   useEffect(() => {
     if (locked) setWatching(false);
   }, [locked]);
+
+  // Reset watching state when lesson changes (since we no longer remount via key)
+  useEffect(() => {
+    setWatching(false);
+    setIsOfflineReady(false);
+    setIsDownloading(false);
+    setDownloadProgress(0);
+  }, [lesson.id]);
 
   // Proof of learning verification state (Audio listened, Video watched, Quiz passed, or active study)
   const [isVerified, setIsVerified] = useState<boolean>(false);
