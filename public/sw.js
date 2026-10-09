@@ -1,5 +1,5 @@
-// Easy Padhai Bulletproof Offline Service Worker v10
-const CACHE_NAME = "easy-padhai-v10";
+// Easy Padhai Bulletproof Offline Service Worker v11
+const CACHE_NAME = "easy-padhai-v11";
 const STATIC_ASSETS = [
   "/offline.html",
   "/favicon.png",
@@ -18,7 +18,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// Activate: Take immediate control of all open tabs/PWA windows
+// Activate: Take immediate control of all open tabs/PWA windows and purge stale caches
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -40,9 +40,16 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
 
-  // Exclude Supabase / auth / external analytics from SW intercept
-  if (url.pathname.startsWith("/api") || url.hostname.includes("supabase.co")) {
-    return;
+  // Exclude Supabase, Cloudflare R2, server functions, and dynamic data APIs from SW intercept
+  if (
+    url.pathname.startsWith("/_server") ||
+    url.pathname.startsWith("/api") ||
+    url.searchParams.has("_serverFnId") ||
+    url.searchParams.has("_data") ||
+    url.hostname.includes("supabase.co") ||
+    url.hostname.includes("r2.dev")
+  ) {
+    return; // Pass through directly to live network
   }
 
   // 1. Navigation requests (Opening the app, clicking links, or refreshing)
@@ -75,7 +82,17 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. Static Assets (JS, CSS, images, fonts)
+  // 2. Static Assets ONLY (JS, CSS, images, fonts, audio files, icons)
+  const isStaticAsset =
+    url.pathname.startsWith("/assets/") ||
+    url.pathname.startsWith("/_build/") ||
+    /\.(js|css|woff2?|ttf|png|jpe?g|gif|svg|ico|webp|mp3|m4a|wav|json)$/i.test(url.pathname);
+
+  if (!isStaticAsset) {
+    // Non-static routes should never be cached as static assets
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {

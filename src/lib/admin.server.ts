@@ -1,7 +1,6 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { DraftQuestion } from "./questions-parse";
-import { DEFAULT_CLASS_LEVEL } from "@/lib/classes";
-import { parseLessonSchedule, injectLessonSchedule } from "./schedule";
+import { parseLessonSchedule, injectLessonSchedule, injectNotificationSchedule } from "./schedule";
 
 export async function assertStaff(
   supabase: any,
@@ -80,13 +79,12 @@ export async function assertAdmin(
 }
 
 export async function fetchAdminCatalog() {
-  const [{ data: subjects }, { data: chapters }, { data: lessons }, { data: tests }, { data: questions }] =
+  const [{ data: subjects }, { data: chapters }, { data: lessons }, { data: tests }] =
     await Promise.all([
       supabaseAdmin.from("subjects").select("*").order("order_index"),
       supabaseAdmin.from("chapters").select("*").order("order_index"),
       supabaseAdmin.from("lessons").select("*").order("order_index"),
-      supabaseAdmin.from("tests").select("*").order("created_at", { ascending: false }),
-      supabaseAdmin.from("questions").select("id, test_id"),
+      supabaseAdmin.from("tests").select("*, questions(id)").order("created_at", { ascending: false }),
     ]);
 
   const subMap = new Map((subjects ?? []).map((s) => [s.id, s]));
@@ -105,12 +103,13 @@ export async function fetchAdminCatalog() {
         isScheduled: parsed.isScheduled,
       };
     }),
-    tests: (tests ?? []).map((t) => {
+    tests: (tests ?? []).map((t: any) => {
       const isLesson = t.description?.startsWith("lesson:") ?? false;
       const lessonId = isLesson ? t.description?.slice(7).split("|")[0]?.trim() ?? null : null;
       const chapter = chapMap.get(t.chapter_id);
       const subject = chapter ? subMap.get(chapter.subject_id) : null;
       const lesson = lessonId ? lessonMap.get(lessonId) : null;
+      const questionCount = Array.isArray(t.questions) ? t.questions.length : 0;
 
       return {
         ...t,
@@ -119,7 +118,7 @@ export async function fetchAdminCatalog() {
         chapter_title: chapter?.title ?? "Unknown Chapter",
         subject_name: subject?.name ?? "General",
         lesson_title: lesson?.title ?? null,
-        questionCount: (questions ?? []).filter((q) => q.test_id === t.id).length,
+        questionCount,
       };
     }),
   };
@@ -158,10 +157,12 @@ export type LessonInput = {
   order_index?: number;
   published?: boolean;
   scheduled_at?: string | null;
+  notify_students?: boolean;
 };
 
 export async function upsertLesson(input: LessonInput) {
-  const { scheduled_at, ...rest } = input;
+  const { scheduled_at, notify_students, ...rest } = input;
+  const isNew = !rest.id;
   const enrichedSummary = injectLessonSchedule(rest.summary, scheduled_at);
   const { data, error } = await supabaseAdmin
     .from("lessons")
@@ -169,6 +170,60 @@ export async function upsertLesson(input: LessonInput) {
     .select("*")
     .single();
   if (error) throw new Error(error.message);
+
+  const isPublished = data.published !== false;
+  // Auto-notify students if:
+  // - Explicitly requested (notify_students: true), OR
+  // - A newly added lesson is published and notify_students !== false
+  const shouldNotify = isPublished && (notify_students === true || (isNew && notify_students !== false));
+
+  if (shouldNotify) {
+    try {
+      const { data: chapter } = await supabaseAdmin
+        .from("chapters")
+        .select("id, title, slug, subject_id, subjects(id, name, class_level)")
+        .eq("id", data.chapter_id)
+        .maybeSingle();
+
+      if (chapter) {
+        const subData = Array.isArray(chapter.subjects) ? chapter.subjects[0] : (chapter.subjects as any);
+        const actionUrl = chapter.slug ? `/learn/${chapter.slug}` : "/learn";
+
+        // Check recent notifications on this URL to avoid duplicates
+        const { data: existingNotifs } = await supabaseAdmin
+          .from("notifications")
+          .select("id, title")
+          .eq("action_url", actionUrl)
+          .limit(5);
+
+        const alreadyExists = (existingNotifs ?? []).some((n) =>
+          n.title?.toLowerCase().includes(data.title.toLowerCase())
+        );
+
+        if (!alreadyExists) {
+          const rawMessage = `${chapter.title ? chapter.title + " · " : ""}${data.title} is now live! Tap to start learning.`;
+          const finalMessage = scheduled_at
+            ? injectNotificationSchedule(rawMessage, scheduled_at)
+            : rawMessage;
+          const notifTitle = scheduled_at
+            ? `🔴 Now Live: ${data.title}`
+            : `New Lecture: ${data.title}`;
+
+          await supabaseAdmin.from("notifications").insert({
+            title: notifTitle,
+            message: finalMessage,
+            action_url: actionUrl,
+            target_class: subData?.class_level ?? null,
+            target_subject_id: subData?.id ?? null,
+            type: "lecture",
+          });
+        }
+      }
+    } catch (notifErr) {
+      console.warn("[upsertLesson] Auto-notification non-fatal error:", notifErr);
+    }
+  }
+
   const parsed = parseLessonSchedule(data.summary);
   return {
     ...data,

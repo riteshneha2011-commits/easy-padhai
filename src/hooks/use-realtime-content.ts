@@ -16,7 +16,14 @@ export function useRealtimeContentSync() {
   const { activeClass } = useActiveClass();
   const lastSyncRef = useRef<number>(Date.now());
 
-  // 1. Window Focus & Tab Visibility Auto-Revalidation
+  // 1. Initial Mount Sync (Guarantees fresh catalog and notifications whenever app/PWA starts up)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    void qc.invalidateQueries({ queryKey: ["catalog"] });
+    void qc.invalidateQueries({ queryKey: ["my-notifications"] });
+  }, [qc]);
+
+  // 2. Window Focus & Tab Visibility Auto-Revalidation
   useEffect(() => {
     if (typeof window === "undefined") return;
 

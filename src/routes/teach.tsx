@@ -1017,6 +1017,7 @@ function TeachPage() {
                           order_index: newLessonOrder,
                           published: !isDraft,
                           scheduled_at: scheduledAt,
+                          notify_students: !isDraft && (newLessonPublishMode === "schedule" ? notifyWhenLive : notifyImmediate),
                         },
                       }),
                     successMsg,
