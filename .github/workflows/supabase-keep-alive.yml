@@ -1,0 +1,37 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs every 3 days at 05:00 UTC (10:30 AM IST)
+    - cron: '0 5 */3 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI anytime!
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://bykqlnoftmqclyrtjiyp.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          echo "Sending keep-alive query to Supabase PostgreSQL database..."
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY is not set in GitHub Secrets."
+            echo "Please go to GitHub Repo -> Settings -> Secrets and variables -> Actions, and add VITE_SUPABASE_PUBLISHABLE_KEY."
+            exit 1
+          fi
+
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" \
+            -X GET "$SUPABASE_URL/rest/v1/subjects?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Supabase is ACTIVE! (HTTP $HTTP_STATUS)"
+            cat response.json
+          else
+            echo "❌ Keep-alive failed with HTTP status: $HTTP_STATUS"
+            cat response.json
+            exit 1
+          fi
