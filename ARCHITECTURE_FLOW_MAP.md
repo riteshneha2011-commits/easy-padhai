@@ -134,27 +134,34 @@ flowchart TD
     TeachRoute --> Gate[admin.server.ts: assertStaff]
     Gate --> Tabs{Select Studio Tab}
 
-    Tabs -->|Tab 1: Create Lesson| L1[Lesson Builder Form]
-    L1 --> UploadR2[r2.server.ts: Get Presigned URL -> Direct R2 PUT]
-    L1 --> Sched[schedule.ts: Embed <!--SCHEDULED:ISO-->]
-    L1 --> SaveL[admin.server.ts: upsertLesson]
+    Tabs -->|Tab 1: Curriculum & Content| C1[src/components/teach/teach-curriculum-tab.tsx]
+    C1 --> UploadR2[r2.server.ts: Get Presigned URL -> Direct R2 PUT]
+    C1 --> Sched[schedule.ts: Embed <!--SCHEDULED:ISO-->]
+    C1 --> SaveL[admin.server.ts: upsertLesson / upsertChapter / upsertSubject]
     SaveL --> AutoNotif[Auto-Insert into notifications Table]
+    C1 --> PreviewL[Lesson In-Studio Student Preview Modal]
 
-    Tabs -->|Tab 2: Manage Curriculum| L2[Chapters & Lessons Reorder/Edit]
-    Tabs -->|Tab 3: Quiz Bank| L3[Quiz Builder & AI Generator]
-    L3 --> ParseQ[questions-parse.ts: AI Text/JSON parser]
-    L3 --> SaveQ[admin.server.ts: insertQuestions]
+    Tabs -->|Tab 2: AI Quiz Builder| C2[src/components/teach/teach-quiz-builder-tab.tsx]
+    C2 --> GeminiAI[admin.server.ts: generateQuestions -> Gemini API]
+    C2 --> ParseQ[questions-parse.ts: AI Text/JSON parser]
+    C2 --> SaveQ[admin.server.ts: insertQuestions & upsertTest]
+
+    Tabs -->|Tab 3: Quiz Bank & Editor| C3[src/components/teach/teach-quiz-bank-tab.tsx]
+    C3 --> EditModal[Clean Quiz Reader/Editor Modal]
+    C3 --> UpdateQ[admin.server.ts: saveQuestion & deleteRow]
 ```
 
 ### 4.2 Direct-Strike Traceability Matrix (Chunk 4)
 
 | User Action / Problem Area | UI File to Touch | Logic / State Hook | Backend Server Function | DB Tables Touched | External Service |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Teacher Role Gate** | `src/routes/teach.tsx` | `isStaff` check | `src/lib/admin.server.ts` (`assertStaff`) | `user_roles` | Supabase DB |
-| **Create / Edit Lesson Form** | `src/routes/teach.tsx` (Lines ~980–1100, ~1900–1950) | Form State | `src/lib/admin.server.ts` (`upsertLesson`) | `lessons`, `notifications` | Supabase DB |
+| **Teacher Role Gate & Shell** | `src/routes/teach.tsx` | `isStaff` check, tabs shell | `src/lib/admin.server.ts` (`assertStaff`) | `user_roles` | Supabase DB |
+| **Create / Edit Lesson & Chapter** | `src/components/teach/teach-curriculum-tab.tsx` | Form State, Reordering, Collapsible | `src/lib/admin.server.ts` (`upsertLesson`, `upsertChapter`) | `lessons`, `chapters`, `notifications` | Supabase DB |
+| **In-Studio Lesson Preview Modal** | `src/components/teach/teach-curriculum-tab.tsx` | `previewLessonData` dialog | Read-only | None | Attached Player & KaTeX |
 | **Audio File Upload & Compress** | `src/components/media-input.tsx` | `src/lib/audio-compressor.ts` | `src/lib/r2.server.ts` (`getPresignedUploadUrl`) | None | Cloudflare R2 Direct PUT |
-| **Scheduled / Drip Release** | `src/routes/teach.tsx` | `src/lib/schedule.ts` (`injectLessonSchedule`, `localDateTimeToIso`) | `src/lib/admin.server.ts` (`upsertLesson`) | `lessons.summary` (`<!--SCHEDULED:ISO-->`) | Asia/Kolkata (+05:30) |
-| **AI Quiz Generator / Bulk Parser** | `src/routes/teach.tsx` (Tab 3) | `src/lib/questions-parse.ts` | `src/lib/admin.server.ts` (`insertQuestions`, `upsertTest`) | `tests`, `questions` | Google Gemini API |
+| **Scheduled / Drip Release** | `src/components/teach/teach-curriculum-tab.tsx` | `src/lib/schedule.ts` (`localDateTimeToIso`, etc.) | `src/lib/admin.server.ts` (`upsertLesson`) | `lessons.scheduled_at`, `notifications` | Asia/Kolkata (+05:30) |
+| **AI Quiz Generator & Manual Form** | `src/components/teach/teach-quiz-builder-tab.tsx` | Gemini Prompt, Visual Math Formula Render | `src/lib/admin.server.ts` (`generateQuestions`, `insertQuestions`) | `tests`, `questions` | Google Gemini API |
+| **All Quizzes Bank & Question Editor** | `src/components/teach/teach-quiz-bank-tab.tsx` | Table filters, Quiz View/Edit Dialog | `src/lib/admin.server.ts` (`getTestQuestions`, `saveQuestion`) | `tests`, `questions` | Supabase DB |
 | **Admin Owner Controls** | `src/routes/admin.tsx` | Admin Dashboard | `src/lib/owner.server.ts`, `src/lib/admin.server.ts` | `user_roles`, `profiles`, `credit_events` | Supabase DB |
 
 ---
@@ -199,8 +206,9 @@ When an issue or feature request is raised, jump directly to the target file:
 "Quiz question count is wrong / 0"            ➔ src/lib/admin.server.ts (fetchAdminCatalog)
 "Audio stops on lock screen / next lecture"   ➔ src/components/media-player.tsx (setupMediaSession)
 "New lecture uploaded but users can't see it" ➔ public/sw.js (CACHE_NAME version & exclude list)
-"Notification not ringing for new lectures"    ➔ src/lib/admin.server.ts (upsertLesson shouldNotify)
-"Add/Modify field in lesson upload form"      ➔ src/routes/teach.tsx (Lines ~980–1080)
+"Add/Modify field in lesson upload form"      ➔ src/components/teach/teach-curriculum-tab.tsx
+"Modify AI Quiz generator prompt/options"     ➔ src/components/teach/teach-quiz-builder-tab.tsx
+"Edit Quiz questions table / reader dialog"    ➔ src/components/teach/teach-quiz-bank-tab.tsx
 "Change class level / add new class"          ➔ src/lib/classes.ts & src/hooks/use-active-class.ts
 "Timezone shifted by 5.5 hours in schedule"   ➔ src/lib/schedule.ts (localDateTimeToIso)
 "Database connection error / MCP check"       ➔ PROJECT_CONNECTIONS.md (DO NOT USE MCP)

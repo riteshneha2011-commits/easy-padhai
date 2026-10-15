@@ -154,6 +154,10 @@ Easy Padhai/
 ├── src/
 │   ├── components/             # Reusable UI Components
 │   │   ├── ui/                 # Radix UI + Tailwind design primitives
+│   │   ├── teach/              # Decoupled Teacher Studio Modules
+│   │   │   ├── teach-curriculum-tab.tsx    # Tab 1: Subjects, Chapters, Lectures & In-Studio Preview
+│   │   │   ├── teach-quiz-builder-tab.tsx  # Tab 2: AI Quiz Builder, Formulas & Manual Form
+│   │   │   └── teach-quiz-bank-tab.tsx     # Tab 3: All Quizzes Bank Table & Question Editor Modal
 │   │   ├── media-player.tsx    # Audio/Video player with Podcast mode & MediaSession
 │   │   ├── site-header.tsx     # Global navigation, class switcher, user profile
 │   │   ├── notification-bell.tsx # Realtime student notification drawer
