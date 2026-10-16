@@ -18,6 +18,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as OfflineRouteImport } from './routes/offline'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as RevisionRouteImport } from './routes/revision'
+import { Route as SimulationsRouteImport } from './routes/simulations'
 import { Route as TeachRouteImport } from './routes/teach'
 import { Route as WalletRouteImport } from './routes/wallet'
 import { Route as CCodeRouteImport } from './routes/c.$code'
@@ -70,6 +71,11 @@ const RevisionRoute = RevisionRouteImport.update({
   path: '/revision',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SimulationsRoute = SimulationsRouteImport.update({
+  id: '/simulations',
+  path: '/simulations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeachRoute = TeachRouteImport.update({
   id: '/teach',
   path: '/teach',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/offline': typeof OfflineRoute
   '/onboarding': typeof OnboardingRoute
   '/revision': typeof RevisionRoute
+  '/simulations': typeof SimulationsRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
   '/c/$code': typeof CCodeRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/offline': typeof OfflineRoute
   '/onboarding': typeof OnboardingRoute
   '/revision': typeof RevisionRoute
+  '/simulations': typeof SimulationsRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
   '/c/$code': typeof CCodeRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/offline': typeof OfflineRoute
   '/onboarding': typeof OnboardingRoute
   '/revision': typeof RevisionRoute
+  '/simulations': typeof SimulationsRoute
   '/teach': typeof TeachRoute
   '/wallet': typeof WalletRoute
   '/c/$code': typeof CCodeRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/offline'
     | '/onboarding'
     | '/revision'
+    | '/simulations'
     | '/teach'
     | '/wallet'
     | '/c/$code'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/offline'
     | '/onboarding'
     | '/revision'
+    | '/simulations'
     | '/teach'
     | '/wallet'
     | '/c/$code'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/offline'
     | '/onboarding'
     | '/revision'
+    | '/simulations'
     | '/teach'
     | '/wallet'
     | '/c/$code'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   OfflineRoute: typeof OfflineRoute
   OnboardingRoute: typeof OnboardingRoute
   RevisionRoute: typeof RevisionRoute
+  SimulationsRoute: typeof SimulationsRoute
   TeachRoute: typeof TeachRoute
   WalletRoute: typeof WalletRoute
   CCodeRoute: typeof CCodeRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RevisionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/simulations': {
+      id: '/simulations'
+      path: '/simulations'
+      fullPath: '/simulations'
+      preLoaderRoute: typeof SimulationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/teach': {
       id: '/teach'
       path: '/teach'
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   OfflineRoute: OfflineRoute,
   OnboardingRoute: OnboardingRoute,
   RevisionRoute: RevisionRoute,
+  SimulationsRoute: SimulationsRoute,
   TeachRoute: TeachRoute,
   WalletRoute: WalletRoute,
   CCodeRoute: CCodeRoute,

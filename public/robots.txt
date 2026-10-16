@@ -1,14 +1,19 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /simulations
 
 User-agent: Bingbot
 Allow: /
+Disallow: /simulations
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /simulations
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /simulations
 
 User-agent: *
 Allow: /
+Disallow: /simulations

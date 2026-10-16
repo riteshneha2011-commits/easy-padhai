@@ -184,6 +184,7 @@ Easy Padhai/
 │       ├── test.$testId.tsx    # Interactive objective quiz runner
 │       ├── teach.tsx           # Teacher & Admin Studio (/teach)
 │       ├── admin.tsx           # Owner Admin Dashboard (/admin)
+│       ├── simulations.tsx     # Hidden standalone Physics Lab redirect (/simulations)
 │       └── dashboard.tsx       # Student progress, streaks & stats
 ```
 
@@ -199,6 +200,7 @@ Easy Padhai/
 | **DEC-004** | Scheduled release times shifted by 5.5 hours | Server UTC timezone distorted local date-picker strings. | Implemented `schedule.ts` with explicit `+05:30` (IST) normalization. |
 | **DEC-005** | Supabase MCP connection errors | Supabase MCP server points to an inactive test project (`sfjkhwauadkomcesyobb`). | **STRICT PROHIBITION**: Do not use Supabase MCP. Use direct Node.js scripts and `.env` credentials. |
 | **DEC-006** | Supabase Free Tier auto-pause after 7 days | Inactive projects on Supabase free tier pause if no queries occur. | Created `.github/workflows/supabase-keep-alive.yml` to ping database every 3 days. |
+| **DEC-007** | Hidden Physics Lab simulations on `/simulations` | Must remain completely hidden from UI and Google indexing while accessible via direct URL. | Placed isolated zero-conflict standalone app in `public/simulations/` with `rewrites` in `vercel.json`, `noindex` meta, `robots.txt` disallow, and a subtle "← Back to Easy Padhai" header link. |
 
 ---
 
