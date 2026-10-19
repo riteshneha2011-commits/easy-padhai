@@ -20,6 +20,7 @@ import {
   BookOpen,
   GraduationCap,
   Share2,
+  Coins,
 } from "lucide-react";
 import { soundFx } from "@/lib/sound-effects";
 import { haptics } from "@/lib/haptics";
@@ -189,8 +190,14 @@ function DashboardPage() {
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">Here's how your learning is going.</p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="text-xs text-muted-foreground font-semibold">Active Class:</span>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <Link
+            to="/wallet"
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-colors shadow-2xs"
+          >
+            <Coins className="size-3.5 text-amber-500" />
+            <span>{profile?.credits ?? data.profile?.credits ?? 0} Coins</span>
+          </Link>
           <ClassSwitcher size="sm" />
         </div>
       </div>
