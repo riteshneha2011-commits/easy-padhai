@@ -201,6 +201,7 @@ Easy Padhai/
 | **DEC-005** | Supabase MCP connection errors | Supabase MCP server points to an inactive test project (`sfjkhwauadkomcesyobb`). | **STRICT PROHIBITION**: Do not use Supabase MCP. Use direct Node.js scripts and `.env` credentials. |
 | **DEC-006** | Supabase Free Tier auto-pause after 7 days | Inactive projects on Supabase free tier pause if no queries occur. | Created `.github/workflows/supabase-keep-alive.yml` to ping database every 3 days. |
 | **DEC-007** | Hidden Physics Lab simulations on `/simulations` | Must remain completely hidden from UI and Google indexing while accessible via direct URL. | Placed isolated zero-conflict standalone app in `public/simulations/` with `rewrites` in `vercel.json`, `noindex` meta, `robots.txt` disallow, and a subtle "← Back to Easy Padhai" header link. |
+| **DEC-008** | Easy Padhai 2.0 UI/UX Makeover & Payment Readiness | User friction from 12-field mandatory onboarding, infinite redirect loops, clunky cascading `<select>` dropdowns on `/learn`, paywall blockades, and mobile floating bar collisions. | 1. Simplified onboarding into a 5-sec 2-step chip selector with dismissable guest mode. 2. Made phone number optional on server. 3. Overhauled `/learn` into a modern horizontal subject carousel + instant search + rich chapter cards. 4. Replaced paywalls with welcoming free access messages. 5. Future-proofed payment architecture in `payment.server.ts` connected to `credit_events`. 6. Elevated mobile floating bar to `bottom-20` to prevent collision with mobile bottom nav. |
 
 ---
 

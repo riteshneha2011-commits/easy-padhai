@@ -55,16 +55,17 @@ function clean(value: string | null | undefined) {
 }
 
 export async function saveProfileDetailsFor(userId: string, input: ProfileDetailsInput) {
-  const fullName = clean(input.full_name);
+  const fullName = clean(input.full_name) || "Student";
   const phone = clean(input.phone);
-  if (!fullName) throw new Error("Name is required");
-  if (!phone || !/^[0-9+\-\s()]{8,20}$/.test(phone)) throw new Error("Enter a valid mobile number");
+  if (phone && !/^[0-9+\-\s()]{8,20}$/.test(phone)) {
+    throw new Error("Enter a valid mobile number or leave blank");
+  }
 
   const { error } = await supabaseAdmin
     .from("profiles")
     .update({
       full_name: fullName,
-      phone,
+      phone: phone || null,
       class_level: input.class_level ?? DEFAULT_CLASS_LEVEL,
       guardian_phone: clean(input.guardian_phone),
       school_name: clean(input.school_name),
@@ -73,7 +74,7 @@ export async function saveProfileDetailsFor(userId: string, input: ProfileDetail
       board: clean(input.board),
       gender: clean(input.gender),
       date_of_birth: clean(input.date_of_birth),
-      preferred_language: clean(input.preferred_language),
+      preferred_language: clean(input.preferred_language) || "Hinglish",
       goal: clean(input.goal),
       onboarding_completed: true,
     })

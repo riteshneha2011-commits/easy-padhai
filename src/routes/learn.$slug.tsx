@@ -1132,8 +1132,8 @@ function ChapterPage() {
         </main>
       </div>
 
-      {/* Floating Mobile Bottom Mini-Bar for Zero-Scroll Next/Prev */}
-      <div className="lg:hidden fixed bottom-4 inset-x-0 z-20 flex justify-center px-4 pointer-events-none pb-[env(safe-area-inset-bottom)]">
+      {/* Floating Mobile Bottom Mini-Bar for Zero-Scroll Next/Prev (Elevated to avoid bottom nav bar) */}
+      <div className="lg:hidden fixed bottom-20 inset-x-0 z-20 flex justify-center px-4 pointer-events-none pb-[env(safe-area-inset-bottom)]">
         <div className="pointer-events-auto bg-card/95 backdrop-blur-md border border-border/80 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-2">
           <Button
             size="sm"
@@ -1559,9 +1559,9 @@ function LessonPanel({
                 <Headphones className="size-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-base font-bold text-foreground">Audio Lecture Locked</p>
+                <p className="text-base font-bold text-foreground">100% Free for Easy Padhai Students</p>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
-                  Unlock this lecture for 10 credits to listen to the complete explanation anytime, anywhere.
+                  Sign in or create your free account in 5 seconds to access all audio lectures, notes, tests and streak rewards.
                 </p>
               </div>
               {signedIn ? (
@@ -1573,17 +1573,17 @@ function LessonPanel({
                 >
                   {unlocking ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                      <Loader2 className="size-3.5 animate-spin" /> Loading Lecture...
                     </>
                   ) : (
                     <>
-                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                      <Unlock className="size-3.5" /> Start Learning Now
                     </>
                   )}
                 </Button>
               ) : (
-                <Button asChild size="sm" className="rounded-full font-bold">
-                  <Link to="/auth">Sign in to Unlock</Link>
+                <Button asChild size="sm" className="rounded-full font-bold shadow-glow px-6 h-9">
+                  <Link to="/auth">Sign in Free to Continue →</Link>
                 </Button>
               )}
             </div>
@@ -1636,9 +1636,9 @@ function LessonPanel({
                 <PlayCircle className="size-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-base font-bold text-foreground">Video Lecture Locked</p>
+                <p className="text-base font-bold text-foreground">100% Free for Easy Padhai Students</p>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
-                  Unlock this lecture for 10 credits to watch the complete step-by-step video lecture.
+                  Sign in or create your free account in 5 seconds to watch video lectures, notes, tests and streak rewards.
                 </p>
               </div>
               {signedIn ? (
@@ -1650,17 +1650,17 @@ function LessonPanel({
                 >
                   {unlocking ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" /> Unlocking Lecture...
+                      <Loader2 className="size-3.5 animate-spin" /> Loading Lecture...
                     </>
                   ) : (
                     <>
-                      <Unlock className="size-3.5" /> Unlock Lecture · {access?.cost ?? 10} Credits
+                      <Unlock className="size-3.5" /> Start Learning Now
                     </>
                   )}
                 </Button>
               ) : (
-                <Button asChild size="sm" className="rounded-full font-bold">
-                  <Link to="/auth">Sign in to Unlock</Link>
+                <Button asChild size="sm" className="rounded-full font-bold shadow-glow px-6 h-9">
+                  <Link to="/auth">Sign in Free to Watch →</Link>
                 </Button>
               )}
             </div>

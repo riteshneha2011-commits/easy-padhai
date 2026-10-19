@@ -19,6 +19,8 @@ import {
   Clock,
   MessageCircle,
   BellRing,
+  Layers,
+  X,
 } from "lucide-react";
 import { getCatalog } from "@/lib/content.functions";
 import { getUserCompletedLessons } from "@/lib/learn.functions";
@@ -52,14 +54,14 @@ export const Route = createFileRoute("/learn/")({
       {
         property: "og:description",
         content:
-          "Hierarchical curriculum browser: Subject ➔ Chapter ➔ Lesson. Audio, video, notes and instant objective tests.",
+          "Audio-first curriculum browser: Subject ➔ Chapter ➔ Lesson. Audio, video, notes and instant objective tests.",
       },
     ],
   }),
   component: LearnIndex,
 });
 
-function LearnIndex() {
+export default function LearnIndex() {
   const { data: allSubjects } = useSuspenseQuery(catalogQuery);
   const { activeClass, switchClass, classLabel } = useActiveClass();
   const navigate = useNavigate();
@@ -105,41 +107,13 @@ function LearnIndex() {
 
   const isClassComingSoon = totalChaptersInClass === 0;
 
-  // Navigation & filter state: initialized deterministically so SSR and Client match exactly
+  // Selected subject: "all" or specific subject ID
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(() => {
-    return targetSubjectFromUrl?.id || (classSubjects[0]?.id ?? "");
+    if (targetSubjectFromUrl) return targetSubjectFromUrl.id;
+    return classSubjects[0]?.id ?? "all";
   });
-  const [selectedChapterId, setSelectedChapterId] = useState<string>(() => {
-    if (searchParams?.chapter) return searchParams.chapter;
-    const sub = targetSubjectFromUrl || classSubjects[0];
-    return sub?.chapters[0]?.id ?? "";
-  });
+
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"stepper" | "grid">("stepper");
-
-  // Effective subject (declared BEFORE any useEffect or handlers that use it)
-  const activeSubject = useMemo(() => {
-    if (selectedSubjectId) {
-      const found = classSubjects.find((s) => s.id === selectedSubjectId);
-      if (found) return found;
-    }
-    return classSubjects[0] ?? null;
-  }, [classSubjects, selectedSubjectId]);
-
-  // Chapters under active subject
-  const subjectChapters = useMemo(() => {
-    if (!activeSubject) return [];
-    return activeSubject.chapters ?? [];
-  }, [activeSubject]);
-
-  // Active chapter object
-  const activeChapter = useMemo(() => {
-    if (selectedChapterId) {
-      const found = subjectChapters.find((c) => c.id === selectedChapterId);
-      if (found) return found;
-    }
-    return subjectChapters[0] ?? null;
-  }, [subjectChapters, selectedChapterId]);
 
   // Persistent last study session & PWA auto-resume
   const [lastStudy, setLastStudy] = useState<{
@@ -158,7 +132,6 @@ function LearnIndex() {
       const raw = localStorage.getItem("easypadhai_last_study");
       if (raw) {
         const parsed = JSON.parse(raw);
-        // Valid if within last 30 days, has slug & lessonId, and belongs strictly to activeClass
         const matchesClass = parsed?.classLevel ? parsed.classLevel === activeClass : true;
         const existsInClass = classSubjects.some((s) =>
           s.chapters?.some((c) => c.slug === parsed?.slug || c.id === parsed?.chapterId),
@@ -172,7 +145,7 @@ function LearnIndex() {
         ) {
           setLastStudy(parsed);
 
-          // If launched in PWA standalone mode (app icon on phone screen)
+          // If launched in PWA standalone mode
           const isStandalone =
             window.matchMedia("(display-mode: standalone)").matches ||
             (window.navigator as any).standalone === true;
@@ -198,81 +171,25 @@ function LearnIndex() {
     }
   }, [navigate, activeClass, classSubjects]);
 
-  // Priority-based subject & chapter synchronization:
-  // 1. If targetSubjectFromUrl exists, it ALWAYS takes first priority.
-  // 2. Otherwise load saved subject for effectiveClass, falling back to classSubjects[0].
+  // Sync selectedSubjectId if URL changes or active class changes
   useEffect(() => {
     if (targetSubjectFromUrl) {
       setSelectedSubjectId(targetSubjectFromUrl.id);
-      const queryChap = searchParams?.chapter;
-      const validChap =
-        queryChap && targetSubjectFromUrl.chapters.some((c) => c.id === queryChap)
-          ? queryChap
-          : targetSubjectFromUrl.chapters[0]?.id ?? "";
-      setSelectedChapterId(validChap);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(`easypadhai_active_subject_${targetSubjectFromUrl.class_level}`, targetSubjectFromUrl.id);
-          if (validChap) {
-            localStorage.setItem(`easypadhai_active_chapter_${targetSubjectFromUrl.id}`, validChap);
-          }
-        } catch {}
-      }
-      return;
+    } else if (selectedSubjectId !== "all" && !classSubjects.some((s) => s.id === selectedSubjectId)) {
+      setSelectedSubjectId(classSubjects[0]?.id ?? "all");
     }
+  }, [targetSubjectFromUrl, classSubjects, selectedSubjectId]);
 
-    if (classSubjects.length === 0) return;
-    const savedSub = localStorage.getItem(`easypadhai_active_subject_${effectiveClass}`);
-    const validSub =
-      savedSub && classSubjects.some((s) => s.id === savedSub) ? savedSub : classSubjects[0]?.id ?? "";
-    setSelectedSubjectId(validSub);
-    const targetSub = classSubjects.find((s) => s.id === validSub);
-    const savedChap = targetSub ? localStorage.getItem(`easypadhai_active_chapter_${validSub}`) : null;
-    const validChap =
-      savedChap && targetSub?.chapters.some((c) => c.id === savedChap)
-        ? savedChap
-        : targetSub?.chapters[0]?.id ?? "";
-    setSelectedChapterId(validChap);
-  }, [targetSubjectFromUrl, effectiveClass, classSubjects, searchParams?.chapter]);
-
-  const handleSubjectChange = (newSubjectId: string) => {
-    setSelectedSubjectId(newSubjectId);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(`easypadhai_active_subject_${effectiveClass}`, newSubjectId);
-        const savedChap = localStorage.getItem(`easypadhai_active_chapter_${newSubjectId}`);
-        const targetSub = classSubjects.find((s) => s.id === newSubjectId);
-        const nextChapId =
-          savedChap && targetSub?.chapters.some((c) => c.id === savedChap)
-            ? savedChap
-            : targetSub?.chapters[0]?.id ?? "";
-        setSelectedChapterId(nextChapId);
-
-        void navigate({
-          to: "/learn",
-          search: { class: effectiveClass, subject: newSubjectId, chapter: nextChapId || undefined } as any,
-          replace: true,
-        });
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-  };
-
-  const handleChapterChange = (newChapterId: string) => {
-    setSelectedChapterId(newChapterId);
-    if (typeof window !== "undefined" && activeSubject) {
-      try {
-        localStorage.setItem(`easypadhai_active_chapter_${activeSubject.id}`, newChapterId);
-        void navigate({
-          to: "/learn",
-          search: { class: effectiveClass, subject: activeSubject.id, chapter: newChapterId } as any,
-          replace: true,
-        });
-      } catch (e) {
-        console.warn(e);
-      }
-    }
+  const handleSubjectSelect = (subId: string) => {
+    setSelectedSubjectId(subId);
+    void navigate({
+      to: "/learn",
+      search: {
+        class: effectiveClass,
+        subject: subId === "all" ? undefined : subId,
+      } as any,
+      replace: true,
+    });
   };
 
   // User progress tracking across lessons
@@ -287,17 +204,16 @@ function LearnIndex() {
     [completedQuery.data]
   );
 
-  const activeChapterLessons = activeChapter?.lessons ?? [];
-  const completedCountInActiveChapter = useMemo(
-    () => activeChapterLessons.filter((l) => completedLessonIds.has(l.id)).length,
-    [activeChapterLessons, completedLessonIds]
-  );
-  const activeChapterProgressPercent = activeChapterLessons.length
-    ? Math.round((completedCountInActiveChapter / activeChapterLessons.length) * 100)
-    : 0;
+  // Helper icon for subjects
+  function getSubjectIcon(name: string) {
+    const n = (name ?? "").toLowerCase();
+    if (n.includes("math")) return Calculator;
+    if (n.includes("social") || n.includes("history") || n.includes("geography") || n.includes("civics")) return Globe;
+    return Atom;
+  }
 
-  // Filtered chapters for grid / search
-  const filteredGridChapters = useMemo(() => {
+  // Filtered chapters for visual grid
+  const filteredChapters = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return classSubjects.flatMap((sub) =>
       sub.chapters
@@ -315,24 +231,15 @@ function LearnIndex() {
         })
         .map((chap) => ({
           ...chap,
+          subjectId: sub.id,
           subjectName: sub.name,
           classLevel: sub.class_level,
         })),
     );
   }, [classSubjects, selectedSubjectId, searchQuery]);
 
-  // Helper icon for subjects
-  function getSubjectIcon(name: string) {
-    const n = (name ?? "").toLowerCase();
-    if (n.includes("math")) return Calculator;
-    if (n.includes("social") || n.includes("history") || n.includes("geography")) return Globe;
-    return Atom;
-  }
-
-  const ActiveSubjectIcon = activeSubject ? getSubjectIcon(activeSubject.name) : BookOpen;
-
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-12 space-y-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-10 space-y-6 sm:space-y-8">
       {/* 1. Header Banner */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/60 pb-6">
         <div className="space-y-2">
@@ -348,42 +255,12 @@ function LearnIndex() {
           <p className="text-sm text-muted-foreground max-w-xl">
             {isClassComingSoon
               ? `Browse planned subjects for ${classLabel(activeClass)} and get instant alerts when lectures go live.`
-              : `Choose your subject, select a chapter, and dive into 10–25 minute audio lectures, video lessons, and instant tests.`}
+              : `Tap any subject or chapter to dive directly into audio lectures, video explanations, revision notes, and quizzes.`}
           </p>
         </div>
-
-        {/* View Mode Switcher (only if class has chapters) */}
-        {!isClassComingSoon && (
-          <div className="inline-flex items-center rounded-full bg-secondary/80 p-1 self-start md:self-auto border border-border/50">
-            <button
-              type="button"
-              onClick={() => setViewMode("stepper")}
-              className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-                viewMode === "stepper"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              🎯 Subject ➔ Chapter ➔ Lessons
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("grid")}
-              className={cn(
-                "rounded-full px-3.5 py-1.5 text-xs font-bold transition-all",
-                viewMode === "grid"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              📚 All Chapters Grid
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Resume Active Learning Banner */}
+      {/* 2. Resume Active Learning Banner */}
       {lastStudy && (
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-primary/35 bg-gradient-to-r from-primary/15 via-primary/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm w-full">
           <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full">
@@ -464,7 +341,7 @@ function LearnIndex() {
         </div>
       )}
 
-      {/* 60-Second Memory Boost (Spaced Repetition & Active Recall) */}
+      {/* 3. 60-Second Memory Boost */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm w-full">
         <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 min-w-0 w-full">
           <div className="size-10 sm:size-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md mt-0.5 sm:mt-0">
@@ -500,7 +377,7 @@ function LearnIndex() {
         </Button>
       </div>
 
-      {/* If Class has no chapters yet: High-Impact Launching Soon Screen */}
+      {/* 4. If Class has no chapters yet: Launching Soon Card */}
       {isClassComingSoon && (
         <div className="space-y-8 py-2">
           <Card className="relative overflow-hidden rounded-3xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 sm:p-10 shadow-sm">
@@ -538,7 +415,7 @@ function LearnIndex() {
             </div>
           </Card>
 
-          {/* Planned Subjects Grid for this Class */}
+          {/* Planned Subjects Grid */}
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -581,480 +458,268 @@ function LearnIndex() {
         </div>
       )}
 
-      {/* 2. MODE A: SEQUENTIAL DROPDOWN NAVIGATION (Subject ➔ Chapter ➔ Lesson) */}
-      {!isClassComingSoon && viewMode === "stepper" && (
+      {/* 5. Modern Unified Curriculum Hub (When Chapters Exist) */}
+      {!isClassComingSoon && (
         <div className="space-y-6">
-          {/* Cascading Filter Bar */}
-          <Card className="rounded-3xl border-border/70 shadow-sm bg-card p-4 sm:p-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-12 items-center">
-              {/* Step 1: Subject Dropdown */}
-              <div className="lg:col-span-4 space-y-1.5 min-w-0">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                    1
-                  </span>
-                  Select Subject
-                </label>
-                <select
-                  value={activeSubject?.id ?? ""}
-                  onChange={(e) => handleSubjectChange(e.target.value)}
-                  className="w-full truncate rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
-                >
-                  {classSubjects.map((sub) => (
-                    <option key={sub.id} value={sub.id}>
-                      {sub.name} ({sub.chapters.length} Chapters)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Step 2: Chapter Dropdown */}
-              <div className="lg:col-span-5 space-y-1.5 min-w-0">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                    2
-                  </span>
-                  Select Chapter
-                </label>
-                <select
-                  value={activeChapter?.id ?? ""}
-                  onChange={(e) => handleChapterChange(e.target.value)}
-                  className="w-full truncate rounded-2xl border border-input bg-background px-3.5 py-2.5 text-sm font-semibold text-foreground shadow-xs focus:outline-hidden focus:ring-2 focus:ring-primary/40"
-                >
-                  {subjectChapters.map((chap, idx) => {
-                    const chapLessons = chap.lessons ?? [];
-                    const chapDone = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
-                    const isFullyDone = chapLessons.length > 0 && chapDone === chapLessons.length;
-                    const suffix = isFullyDone
-                      ? "(✓ Done)"
-                      : chapDone > 0
-                      ? `(${chapDone}/${chap.lessonCount ?? chapLessons.length} done)`
-                      : `(${chap.lessonCount ?? chapLessons.length} lessons)`;
-
-                    return (
-                      <option key={chap.id} value={chap.id}>
-                        Ch {idx + 1}: {chap.title} {suffix}
-                      </option>
-                    );
-                  })}
-                  {subjectChapters.length === 0 && (
-                    <option value="">No chapters in this subject</option>
-                  )}
-                </select>
-              </div>
-
-              {/* Action Button */}
-              <div className="lg:col-span-3 pt-2 sm:pt-6">
-                {activeChapter ? (
-                  <Button
-                    asChild
-                    className="w-full rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 h-10 text-xs sm:text-sm gap-1.5"
-                  >
-                    <Link to="/learn/$slug" params={{ slug: activeChapter.slug }}>
-                      Open Chapter <ArrowRight className="size-4" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button disabled className="w-full rounded-full h-10 text-xs">
-                    Select a chapter
-                  </Button>
-                )}
-              </div>
+          {/* Visual Subject Selection Carousel / Pills */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Layers className="size-3.5 text-primary" /> Select Subject
+              </span>
+              <span className="text-xs text-muted-foreground font-semibold">
+                {totalChaptersInClass} Chapters Available
+              </span>
             </div>
-          </Card>
 
-          {/* Step 3: Interactive Lesson Explorer */}
-          {activeChapter ? (
-            <div className="space-y-4">
-              {/* Active Chapter Header Card */}
-              <Card className="rounded-3xl border-primary/30 bg-primary/5 p-6 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-bold flex items-center gap-1.5">
-                    <ActiveSubjectIcon className="size-3.5 text-primary" />
-                    <span>{activeSubject?.name}</span>
-                  </Badge>
-                  <div className="flex items-center gap-2">
-                    {user && activeChapterLessons.length > 0 && completedCountInActiveChapter > 0 && (
-                      <Badge
-                        className={cn(
-                          "rounded-full px-2.5 py-0.5 text-xs font-bold border flex items-center gap-1",
-                          activeChapterProgressPercent === 100
-                            ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
-                            : "bg-primary/10 text-primary border-primary/20"
-                        )}
-                      >
-                        <Check className="size-3 stroke-[3]" />
-                        {activeChapterProgressPercent === 100
-                          ? "Chapter Completed 🎉"
-                          : `${completedCountInActiveChapter}/${activeChapterLessons.length} Completed`}
-                      </Badge>
-                    )}
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {activeChapterLessons.length} {activeChapterLessons.length === 1 ? "Lesson" : "Lessons"} published
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-foreground">
-                      {activeChapter.title}
-                    </h2>
-                    {activeChapter.description && (
-                      <p className="mt-1 text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                        {activeChapter.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {(() => {
-                    const currentIdx = subjectChapters.findIndex((c) => c.id === activeChapter.id);
-                    const nextChap =
-                      currentIdx >= 0 && currentIdx < subjectChapters.length - 1
-                        ? subjectChapters[currentIdx + 1]
-                        : null;
-
-                    if (activeChapterProgressPercent === 100 && nextChap) {
-                      return (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="rounded-full font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs sm:text-sm gap-1.5 h-10 px-4"
-                        >
-                          <Link to="/learn/$slug" params={{ slug: nextChap.slug }} className="inline-flex items-center gap-1.5">
-                            <span className="truncate max-w-[170px] sm:max-w-none">Next: {nextChap.title}</span>
-                            <ArrowRight className="size-4 shrink-0" />
-                          </Link>
-                        </Button>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-
-                {/* Progress bar if logged in */}
-                {user && activeChapterLessons.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                      <span>Chapter Completion</span>
-                      <span className="text-foreground font-bold">{activeChapterProgressPercent}%</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-primary/15">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${activeChapterProgressPercent}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </Card>
-
-              {/* Lesson Items List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                      3
-                    </span>
-                    Lesson Breakdown & Audio Lectures
-                  </h3>
-                  <span className="text-xs text-muted-foreground font-medium">
-                    Tap any lesson to open directly
-                  </span>
-                </div>
-
-                <div className="grid gap-3">
-                  {activeChapterLessons.map((lesson, idx) => {
-                    const isDone = completedLessonIds.has(lesson.id);
-
-                    return (
-                      <Link
-                        key={lesson.id}
-                        to="/learn/$slug"
-                        params={{ slug: activeChapter.slug }}
-                        search={{ lesson: lesson.id } as any}
-                        className="group block"
-                      >
-                        <Card
-                          className={cn(
-                            "rounded-2xl p-4 sm:p-5 transition-all hover:shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4",
-                            isDone
-                              ? "border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/70"
-                              : "border-border/70 hover:border-primary/50 bg-card"
-                          )}
-                        >
-                          <div className="flex items-start gap-3 min-w-0">
-                            {isDone ? (
-                              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white font-bold text-xs mt-0.5 shadow-xs">
-                                <Check className="size-4 stroke-[3]" />
-                              </div>
-                            ) : (
-                              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs mt-0.5">
-                                {idx + 1}
-                              </div>
-                            )}
-
-                            <div className="min-w-0 space-y-1.5">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <h4
-                                  className={cn(
-                                    "text-sm sm:text-base font-bold transition-colors leading-snug",
-                                    isDone
-                                      ? "text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
-                                      : "text-foreground group-hover:text-primary"
-                                  )}
-                                >
-                                  {lesson.title}
-                                </h4>
-                                {isDone && (
-                                  <Badge className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border-0 px-2 py-0.5 gap-1">
-                                    <Check className="size-3 stroke-[3]" /> Completed
-                                  </Badge>
-                                )}
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground font-medium">
-                                {lesson.hasAudio && (
-                                  <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full font-semibold">
-                                    <Headphones className="size-3" /> Audio Lecture
-                                  </span>
-                                )}
-                                {lesson.hasVideo && (
-                                  <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                    <PlayCircle className="size-3" /> Video
-                                  </span>
-                                )}
-                                {lesson.hasPdf && (
-                                  <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                    <FileText className="size-3" /> Notes
-                                  </span>
-                                )}
-                                {lesson.hasSummary && (
-                                  <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                    <Zap className="size-3" /> Quick Summary
-                                  </span>
-                                )}
-                                {lesson.hasQuiz && (
-                                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-semibold">
-                                    <Sparkles className="size-3" /> Quick Quiz
-                                  </span>
-                                )}
-                                {lesson.duration_minutes && (
-                                  <span>· {lesson.duration_minutes} mins</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-end sm:justify-center shrink-0">
-                            {isDone ? (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-full px-3.5 py-1.5 transition-colors">
-                                Review Lecture <ChevronRight className="size-3.5" />
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-xs font-bold text-primary group-hover:translate-x-0.5 transition-transform bg-secondary/80 rounded-full px-3.5 py-1.5">
-                                Start Lesson <ChevronRight className="size-3.5" />
-                              </span>
-                            )}
-                          </div>
-                        </Card>
-                      </Link>
-                    );
-                  })}
-
-                  {activeChapterLessons.length === 0 && (
-                    <div className="rounded-2xl border border-dashed border-border/80 p-8 text-center text-muted-foreground space-y-2">
-                      <BookOpen className="size-8 mx-auto text-muted-foreground/60" />
-                      <p className="text-sm font-semibold">No lessons published in this chapter yet.</p>
-                    </div>
-                  )}
-
-                  {/* Chapter Test Card */}
-                  {activeChapter.testId && (
-                    <Link
-                      to="/test/$testId"
-                      params={{ testId: activeChapter.testId }}
-                      className="group block"
-                    >
-                      <Card className="rounded-2xl border-emerald-500/30 bg-emerald-500/5 p-4 sm:p-5 transition-all hover:border-emerald-500/60 hover:shadow-md flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
-                            <Sparkles className="size-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-bold text-foreground">
-                              Chapter MCQ Quiz & Instant Assessment
-                            </h4>
-                            <p className="text-xs text-muted-foreground">
-                              Instant test with explanations, XP points, and streak score.
-                            </p>
-                          </div>
-                        </div>
-                        <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-card rounded-full px-3 py-1.5 shrink-0 border border-emerald-500/20">
-                          Take Quiz <ArrowRight className="size-3.5" />
-                        </span>
-                      </Card>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-dashed border-border/80 p-12 text-center text-muted-foreground">
-              <p className="text-sm font-medium">Please select a subject and chapter above.</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 3. MODE B: ALL CHAPTERS GRID VIEW (Visual Overview & Search) */}
-      {!isClassComingSoon && viewMode === "grid" && (
-        <div className="space-y-6">
-          {/* Quick Search & Subject Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedSubjectId("all");
-                  void navigate({ to: "/learn", search: { subject: "all" } as any, replace: true });
-                }}
+                onClick={() => handleSubjectSelect("all")}
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-bold transition-all",
+                  "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 border",
                   selectedSubjectId === "all"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:text-foreground",
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-card text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
                 )}
               >
-                All Subjects
+                <BookOpen className="size-4" />
+                <span>All Subjects</span>
+                <span className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                  selectedSubjectId === "all" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {totalChaptersInClass}
+                </span>
               </button>
-              {classSubjects.map((sub) => (
-                <button
-                  key={sub.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedSubjectId(sub.id);
-                    void navigate({ to: "/learn", search: { subject: sub.id } as any, replace: true });
-                  }}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-bold transition-all",
-                    selectedSubjectId === sub.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {sub.name} ({sub.chapters.length})
-                </button>
-              ))}
-            </div>
 
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search chapters or topics…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-full pl-9 text-xs h-9"
-              />
+              {classSubjects.map((sub) => {
+                const SubIcon = getSubjectIcon(sub.name);
+                const isSelected = selectedSubjectId === sub.id;
+                const chapCount = sub.chapters?.length ?? 0;
+
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => handleSubjectSelect(sub.id)}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 border",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-card text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
+                    )}
+                  >
+                    <SubIcon className="size-4" />
+                    <span>{sub.name}</span>
+                    <span className={cn(
+                      "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                      isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}>
+                      {chapCount}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Grid Cards */}
+          {/* Search & Topic Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-2xl border border-border/70 shadow-xs">
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search chapters, concepts, topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="rounded-full pl-10 pr-9 text-xs sm:text-sm h-10 border-input bg-background"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 size-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between w-full sm:w-auto text-xs font-semibold text-muted-foreground px-1">
+              <span>
+                Showing <strong className="text-foreground">{filteredChapters.length}</strong> {filteredChapters.length === 1 ? "chapter" : "chapters"}
+              </span>
+            </div>
+          </div>
+
+          {/* Chapters Grid / Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredGridChapters.map((chapter) => {
+            {filteredChapters.map((chapter) => {
               const SubIcon = getSubjectIcon(chapter.subjectName);
+              const chapLessons = chapter.lessons ?? [];
+              const doneCount = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
+              const isFullyDone = chapLessons.length > 0 && doneCount === chapLessons.length;
+              const hasStarted = doneCount > 0;
+
               return (
                 <Card
                   key={chapter.id}
-                  onClick={() => navigate({ to: "/learn/$slug", params: { slug: chapter.slug } })}
-                  className="card-hover shadow-card cursor-pointer gap-2.5 rounded-3xl border-border/70 p-5 transition-all hover:border-primary/50 flex flex-col justify-between"
+                  className="rounded-3xl border-border/80 bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md flex flex-col justify-between gap-4 group"
                 >
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Header tags */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
-                        <SubIcon className="size-3" />
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary">
+                        <SubIcon className="size-3.5" />
                         <span>{chapter.subjectName}</span>
                       </span>
                       <div className="flex items-center gap-1.5">
-                        {user && (() => {
-                          const chapLessons = chapter.lessons ?? [];
-                          const doneCount = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
-                          const isFullyDone = chapLessons.length > 0 && doneCount === chapLessons.length;
-                          if (isFullyDone) {
-                            return (
-                              <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold border border-emerald-500/30 px-2 py-0">
-                                ✓ Done
-                              </Badge>
-                            );
-                          }
-                          return null;
-                        })()}
-                        <Badge variant="secondary" className="rounded-full text-[10px] px-2">
+                        {user && isFullyDone && (
+                          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border border-emerald-500/30 px-2 py-0.5 gap-1">
+                            <Check className="size-2.5 stroke-[3]" /> Done
+                          </Badge>
+                        )}
+                        {user && hasStarted && !isFullyDone && (
+                          <Badge className="bg-primary/15 text-primary text-[10px] font-bold border border-primary/20 px-2 py-0.5">
+                            {doneCount}/{chapLessons.length} Done
+                          </Badge>
+                        )}
+                        <Badge variant="secondary" className="rounded-full text-[10px] font-bold px-2 py-0.5">
                           Ch {chapter.order_index}
                         </Badge>
                       </div>
                     </div>
-                    <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground line-clamp-2">
-                      {chapter.title}
-                    </h3>
+
+                    {/* Chapter Title */}
+                    <Link
+                      to="/learn/$slug"
+                      params={{ slug: chapter.slug }}
+                      className="block group-hover:text-primary transition-colors"
+                    >
+                      <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground">
+                        {chapter.title}
+                      </h3>
+                    </Link>
+
+                    {chapter.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                        {chapter.description}
+                      </p>
+                    )}
+
+                    {/* Quick Lesson Preview (up to 2 items) */}
+                    {chapLessons.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
+                          Lectures preview
+                        </div>
+                        <div className="space-y-1">
+                          {chapLessons.slice(0, 2).map((lesson: any, idx: number) => {
+                            const isDone = completedLessonIds.has(lesson.id);
+                            return (
+                              <Link
+                                key={lesson.id}
+                                to="/learn/$slug"
+                                params={{ slug: chapter.slug }}
+                                search={{ lesson: lesson.id } as any}
+                                className="flex items-center justify-between text-xs py-1 px-2.5 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors text-foreground group/item"
+                              >
+                                <span className="truncate flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
+                                  <span className="truncate group-hover/item:text-primary transition-colors">
+                                    {lesson.title}
+                                  </span>
+                                </span>
+                                {isDone ? (
+                                  <Check className="size-3 text-emerald-600 shrink-0" />
+                                ) : (
+                                  <PlayCircle className="size-3 text-muted-foreground shrink-0 group-hover/item:text-primary" />
+                                )}
+                              </Link>
+                            );
+                          })}
+                          {chapLessons.length > 2 && (
+                            <Link
+                              to="/learn/$slug"
+                              params={{ slug: chapter.slug }}
+                              className="text-[11px] font-semibold text-primary hover:underline inline-block px-1"
+                            >
+                              +{chapLessons.length - 2} more lectures inside ➔
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/40 pt-3 text-[11px] font-medium text-muted-foreground">
-                    <span className="rounded-full bg-muted/60 px-2 py-0.5 font-semibold text-foreground">
-                      {chapter.lessonCount} {chapter.lessonCount === 1 ? "Lesson" : "Lessons"}
-                    </span>
-                    {user && (
-                      (() => {
-                        const chapLessons = chapter.lessons ?? [];
-                        const doneCount = chapLessons.filter((l: any) => completedLessonIds.has(l.id)).length;
-                        if (doneCount === 0) return null;
-                        const isFullyDone = chapLessons.length > 0 && doneCount === chapLessons.length;
-                        return (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold",
-                              isFullyDone
-                                ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                                : "bg-primary/15 text-primary"
-                            )}
-                          >
-                            <Check className="size-3 stroke-[3]" />
-                            {isFullyDone ? "✓ Completed 🎉" : `${doneCount}/${chapter.lessonCount} Done`}
-                          </span>
-                        );
-                      })()
-                    )}
-                    <span className="flex items-center gap-1 text-primary">
-                      <Headphones className="size-3" /> Audio
-                    </span>
-                    <span className="flex items-center gap-1 text-blue-500">
-                      <PlayCircle className="size-3" /> Video
-                    </span>
-                    {(chapter.lessons ?? []).some((l: any) => l.hasPdf) && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                  {/* Footer & CTA */}
+                  <div className="space-y-3 pt-3 border-t border-border/50">
+                    {/* Media Pills */}
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        <Headphones className="size-3" /> Audio
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                        <PlayCircle className="size-3" /> Video
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
                         <FileText className="size-3" /> Notes
                       </span>
-                    )}
-                    {(chapter.lessons ?? []).some((l: any) => l.hasSummary) && (
-                      <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400">
-                        <Zap className="size-3" /> Summary
-                      </span>
-                    )}
-                    {(chapter.testId || (chapter.lessons ?? []).some((l: any) => l.hasQuiz)) && (
-                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                        <Sparkles className="size-3" /> Quiz
-                      </span>
-                    )}
+                      {chapter.testId && (
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                          <Sparkles className="size-3" /> Quiz
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        asChild
+                        className="w-full rounded-full font-bold shadow-sm h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        <Link to="/learn/$slug" params={{ slug: chapter.slug }}>
+                          <span>{hasStarted ? "Continue Chapter" : "Start Chapter"}</span>
+                          <ArrowRight className="size-3.5" />
+                        </Link>
+                      </Button>
+                      {chapter.testId && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full text-xs font-semibold h-9 px-3 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 shrink-0"
+                          title="Take Chapter Quiz"
+                        >
+                          <Link to="/test/$testId" params={{ testId: chapter.testId }}>
+                            <Sparkles className="size-3.5" />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </Card>
               );
             })}
           </div>
 
-          {filteredGridChapters.length === 0 && (
-            <div className="rounded-3xl border border-dashed border-border/80 p-12 text-center text-muted-foreground">
-              <p className="text-sm font-semibold">No matching chapters found.</p>
-              <p className="text-xs mt-1">Try searching for a different topic or resetting filters.</p>
+          {filteredChapters.length === 0 && (
+            <div className="rounded-3xl border border-dashed border-border/80 p-12 text-center text-muted-foreground space-y-3">
+              <BookOpen className="size-10 mx-auto text-muted-foreground/50" />
+              <p className="text-base font-bold text-foreground">No matching chapters found</p>
+              <p className="text-xs max-w-sm mx-auto">
+                No chapters matched "{searchQuery}". Try searching for another topic or clear the filter.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedSubjectId("all");
+                }}
+                className="rounded-full text-xs font-bold mt-2"
+              >
+                Show All Chapters
+              </Button>
             </div>
           )}
         </div>
@@ -1062,4 +727,3 @@ function LearnIndex() {
     </div>
   );
 }
-

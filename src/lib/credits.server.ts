@@ -120,23 +120,17 @@ export async function getChapterUnlocksFor(
   userId: string | null,
   chapterId: string,
 ): Promise<string[]> {
-  if (!userId) return [];
-  const staff = await isStaff(userId);
-  if (staff) {
-    const { data: allLessons } = await supabaseAdmin
-      .from("lessons")
-      .select("id")
-      .eq("chapter_id", chapterId);
-    return (allLessons ?? []).map((l) => l.id);
+  const { data: allLessons } = await supabaseAdmin
+    .from("lessons")
+    .select("id")
+    .eq("chapter_id", chapterId)
+    .order("order_index");
+
+  if (!userId) {
+    return (allLessons ?? []).slice(0, 1).map((l) => l.id);
   }
 
-  const { data: unlocks } = await supabaseAdmin
-    .from("lesson_unlocks")
-    .select("lesson_id, lessons!inner(chapter_id)")
-    .eq("user_id", userId)
-    .eq("lessons.chapter_id", chapterId);
-
-  return (unlocks ?? []).map((u) => u.lesson_id);
+  return (allLessons ?? []).map((l) => l.id);
 }
 
 export async function getLessonAccessFor(
@@ -194,9 +188,9 @@ export async function getLessonAccessFor(
     };
   }
 
-  // First lesson of each chapter: 100% free (Audio, Video, Notes, Quiz, Summary).
-  // Subsequent lessons (Lecture 2 onwards): completely locked until unlocked with credits (10 credits unlocks all).
-  const isAccessible = (isFirst && !sched.isScheduled) || isUnlocked;
+  // Registered students get free access to all live curriculum lectures.
+  // Guests can experience the 1st lecture of any chapter before signing in.
+  const isAccessible = !sched.isScheduled && Boolean(userId || isFirst || isUnlocked);
   const locked = !isAccessible;
 
   const testObj = testObjRes?.data ?? null;

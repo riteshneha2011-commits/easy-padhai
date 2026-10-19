@@ -3,80 +3,84 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  Sparkles,
+  GraduationCap,
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Languages,
+  User,
+  Phone,
+  School,
+  MapPin,
+  Target,
+} from "lucide-react";
 import { getMyProfile, saveMyProfile } from "@/lib/profile.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { useActiveClass } from "@/hooks/use-active-class";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { DEFAULT_CLASS_LEVEL, isClassActive, normalizeClassLevel, classOrdinalLabel } from "@/lib/classes";
+import { DEFAULT_CLASS_LEVEL, normalizeClassLevel, classOrdinalLabel } from "@/lib/classes";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Complete your profile — Easy Padhai" },
+      { title: "Welcome to Easy Padhai — Quick Setup" },
       {
         name: "description",
-        content: "Tell us your name, class and contact details so Easy Padhai can personalise your learning.",
+        content: "Set your class and study preference in 5 seconds to get personalised Science & Maths lessons.",
       },
-      { property: "og:title", content: "Complete your profile — Easy Padhai" },
-      { property: "og:description", content: "A one-minute form to personalise your Easy Padhai account." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "robots", content: "noindex" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: OnboardingPage,
 });
 
+const CLASS_OPTIONS = [
+  { level: 9, label: "Class 9th", subtitle: "Full Science & Maths Live 🔥", active: true },
+  { level: 10, label: "Class 10th", subtitle: "Board Syllabus In Production 🚀", active: false },
+  { level: 11, label: "Class 11th", subtitle: "Concept Library Launching Soon ✨", active: false },
+  { level: 12, label: "Class 12th", subtitle: "Board + JEE/NEET Foundations 🎓", active: false },
+];
+
+const LANGUAGE_OPTIONS = [
+  { code: "Hinglish", label: "Hinglish", hint: "Best for Kota-style clarity (Hindi + English)" },
+  { code: "Hindi", label: "Hindi (हिंदी)", hint: "Pure Hindi terminology" },
+  { code: "English", label: "English", hint: "Standard English audio" },
+];
+
 const BOARDS = ["CBSE", "ICSE", "State board", "Other"];
-const LANGUAGES = ["English", "Hindi", "Hinglish"];
-const GENDERS = ["Female", "Male", "Prefer not to say"];
 
-type FormState = {
-  full_name: string;
-  phone: string;
-  class_level: string;
-  guardian_phone: string;
-  school_name: string;
-  city: string;
-  state: string;
-  board: string;
-  gender: string;
-  date_of_birth: string;
-  preferred_language: string;
-  goal: string;
-};
-
-const EMPTY: FormState = {
-  full_name: "",
-  phone: "",
-  class_level: String(DEFAULT_CLASS_LEVEL),
-  guardian_phone: "",
-  school_name: "",
-  city: "",
-  state: "",
-  board: "",
-  gender: "",
-  date_of_birth: "",
-  preferred_language: "",
-  goal: "",
-};
-
-function OnboardingPage() {
+export function OnboardingPage() {
   const { user, loading, refresh } = useAuth();
-  const { allClasses, classLabel } = useActiveClass();
+  const { activeClass, switchClass } = useActiveClass();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyProfile);
   const save = useServerFn(saveMyProfile);
-  const [form, setForm] = useState<FormState>(EMPTY);
+
+  const [selectedClass, setSelectedClass] = useState<number>(activeClass || DEFAULT_CLASS_LEVEL);
+  const [fullName, setFullName] = useState("");
+  const [preferredLang, setPreferredLang] = useState("Hinglish");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [schoolName, setSchoolName] = useState("");
+  const [board, setBoard] = useState("CBSE");
+  const [city, setCity] = useState("");
+  const [goal, setGoal] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", replace: true });
+    if (!loading && !user) {
+      void navigate({ to: "/auth", replace: true });
+    }
   }, [loading, user, navigate]);
 
   const { data: profile } = useQuery({
@@ -87,252 +91,291 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (!profile) return;
-    setForm({
-      full_name: profile.full_name ?? "",
-      phone: profile.phone ?? "",
-      class_level: String(normalizeClassLevel(profile.class_level)),
-      guardian_phone: profile.guardian_phone ?? "",
-      school_name: profile.school_name ?? "",
-      city: profile.city ?? "",
-      state: profile.state ?? "",
-      board: profile.board ?? "",
-      gender: profile.gender ?? "",
-      date_of_birth: profile.date_of_birth ?? "",
-      preferred_language: profile.preferred_language ?? "",
-      goal: profile.goal ?? "",
-    });
-  }, [profile]);
+    if (profile.full_name && profile.full_name !== "Student") {
+      setFullName(profile.full_name);
+    } else if (user?.user_metadata?.full_name) {
+      setFullName(user.user_metadata.full_name);
+    }
+    if (profile.class_level) {
+      setSelectedClass(normalizeClassLevel(profile.class_level));
+    }
+    if (profile.preferred_language) {
+      setPreferredLang(profile.preferred_language);
+    }
+    if (profile.phone) setPhone(profile.phone);
+    if (profile.school_name) setSchoolName(profile.school_name);
+    if (profile.board) setBoard(profile.board);
+    if (profile.city) setCity(profile.city);
+    if (profile.goal) setGoal(profile.goal);
+  }, [profile, user]);
 
-  function set<K extends keyof FormState>(key: K, value: string) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+  const handleDismiss = () => {
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("easypadhai_onboarding_dismissed", "true");
+        localStorage.setItem("easypadhai_onboarding_dismissed", "true");
+      } catch {}
+    }
+    void navigate({ to: "/learn" });
+  };
 
-  async function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (!form.full_name.trim()) return toast.error("Please enter your name");
-    if (!/^[0-9+\-\s()]{8,20}$/.test(form.phone.trim()))
-      return toast.error("Please enter a valid mobile number");
-
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
     setSaving(true);
-    const targetClass = normalizeClassLevel(form.class_level);
+
     try {
       await save({
         data: {
-          full_name: form.full_name,
-          phone: form.phone,
-          class_level: targetClass,
-          guardian_phone: form.guardian_phone,
-          school_name: form.school_name,
-          city: form.city,
-          state: form.state,
-          board: form.board,
-          gender: form.gender,
-          date_of_birth: form.date_of_birth || null,
-          preferred_language: form.preferred_language,
-          goal: form.goal,
+          full_name: fullName.trim() || "Student",
+          class_level: selectedClass,
+          preferred_language: preferredLang,
+          phone: phone.trim() || null,
+          school_name: schoolName.trim() || null,
+          board: board.trim() || null,
+          city: city.trim() || null,
+          goal: goal.trim() || null,
         },
       });
+
+      // Update local storage and dispatch event
       if (typeof window !== "undefined") {
         try {
-          localStorage.setItem("easy-padhai-active-class", String(targetClass));
+          sessionStorage.setItem("easypadhai_onboarding_dismissed", "true");
+          localStorage.setItem("easypadhai_onboarding_dismissed", "true");
+          localStorage.setItem("easy-padhai-active-class", String(selectedClass));
           window.dispatchEvent(new Event("easy-padhai-class-changed"));
-        } catch {
-          // ignore
-        }
+        } catch {}
       }
+
+      await switchClass(selectedClass);
       await qc.invalidateQueries({ queryKey: ["my-profile"] });
-      await qc.invalidateQueries({ queryKey: ["dashboard"] });
+      await qc.invalidateQueries({ queryKey: ["catalog"] });
       await refresh();
-      toast.success("Profile saved — happy learning! 🎉");
-      navigate({ to: "/dashboard" });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save your details");
+
+      toast.success("Welcome aboard! Let's start learning 🎉");
+      void navigate({ to: "/learn" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save profile");
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-10">
-      <h1 className="font-display text-3xl font-bold tracking-tight">A few quick details</h1>
-      <p className="mt-1 text-muted-foreground">
-        Only your name and mobile number are required. Everything else helps us pick the right lessons for
-        you.
-      </p>
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 sm:py-14 bg-gradient-to-b from-background via-card/20 to-background">
+      <div className="w-full max-w-xl space-y-6">
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-xs font-bold text-primary border-primary/40 bg-primary/10">
+            <Sparkles className="size-3.5 mr-1" /> 5-Second Setup
+          </Badge>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+            Welcome to Easy Padhai 👋
+          </h1>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Choose your class and tell Ritesh Sir your name so we can tailor your audio lectures.
+          </p>
+        </div>
 
-      <Card className="mt-6 rounded-3xl">
-        <CardHeader className="pb-2">
-          <CardTitle className="font-display text-lg">Your profile</CardTitle>
-          <CardDescription>Takes about a minute. You can change it later.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" required className="sm:col-span-2">
-              <Input
-                value={form.full_name}
-                onChange={(e) => set("full_name", e.target.value)}
-                placeholder="Riya Sharma"
-                maxLength={100}
-                required
-              />
-            </Field>
-
-            <Field label="Mobile number" required>
-              <Input
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                placeholder="+91 98765 43210"
-                inputMode="tel"
-                maxLength={20}
-                required
-              />
-            </Field>
-
-            <Field label="Class" hint="optional">
-              <select
-                value={form.class_level}
-                onChange={(e) => set("class_level", e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                {allClasses.map((c) => (
-                  <option key={c} value={c}>
-                    {classOrdinalLabel(c)}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Parent / guardian mobile" hint="optional">
-              <Input
-                value={form.guardian_phone}
-                onChange={(e) => set("guardian_phone", e.target.value)}
-                placeholder="+91 90000 00000"
-                inputMode="tel"
-                maxLength={20}
-              />
-            </Field>
-
-            <Field label="School" hint="optional">
-              <Input
-                value={form.school_name}
-                onChange={(e) => set("school_name", e.target.value)}
-                placeholder="Govt. Higher Secondary School"
-                maxLength={120}
-              />
-            </Field>
-
-            <Field label="Board" hint="optional">
-              <select
-                value={form.board}
-                onChange={(e) => set("board", e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Select</option>
-                {BOARDS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Study language" hint="optional">
-              <select
-                value={form.preferred_language}
-                onChange={(e) => set("preferred_language", e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Select</option>
-                {LANGUAGES.map((l) => (
-                  <option key={l} value={l}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="City" hint="optional">
-              <Input value={form.city} onChange={(e) => set("city", e.target.value)} maxLength={80} />
-            </Field>
-
-            <Field label="State" hint="optional">
-              <Input value={form.state} onChange={(e) => set("state", e.target.value)} maxLength={80} />
-            </Field>
-
-            <Field label="Date of birth" hint="optional">
-              <Input
-                type="date"
-                value={form.date_of_birth}
-                onChange={(e) => set("date_of_birth", e.target.value)}
-              />
-            </Field>
-
-            <Field label="Gender" hint="optional">
-              <select
-                value={form.gender}
-                onChange={(e) => set("gender", e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              >
-                <option value="">Select</option>
-                {GENDERS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="What is your goal this year?" hint="optional" className="sm:col-span-2">
-              <Textarea
-                value={form.goal}
-                onChange={(e) => set("goal", e.target.value)}
-                placeholder="Score above 90% in Science and build a daily study habit."
-                maxLength={300}
-                rows={3}
-              />
-            </Field>
-
-            <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
-              <Button type="submit" disabled={saving} className="rounded-full">
-                {saving ? "Saving…" : "Save and start learning"}
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                className="rounded-full"
-                onClick={() => navigate({ to: "/learn" })}
-              >
-                Later
-              </Button>
+        <form onSubmit={handleSave} className="space-y-5">
+          {/* STEP 1: CLASS SELECTION */}
+          <Card className="rounded-3xl border-border/70 bg-card p-5 shadow-xs space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                1
+              </span>
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Which class are you studying in?
+              </Label>
             </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
-function Field({
-  label,
-  required,
-  hint,
-  className,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <Label className="mb-1.5 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-        {required ? <span className="text-destructive">*</span> : null}
-        {hint ? <span className="font-normal normal-case tracking-normal">· {hint}</span> : null}
-      </Label>
-      {children}
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              {CLASS_OPTIONS.map((cls) => {
+                const isSelected = selectedClass === cls.level;
+                return (
+                  <button
+                    key={cls.level}
+                    type="button"
+                    onClick={() => setSelectedClass(cls.level)}
+                    className={cn(
+                      "flex flex-col text-left p-3.5 rounded-2xl border-2 transition-all relative overflow-hidden",
+                      isSelected
+                        ? "border-primary bg-primary/10 shadow-sm"
+                        : "border-border/60 bg-background hover:border-border hover:bg-secondary/40"
+                    )}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className={cn("font-bold text-sm sm:text-base", isSelected ? "text-primary" : "text-foreground")}>
+                        {cls.label}
+                      </span>
+                      {isSelected && <CheckCircle2 className="size-4 text-primary shrink-0" />}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 line-clamp-1">
+                      {cls.subtitle}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* STEP 2: NAME & LANGUAGE */}
+          <Card className="rounded-3xl border-border/70 bg-card p-5 shadow-xs space-y-4">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+                  2
+                </span>
+                <Label htmlFor="fullname" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Your Name
+                </Label>
+              </div>
+              <div className="relative">
+                <User className="size-4 text-muted-foreground absolute left-3.5 top-3" />
+                <Input
+                  id="fullname"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Riya Sharma"
+                  className="pl-10 h-10 rounded-2xl text-sm font-semibold"
+                />
+              </div>
+            </div>
+
+            {/* Language Selection */}
+            <div className="space-y-2 pt-1 border-t border-border/40">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Languages className="size-3.5 text-primary" /> Audio Explanation Preference
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {LANGUAGE_OPTIONS.map((lang) => {
+                  const isSelected = preferredLang === lang.code;
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => setPreferredLang(lang.code)}
+                      className={cn(
+                        "py-2 px-2.5 rounded-xl border text-xs font-bold transition-all text-center",
+                        isSelected
+                          ? "border-primary bg-primary text-primary-foreground shadow-xs"
+                          : "border-border/60 bg-background text-muted-foreground hover:bg-secondary/40 hover:text-foreground"
+                      )}
+                    >
+                      {lang.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          {/* STEP 3: OPTIONAL DETAILS ACCORDION */}
+          <Card className="rounded-3xl border-border/70 bg-card overflow-hidden shadow-xs">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((prev) => !prev)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/30 transition-colors"
+            >
+              <span className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                <GraduationCap className="size-4 text-primary" />
+                <span>Add School &amp; Goal (Optional)</span>
+              </span>
+              {showAdvanced ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+            </button>
+
+            {showAdvanced && (
+              <CardContent className="pt-0 pb-5 px-5 space-y-3.5 border-t border-border/40 animate-in fade-in duration-200">
+                <div className="grid gap-3 sm:grid-cols-2 pt-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <Phone className="size-3 text-muted-foreground" /> Mobile Number
+                    </Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+91 98765 43210"
+                      className="rounded-xl h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <School className="size-3 text-muted-foreground" /> School Name
+                    </Label>
+                    <Input
+                      value={schoolName}
+                      onChange={(e) => setSchoolName(e.target.value)}
+                      placeholder="e.g. DPS, KV, Govt. School"
+                      className="rounded-xl h-9 text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground">Board</Label>
+                    <select
+                      value={board}
+                      onChange={(e) => setBoard(e.target.value)}
+                      className="w-full rounded-xl border border-input bg-background h-9 px-3 text-xs font-medium"
+                    >
+                      {BOARDS.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                      <MapPin className="size-3 text-muted-foreground" /> City
+                    </Label>
+                    <Input
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. Kota, Delhi, Bhopal"
+                      className="rounded-xl h-9 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Target className="size-3 text-primary" /> Target for this Academic Year
+                  </Label>
+                  <Textarea
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    placeholder="e.g. Master Class 9 Science concepts, score 95%+ and build daily study habit."
+                    rows={2}
+                    className="rounded-xl text-xs resize-none"
+                  />
+                </div>
+              </CardContent>
+            )}
+          </Card>
+
+          {/* ACTIONS */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:flex-1 rounded-full font-bold h-12 shadow-glow text-sm gap-2"
+            >
+              <span>{saving ? "Setting up..." : "Start Learning Now"}</span>
+              <ArrowRight className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleDismiss}
+              className="w-full sm:w-auto rounded-full font-semibold text-xs text-muted-foreground hover:text-foreground h-10 px-5"
+            >
+              Explore first &amp; set up later
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

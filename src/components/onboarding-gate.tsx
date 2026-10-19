@@ -16,6 +16,20 @@ export function OnboardingGate() {
   useEffect(() => {
     if (loading || !user || !profile) return;
     if (profile.onboarding_completed) return;
+
+    if (typeof window !== "undefined") {
+      try {
+        if (
+          sessionStorage.getItem("easypadhai_onboarding_dismissed") === "true" ||
+          localStorage.getItem("easypadhai_onboarding_dismissed") === "true"
+        ) {
+          return;
+        }
+      } catch {
+        // storage unavailable
+      }
+    }
+
     if (ALLOWED.some((p) => pathname.startsWith(p))) return;
     navigate({ to: "/onboarding", replace: true });
   }, [loading, user, profile, pathname, navigate]);
