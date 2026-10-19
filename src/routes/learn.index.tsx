@@ -239,7 +239,7 @@ export default function LearnIndex() {
   }, [classSubjects, selectedSubjectId, searchQuery]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-10 space-y-6 sm:space-y-8">
+    <div className="mx-auto w-full max-w-6xl px-3 sm:px-6 py-4 sm:py-10 space-y-5 sm:space-y-8 min-w-0 max-w-full pb-28 sm:pb-12 overflow-x-hidden">
       {/* 1. Header Banner */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/60 pb-6">
         <div className="space-y-2">
@@ -472,21 +472,23 @@ export default function LearnIndex() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex flex-wrap gap-2 w-full">
               <button
                 type="button"
                 onClick={() => handleSubjectSelect("all")}
                 className={cn(
-                  "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 border",
+                  "flex-1 min-w-[130px] sm:flex-initial sm:min-w-0 inline-flex items-center justify-between sm:justify-start gap-2 rounded-2xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all border shadow-xs",
                   selectedSubjectId === "all"
                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                     : "bg-card text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
                 )}
               >
-                <BookOpen className="size-4" />
-                <span>All Subjects</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <BookOpen className="size-4 shrink-0" />
+                  <span className="truncate">All Subjects</span>
+                </div>
                 <span className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                  "rounded-full px-2 py-0.5 text-[10px] font-extrabold shrink-0",
                   selectedSubjectId === "all" ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}>
                   {totalChaptersInClass}
@@ -504,16 +506,18 @@ export default function LearnIndex() {
                     type="button"
                     onClick={() => handleSubjectSelect(sub.id)}
                     className={cn(
-                      "inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 border",
+                      "flex-1 min-w-[130px] sm:flex-initial sm:min-w-0 inline-flex items-center justify-between sm:justify-start gap-2 rounded-2xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all border shadow-xs",
                       isSelected
                         ? "bg-primary text-primary-foreground border-primary shadow-sm"
                         : "bg-card text-muted-foreground border-border/80 hover:border-primary/40 hover:text-foreground"
                     )}
                   >
-                    <SubIcon className="size-4" />
-                    <span>{sub.name}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <SubIcon className="size-4 shrink-0" />
+                      <span className="truncate">{sub.name}</span>
+                    </div>
                     <span className={cn(
-                      "rounded-full px-2 py-0.5 text-[10px] font-extrabold",
+                      "rounded-full px-2 py-0.5 text-[10px] font-extrabold shrink-0",
                       isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
                     )}>
                       {chapCount}
@@ -525,14 +529,14 @@ export default function LearnIndex() {
           </div>
 
           {/* Search & Topic Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-2xl border border-border/70 shadow-xs">
-            <div className="relative w-full sm:w-80">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-3 sm:p-4 rounded-2xl border border-border/70 shadow-xs w-full min-w-0">
+            <div className="relative w-full sm:w-80 min-w-0">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
                 placeholder="Search chapters, concepts, topics..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="rounded-full pl-10 pr-9 text-xs sm:text-sm h-10 border-input bg-background"
+                className="rounded-full pl-10 pr-9 text-xs sm:text-sm h-10 border-input bg-background w-full"
               />
               {searchQuery && (
                 <button
@@ -553,7 +557,7 @@ export default function LearnIndex() {
           </div>
 
           {/* Chapters Grid / Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 w-full min-w-0">
             {filteredChapters.map((chapter) => {
               const SubIcon = getSubjectIcon(chapter.subjectName);
               const chapLessons = chapter.lessons ?? [];
@@ -564,27 +568,27 @@ export default function LearnIndex() {
               return (
                 <Card
                   key={chapter.id}
-                  className="rounded-3xl border-border/80 bg-card p-5 transition-all hover:border-primary/50 hover:shadow-md flex flex-col justify-between gap-4 group"
+                  className="rounded-3xl border-border/80 bg-card p-4 sm:p-5 transition-all hover:border-primary/50 hover:shadow-md flex flex-col justify-between gap-4 group w-full min-w-0 max-w-full overflow-hidden"
                 >
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full min-w-0">
                     {/* Header tags */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary">
-                        <SubIcon className="size-3.5" />
-                        <span>{chapter.subjectName}</span>
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary truncate min-w-0">
+                        <SubIcon className="size-3.5 shrink-0" />
+                        <span className="truncate">{chapter.subjectName}</span>
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {user && isFullyDone && (
-                          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border border-emerald-500/30 px-2 py-0.5 gap-1">
+                          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[10px] font-extrabold border border-emerald-500/30 px-2 py-0.5 gap-1 shrink-0">
                             <Check className="size-2.5 stroke-[3]" /> Done
                           </Badge>
                         )}
                         {user && hasStarted && !isFullyDone && (
-                          <Badge className="bg-primary/15 text-primary text-[10px] font-bold border border-primary/20 px-2 py-0.5">
+                          <Badge className="bg-primary/15 text-primary text-[10px] font-bold border border-primary/20 px-2 py-0.5 shrink-0">
                             {doneCount}/{chapLessons.length} Done
                           </Badge>
                         )}
-                        <Badge variant="secondary" className="rounded-full text-[10px] font-bold px-2 py-0.5">
+                        <Badge variant="secondary" className="rounded-full text-[10px] font-bold px-2 py-0.5 shrink-0">
                           Ch {chapter.order_index}
                         </Badge>
                       </div>
@@ -594,26 +598,26 @@ export default function LearnIndex() {
                     <Link
                       to="/learn/$slug"
                       params={{ slug: chapter.slug }}
-                      className="block group-hover:text-primary transition-colors"
+                      className="block group-hover:text-primary transition-colors min-w-0 w-full"
                     >
-                      <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground">
+                      <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground break-words line-clamp-2">
                         {chapter.title}
                       </h3>
                     </Link>
 
                     {chapter.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed break-words">
                         {chapter.description}
                       </p>
                     )}
 
                     {/* Quick Lesson Preview (up to 2 items) */}
                     {chapLessons.length > 0 && (
-                      <div className="space-y-1.5 pt-1">
+                      <div className="space-y-1.5 pt-1 w-full min-w-0">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80">
                           Lectures preview
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 w-full min-w-0">
                           {chapLessons.slice(0, 2).map((lesson: any, idx: number) => {
                             const isDone = completedLessonIds.has(lesson.id);
                             return (
@@ -622,14 +626,14 @@ export default function LearnIndex() {
                                 to="/learn/$slug"
                                 params={{ slug: chapter.slug }}
                                 search={{ lesson: lesson.id } as any}
-                                className="flex items-center justify-between text-xs py-1 px-2.5 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors text-foreground group/item"
+                                className="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors text-foreground group/item w-full min-w-0 gap-2 overflow-hidden"
                               >
-                                <span className="truncate flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-muted-foreground">#{idx + 1}</span>
-                                  <span className="truncate group-hover/item:text-primary transition-colors">
+                                <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                                  <span className="text-[10px] font-bold text-muted-foreground shrink-0">#{idx + 1}</span>
+                                  <span className="truncate block font-medium group-hover/item:text-primary transition-colors min-w-0 flex-1">
                                     {lesson.title}
                                   </span>
-                                </span>
+                                </div>
                                 {isDone ? (
                                   <Check className="size-3 text-emerald-600 shrink-0" />
                                 ) : (
@@ -653,33 +657,33 @@ export default function LearnIndex() {
                   </div>
 
                   {/* Footer & CTA */}
-                  <div className="space-y-3 pt-3 border-t border-border/50">
+                  <div className="space-y-3 pt-3 border-t border-border/50 w-full min-w-0">
                     {/* Media Pills */}
-                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-                      <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] font-semibold text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
                         <Headphones className="size-3" /> Audio
                       </span>
-                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full shrink-0">
                         <PlayCircle className="size-3" /> Video
                       </span>
-                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full shrink-0">
                         <FileText className="size-3" /> Notes
                       </span>
                       {chapter.testId && (
-                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                        <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
                           <Sparkles className="size-3" /> Quiz
                         </span>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-1 w-full">
                       <Button
                         asChild
-                        className="w-full rounded-full font-bold shadow-sm h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90"
+                        className="w-full rounded-full font-bold shadow-sm h-9 text-xs gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 flex-1 min-w-0"
                       >
-                        <Link to="/learn/$slug" params={{ slug: chapter.slug }}>
-                          <span>{hasStarted ? "Continue Chapter" : "Start Chapter"}</span>
-                          <ArrowRight className="size-3.5" />
+                        <Link to="/learn/$slug" params={{ slug: chapter.slug }} className="w-full justify-center">
+                          <span className="truncate">{hasStarted ? "Continue Chapter" : "Start Chapter"}</span>
+                          <ArrowRight className="size-3.5 shrink-0" />
                         </Link>
                       </Button>
                       {chapter.testId && (

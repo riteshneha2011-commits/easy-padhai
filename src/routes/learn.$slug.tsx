@@ -613,7 +613,7 @@ function ChapterPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 min-w-0">
+    <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 py-4 sm:py-6 min-w-0 pb-28 sm:pb-12 overflow-x-hidden">
       {/* Staff Preview Mode Banner */}
       {isStaff && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-primary/40 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/10 px-4 py-2.5 text-xs text-foreground shadow-xs">
@@ -2165,14 +2165,14 @@ function LessonPanel({
           )}
 
           {tabs.length > 1 && (
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
               {tabs.map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setTabKey(tab.key)}
                   className={cn(
-                    "flex shrink-0 sm:flex-1 items-center justify-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all min-w-0",
+                    "flex-1 min-w-[70px] sm:min-w-0 flex items-center justify-center gap-1 sm:gap-1.5 rounded-xl px-2 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-bold transition-all",
                     activeTab?.key === tab.key
                       ? "bg-card text-foreground shadow-card"
                       : "text-muted-foreground hover:text-foreground",

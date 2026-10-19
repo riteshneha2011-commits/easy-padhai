@@ -71,7 +71,7 @@ function WalletPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-10">
+    <div className="mx-auto w-full max-w-4xl px-3.5 sm:px-6 py-6 sm:py-10 pb-28 sm:pb-12 min-w-0 overflow-x-hidden">
       <h1 className="font-display text-3xl font-bold tracking-tight">Credits & referrals</h1>
       <p className="mt-1 text-muted-foreground">
         Credits open audio and video lectures and PDF notes. Summaries and tests are always free.

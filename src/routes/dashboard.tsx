@@ -181,7 +181,7 @@ function DashboardPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10 space-y-6 min-w-0 overflow-x-hidden">
+    <div className="mx-auto w-full max-w-5xl px-3 sm:px-6 py-4 sm:py-10 pb-28 sm:pb-10 space-y-6 min-w-0 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/50">
         <div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight break-words">
