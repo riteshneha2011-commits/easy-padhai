@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import {
@@ -10,18 +10,13 @@ import {
   Share2,
   Users,
   Sparkles,
-  Crown,
-  Zap,
-  Check,
-  MessageCircle,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
+  Download,
   BookOpen,
+  Trophy,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getWallet } from "@/lib/credits.functions";
-import { getPaymentPlans, initiatePlanCheckout } from "@/lib/payment.functions";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CREDIT_REWARDS,
@@ -30,29 +25,22 @@ import {
   whatsappShare,
 } from "@/lib/credits";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/wallet")({
   head: () => ({
     meta: [
-      { title: "Study Coins & Pro Pass — Easy Padhai" },
+      { title: "Study Coins & Rewards — Easy Padhai" },
       {
         name: "description",
         content:
-          "Track your Study Coins, daily streak rewards, referral bonuses, and upgrade to Easy Padhai Pro for Kota notes and priority mentor support.",
+          "Track your Study Coins, daily streak rewards, and referral bonuses on Easy Padhai.",
       },
-      { property: "og:title", content: "Study Coins & Pro Pass — Easy Padhai" },
+      { property: "og:title", content: "Study Coins & Rewards — Easy Padhai" },
       {
         property: "og:description",
-        content: "Earn coins by studying daily, taking quizzes, and building streaks. Redeem for offline access, special perks, and pro privileges.",
+        content: "Study 100% Free on Easy Padhai. Earn Study Coins automatically as you learn and redeem them for offline downloads and special test perks.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -65,11 +53,7 @@ function WalletPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const fetchWallet = useServerFn(getWallet);
-  const fetchPlans = useServerFn(getPaymentPlans);
-  const triggerCheckout = useServerFn(initiatePlanCheckout);
-
   const [origin, setOrigin] = useState("");
-  const [selectedPlanForModal, setSelectedPlanForModal] = useState<any | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -83,27 +67,6 @@ function WalletPage() {
     queryKey: ["wallet", user?.id],
     queryFn: () => fetchWallet(),
     enabled: Boolean(user),
-  });
-
-  const { data: plans } = useQuery({
-    queryKey: ["payment-plans"],
-    queryFn: () => fetchPlans(),
-  });
-
-  const checkoutMutation = useMutation({
-    mutationFn: (planId: string) => triggerCheckout({ data: { planId } }),
-    onSuccess: (res) => {
-      if (res.isGatewayLive && res.order) {
-        toast.info("Opening secure checkout...");
-        // If razorpay keys are configured, frontend opens Razorpay SDK
-      } else {
-        // Fallback to early-bird VIP modal
-        setSelectedPlanForModal(res.plan);
-      }
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || "Failed to initiate checkout");
-    },
   });
 
   if (!user || isLoading || !data) {
@@ -123,13 +86,13 @@ function WalletPage() {
       {/* 1. Header Banner */}
       <div className="space-y-2">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-          <Coins className="size-3.5" /> Rewards &amp; Pro Pass
+          <Coins className="size-3.5" /> Study Rewards
         </div>
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-          Study Coins &amp; Rewards
+          Study Coins &amp; Achievements
         </h1>
         <p className="text-sm text-muted-foreground max-w-2xl leading-relaxed">
-          At Easy Padhai, every minute of focus is rewarded. Earn Study Coins automatically as you listen to audio lectures, ace quizzes, and maintain daily streaks.
+          Online learning is <strong>100% Free</strong> on Easy Padhai. Study Coins are your academic reward for consistent practice, audio listening, and acing chapter quizzes.
         </p>
       </div>
 
@@ -143,7 +106,7 @@ function WalletPage() {
                 <Coins className="size-4" /> Study Coins
               </span>
               <Badge className="bg-white/20 text-white font-extrabold text-[10px] border-0">
-                Active Balance
+                Reward Balance
               </Badge>
             </div>
             <p className="font-display text-4xl sm:text-5xl font-black">{data.credits}</p>
@@ -194,128 +157,70 @@ function WalletPage() {
         </Card>
       </div>
 
-      {/* 3. Easy Padhai Pro & Upgrades Section */}
+      {/* 3. Where to Use Coins (Utility Showcase) */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <div>
             <h2 className="font-display text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-              <Crown className="size-5 text-amber-500" /> Easy Padhai Pro &amp; Boosters
+              <Sparkles className="size-5 text-primary" /> What can you do with Study Coins?
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Level up your preparation with Kota-standard study notes, priority mentorship &amp; offline packs.
+              Study Coins give you special perks and offline superpowers without paying any real money.
             </p>
           </div>
-          <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-xs font-bold hidden sm:inline-flex">
-            ⭐ Early Bird Access
-          </Badge>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* Pro Annual Pass */}
-          <Card className="rounded-3xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-card to-amber-500/5 p-5 sm:p-6 space-y-4 shadow-sm flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <Badge className="rounded-full bg-primary text-primary-foreground font-extrabold text-[10px] px-3 py-1">
-                  👑 MOST POPULAR
-                </Badge>
-                <span className="text-xs font-bold text-muted-foreground line-through">₹2,499</span>
+          {/* Offline Downloads */}
+          <Card className="rounded-3xl border-border/80 bg-card p-5 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/10 text-primary font-bold">
+                <Download className="size-5" />
               </div>
-
-              <div>
-                <h3 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">
-                  Pro Annual Pass
-                </h3>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl sm:text-3xl font-black text-foreground">₹999</span>
-                  <span className="text-xs text-muted-foreground font-semibold">/ full academic year</span>
-                </div>
-              </div>
-
-              <ul className="space-y-2 text-xs sm:text-sm text-foreground/90 font-medium pt-1">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Unlimited High-Speed Offline Audio Downloads</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Kota Formula Cheat-Sheets &amp; NCERT Handbooks</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Priority WhatsApp Doubt Support with Ritesh Sir</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Instant <strong>+2,000 Bonus Study Coins</strong></span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>👑 Pro Scholar Verified Badge on Leaderboard</span>
-                </li>
-              </ul>
+              <Badge variant="secondary" className="font-extrabold text-[10px] text-primary">
+                10 Coins / Lecture
+              </Badge>
             </div>
-
-            <Button
-              size="lg"
-              onClick={() => checkoutMutation.mutate("pro_annual")}
-              disabled={checkoutMutation.isPending}
-              className="w-full rounded-full font-bold shadow-glow text-xs sm:text-sm h-11 gap-2 bg-primary text-primary-foreground hover:bg-primary/90 mt-2"
-            >
-              <span>Get Pro Annual Pass</span>
-              <ArrowRight className="size-4" />
-            </Button>
+            <div>
+              <h3 className="font-display text-base sm:text-lg font-bold text-foreground">
+                Offline Audio Downloads
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Save audio lectures directly to your device storage. Listen on the bus or in areas without internet without consuming mobile data.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground font-medium">Saved permanently</span>
+              <Link to="/offline" className="text-primary font-bold hover:underline">
+                View My Downloads ➔
+              </Link>
+            </div>
           </Card>
 
-          {/* Study Coins Booster */}
-          <Card className="rounded-3xl border border-border/80 bg-card p-5 sm:p-6 space-y-4 shadow-sm flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <Badge variant="secondary" className="rounded-full font-extrabold text-[10px] px-3 py-1 text-primary">
-                  ⚡ QUICK RECHARGE
-                </Badge>
-                <span className="text-xs font-bold text-muted-foreground line-through">₹199</span>
+          {/* Grand Mock Tests */}
+          <Card className="rounded-3xl border-border/80 bg-card p-5 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold">
+                <Trophy className="size-5" />
               </div>
-
-              <div>
-                <h3 className="font-display text-xl sm:text-2xl font-extrabold text-foreground">
-                  500 Coins Booster Pack
-                </h3>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl sm:text-3xl font-black text-foreground">₹99</span>
-                  <span className="text-xs text-muted-foreground font-semibold">one-time top up</span>
-                </div>
-              </div>
-
-              <ul className="space-y-2 text-xs sm:text-sm text-foreground/90 font-medium pt-1">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Instant <strong>+500 Study Coins</strong> credited to wallet</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Unlock unlimited practice test attempts</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Redeem for offline audio download slots</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                  <span>Never expires · Yours forever</span>
-                </li>
-              </ul>
+              <Badge variant="secondary" className="font-extrabold text-[10px] text-amber-600 dark:text-amber-400">
+                15 Coins / Test
+              </Badge>
             </div>
-
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => checkoutMutation.mutate("credits_boost_500")}
-              disabled={checkoutMutation.isPending}
-              className="w-full rounded-full font-bold border-border/80 hover:bg-secondary text-xs sm:text-sm h-11 gap-2 mt-2"
-            >
-              <span>Get 500 Coins Pack</span>
-              <Coins className="size-4 text-amber-500" />
-            </Button>
+            <div>
+              <h3 className="font-display text-base sm:text-lg font-bold text-foreground">
+                Challenger Mock Tests &amp; Rank
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Full chapter master tests designed strictly according to the latest CBSE Board / Competitive exam patterns with rank scorecards.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground font-medium">Detailed solutions</span>
+              <Link to="/learn" search={{}} className="text-primary font-bold hover:underline">
+                Explore Chapters ➔
+              </Link>
+            </div>
           </Card>
         </div>
       </div>
@@ -330,7 +235,7 @@ function WalletPage() {
             </h3>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Studying is more fun with friends. When a friend joins using your referral code and listens to their first lesson, both of you receive +{CREDIT_REWARDS.referral} bonus coins!
+            Studying is more rewarding together. When a friend joins using your invite code and completes their first lesson, both of you get +{CREDIT_REWARDS.referral} bonus coins!
           </p>
         </div>
 
@@ -382,14 +287,14 @@ function WalletPage() {
               <Sparkles className="size-4 text-primary" /> How to Earn Study Coins
             </h3>
             <p className="text-xs text-muted-foreground">
-              Every action that helps you score better marks in exams awards you coins.
+              Every action that improves your academic understanding rewards you with coins.
             </p>
           </div>
 
           <div className="space-y-2 text-xs sm:text-sm">
             <Row label="Daily Study Visit" value={`+${CREDIT_REWARDS.dailyLogin} Coins`} />
             <Row label="Completing an Audio Lecture" value={`+${CREDIT_REWARDS.lessonComplete} Coins + 10 XP`} />
-            <Row label="Every 10 Mins of Active Listening" value={`+${CREDIT_REWARDS.studyBlock} Coins`} />
+            <Row label="Every 10 Mins of Active Study" value={`+${CREDIT_REWARDS.studyBlock} Coins`} />
             <Row
               label="Completing a Chapter Quiz"
               value={`+${CREDIT_REWARDS.testSubmitted} to +${CREDIT_REWARDS.testSubmitted + CREDIT_REWARDS.testPassedBonus} Coins`}
@@ -400,7 +305,7 @@ function WalletPage() {
 
           <div className="rounded-2xl bg-primary/5 border border-primary/20 p-3 text-xs text-muted-foreground flex items-center gap-2">
             <BookOpen className="size-4 text-primary shrink-0" />
-            <span>All curriculum lectures are <strong>100% Free</strong> to listen for enrolled students. Coins are purely your reward for hard work!</span>
+            <span>All online lectures, videos, notes, and practice quizzes are <strong>100% Free</strong>. Coins are your reward for hard work!</span>
           </div>
         </Card>
 
@@ -419,7 +324,7 @@ function WalletPage() {
             {data.events.length === 0 && (
               <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl">
                 No coin activity yet.{" "}
-                <Link to="/learn" className="text-primary font-bold hover:underline">
+                <Link to="/learn" search={{}} className="text-primary font-bold hover:underline">
                   Start listening to a lecture ➔
                 </Link>
               </div>
@@ -454,66 +359,6 @@ function WalletPage() {
           </div>
         </Card>
       </div>
-
-      {/* 6. Early-Bird VIP Dialog (When user selects Pro Pass or Booster) */}
-      <Dialog open={Boolean(selectedPlanForModal)} onOpenChange={() => setSelectedPlanForModal(null)}>
-        <DialogContent className="rounded-3xl max-w-md p-6">
-          <DialogHeader className="space-y-2 text-center">
-            <div className="mx-auto size-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Crown className="size-6 text-amber-500" />
-            </div>
-            <DialogTitle className="font-display text-xl sm:text-2xl font-extrabold">
-              {selectedPlanForModal?.name ?? "Easy Padhai Pro"}
-            </DialogTitle>
-            <DialogDescription className="text-xs sm:text-sm leading-relaxed">
-              We are enrolling the first batch of <strong>Pro Scholars</strong> under the direct mentorship of <strong>Ritesh Sir</strong> (21+ years of teaching excellence).
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="rounded-2xl bg-secondary/60 p-4 space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-muted-foreground">Plan Fee:</span>
-              <span className="font-extrabold text-foreground text-sm">
-                ₹{((selectedPlanForModal?.amountInPaisa ?? 99900) / 100).toFixed(0)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-muted-foreground">Coins Credited:</span>
-              <span className="font-extrabold text-primary">
-                +{selectedPlanForModal?.creditsGranted ?? 500} Study Coins
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-muted-foreground">Mentorship:</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                Direct WhatsApp with Ritesh Sir
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <Button
-              asChild
-              className="w-full rounded-full font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11 text-xs sm:text-sm shadow-md"
-            >
-              <a
-                href={`https://wa.me/917000588028?text=Hi%20Ritesh%20Sir,%20I%20want%20to%20enroll%20in%20${encodeURIComponent(selectedPlanForModal?.name || "Easy Padhai Pro")}%20(Early%20Bird)!`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageCircle className="size-4" /> Connect with Ritesh Sir on WhatsApp
-              </a>
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => setSelectedPlanForModal(null)}
-              className="rounded-full text-xs font-semibold text-muted-foreground"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

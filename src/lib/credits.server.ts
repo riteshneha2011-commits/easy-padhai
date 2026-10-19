@@ -617,3 +617,20 @@ export async function getReferralBoard() {
     credits: count * CREDIT_REWARDS.referral,
   }));
 }
+
+export async function spendCoinsForOfflineDownload(userId: string, lessonId: string) {
+  const balance = await getBalance(userId);
+  if (balance < 10) {
+    throw new Error(`You need 10 Study Coins to download this lecture offline (Current balance: ${balance} coins).`);
+  }
+  const newBalance = Math.max(0, balance - 10);
+  await supabaseAdmin.from("profiles").update({ credits: newBalance }).eq("id", userId);
+  await supabaseAdmin.from("credit_events").insert({
+    user_id: userId,
+    event_type: "offline_download",
+    delta: -10,
+    metadata: { lesson_id: lessonId, reason: "Offline audio lecture download" },
+  });
+  return { success: true, newBalance };
+}
+

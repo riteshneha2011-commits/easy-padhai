@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Circle,
   Coins,
+  Gift,
   FileText,
   Headphones,
   Lock,
@@ -45,7 +46,8 @@ import {
 import { getChapter } from "@/lib/content.functions";
 import { completeLesson, getChapterProgress } from "@/lib/learn.functions";
 import { listLessonBookmarks, toggleLessonBookmark } from "@/lib/revision.functions";
-import { getLessonAccess, getPublicLessonAccess, unlockLesson, getChapterUnlocks } from "@/lib/credits.functions";
+import { getLessonAccess, getPublicLessonAccess, unlockLesson, getChapterUnlocks, redeemCoinsForOffline } from "@/lib/credits.functions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useStudyHeartbeat } from "@/hooks/use-study-heartbeat";
 import { CREDIT_REWARDS } from "@/lib/credits";
@@ -1274,6 +1276,7 @@ function LessonPanel({
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [offlinePromptOpen, setOfflinePromptOpen] = useState(false);
 
   const onActiveChange = useCallback((value: boolean) => setWatching(value), []);
 
@@ -1420,11 +1423,25 @@ function LessonPanel({
     },
   });
 
-  const handleDownloadOffline = async () => {
+  const handleInitiateDownload = () => {
     soundFx.playClick();
+    if (!userId) {
+      toast.info("Sign in with Google to save lectures offline & earn Study Coins!");
+      return;
+    }
+    setOfflinePromptOpen(true);
+  };
+
+  const handleConfirmDownload = async () => {
+    setOfflinePromptOpen(false);
     setIsDownloading(true);
     setDownloadProgress(15);
     try {
+      if (!isStaff) {
+        await redeemCoinsForOffline({ data: { lessonId: lesson.id } });
+        void queryClient.invalidateQueries({ queryKey: ["wallet"] });
+      }
+
       let audioToDownload = media?.audio ?? null;
       let pdfToDownload = media?.pdf ?? null;
 
@@ -1449,7 +1466,7 @@ function LessonPanel({
       );
       setIsOfflineReady(true);
       soundFx.playSuccess();
-      toast.success("Lesson saved in-app for 100% offline access! 📥");
+      toast.success("Saved to offline! −10 Study Coins · Listen anytime without internet 📥");
     } catch (err: any) {
       toast.error(err?.message || "Could not download for offline.");
     } finally {
@@ -2078,7 +2095,7 @@ function LessonPanel({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleDownloadOffline}
+              onClick={handleInitiateDownload}
               disabled={isDownloading}
               className="rounded-full text-xs font-semibold h-8 gap-1.5 border-primary/40 hover:bg-primary/10"
             >
@@ -2340,6 +2357,87 @@ function LessonPanel({
         awardedCredits={celebration?.awarded ?? 5}
         totalMinutesToday={celebration?.totalMinutes ?? 10}
       />
+
+      <Dialog open={offlinePromptOpen} onOpenChange={setOfflinePromptOpen}>
+        <DialogContent className="max-w-md rounded-3xl p-6 sm:p-7">
+          <DialogHeader className="space-y-2 text-center sm:text-center">
+            <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Download className="size-6" />
+            </div>
+            <DialogTitle className="font-display text-xl font-bold">
+              Save for Offline Study 📥
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm text-muted-foreground">
+              Study anywhere on the go without active internet or data consumption.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="rounded-2xl border border-border/80 bg-secondary/30 p-4 space-y-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm">
+                <span className="text-muted-foreground">Online Learning:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full text-xs">
+                  100% Free Always
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm pt-1 border-t border-border/50">
+                <span className="text-muted-foreground">Offline Download Reward:</span>
+                <span className="font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <Coins className="size-3.5" /> 10 Study Coins
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs sm:text-sm pt-1 border-t border-border/50">
+                <span className="text-muted-foreground">Your Balance:</span>
+                <span className="font-bold text-foreground flex items-center gap-1">
+                  <Coins className="size-3.5 text-amber-500" /> {currentBalance} Coins
+                </span>
+              </div>
+            </div>
+
+            {currentBalance >= 10 ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground text-center">
+                  You have enough coins earned from your learning progress! Redeem 10 coins to save this lecture offline.
+                </p>
+                <Button
+                  className="w-full rounded-full font-bold gap-2 py-5 text-sm shadow-glow"
+                  onClick={handleConfirmDownload}
+                  disabled={isDownloading}
+                >
+                  <Download className="size-4" /> Redeem 10 Coins & Download Offline
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-center text-xs text-amber-800 dark:text-amber-200">
+                  You need 10 Study Coins for offline saving (Current: {currentBalance} Coins). Online streaming is completely FREE!
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    variant="outline"
+                    className="rounded-full text-xs font-bold py-4"
+                    onClick={() => {
+                      setOfflinePromptOpen(false);
+                      setTabKey("audio");
+                    }}
+                  >
+                    Listen Online (Free)
+                  </Button>
+                  <Button
+                    className="rounded-full text-xs font-bold gap-1.5 py-4"
+                    onClick={() => {
+                      setOfflinePromptOpen(false);
+                      navigate({ to: "/wallet" });
+                    }}
+                  >
+                    <Gift className="size-3.5" /> Earn Coins
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

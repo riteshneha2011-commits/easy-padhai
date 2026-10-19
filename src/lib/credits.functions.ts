@@ -65,3 +65,12 @@ export const getReferralLeaderboard = createServerFn({ method: "GET" }).handler(
   const { getReferralBoard } = await import("./credits.server");
   return getReferralBoard();
 });
+
+export const redeemCoinsForOffline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: { lessonId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { spendCoinsForOfflineDownload } = await import("./credits.server");
+    return spendCoinsForOfflineDownload(context.userId, data.lessonId);
+  });
+

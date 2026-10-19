@@ -559,17 +559,6 @@ export function SiteHeader() {
           <RotateCcw className="size-5" />
           <span>Revision</span>
         </Link>
-        <Link
-          to={user ? "/wallet" : "/auth"}
-          onClick={() => soundFx.playClick()}
-          className={cn(
-            "flex flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[11px] font-medium transition-colors",
-            pathname.startsWith("/wallet") ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <WalletIcon className="size-5" />
-          <span>Credits</span>
-        </Link>
         {isAdmin && (
           <Link
             to="/admin"

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Bookmark, CheckCircle2, XCircle, Sparkles, Flame, Trophy } from "lucide-react";
+import { Bookmark, CheckCircle2, XCircle, Sparkles, Flame, Trophy, Share2 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { getTest, submitAttempt } from "@/lib/tests.functions";
@@ -97,15 +97,35 @@ function TestPage() {
     const percent = Math.round((result.score / Math.max(result.total, 1)) * 100);
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-10">
-        <Card className="rounded-3xl text-center">
-          <CardContent className="py-8">
-            <p className="text-sm text-muted-foreground">You scored</p>
-            <p className="font-display text-6xl font-bold text-primary">
-              {result.score}
-              <span className="text-2xl text-muted-foreground">/{result.total}</span>
-            </p>
-            <p className="mt-2 font-semibold text-accent">+{result.xp} XP earned</p>
-            <Progress value={percent} className="mx-auto mt-4 h-3 max-w-sm" />
+        <Card className="rounded-3xl text-center overflow-hidden border-primary/20 bg-linear-to-b from-primary/5 via-background to-background">
+          <CardContent className="py-8 space-y-4">
+            <div className="space-y-1">
+              <p className="text-xs uppercase tracking-wider font-semibold text-muted-foreground">You scored</p>
+              <p className="font-display text-6xl font-black text-primary">
+                {result.score}
+                <span className="text-2xl font-semibold text-muted-foreground">/{result.total}</span>
+              </p>
+              <p className="font-semibold text-emerald-600 dark:text-emerald-400">+{result.xp} XP earned · {percent}% Accuracy</p>
+            </div>
+            <Progress value={percent} className="mx-auto h-3 max-w-sm rounded-full" />
+
+            {/* Viral WhatsApp Challenge Button */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+              <Button
+                size="lg"
+                className="w-full sm:w-auto rounded-full font-bold bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md gap-2"
+                onClick={() => {
+                  soundFx.playSuccess();
+                  const testTitle = data?.test?.title || "Easy Padhai Quiz";
+                  const shareText = `🎯 I scored ${result.score}/${result.total} (${percent}%) on "${testTitle}" on Easy Padhai!\n\nCan you beat my score? Practice for 100% FREE here:\n${typeof window !== "undefined" ? window.location.origin : "https://easypadhai.com"}/test/${testId}`;
+                  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+                  window.open(url, "_blank");
+                  toast.success("WhatsApp Challenge launched! Invite friends & earn Study Coins 🚀");
+                }}
+              >
+                <Share2 className="size-4" /> Challenge Friends on WhatsApp
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
