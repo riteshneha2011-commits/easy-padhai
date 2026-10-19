@@ -148,8 +148,9 @@
 }
 
 @layer base {
-  * {
+  *, *::before, *::after {
     border-color: var(--color-border);
+    box-sizing: border-box;
   }
 
   html,
@@ -159,7 +160,13 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     max-width: 100vw;
+    width: 100%;
     overflow-x: hidden;
+  }
+
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
   }
 
 

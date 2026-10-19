@@ -63,10 +63,10 @@ export const Route = createFileRoute("/")({
 });
 
 const steps = [
-  { icon: Headphones, title: "Listen", body: "Crisp audio lectures designed for your commute, walk, or bedtime revision." },
-  { icon: PlayCircle, title: "Watch", body: "Visual video explanations to make complex equations and diagrams intuitive." },
-  { icon: BookOpen, title: "Revise", body: "One-screen summary bullet notes crafted for rapid pre-exam recall." },
-  { icon: FileText, title: "Practice", body: "Chapter & lecture-wise quick tests with instant, step-by-step solutions." },
+  { icon: Headphones, title: "Listen", body: "Crisp audio lectures for commute, walk, or bedtime revision." },
+  { icon: PlayCircle, title: "Watch", body: "Visual video explanations to make complex equations intuitive." },
+  { icon: BookOpen, title: "Revise", body: "One-screen summary bullet notes for rapid pre-exam recall." },
+  { icon: FileText, title: "Practice", body: "Chapter & lecture-wise quick tests with instant solutions." },
 ];
 
 const CHAPTER_MARKETING: Record<
@@ -366,9 +366,9 @@ function Home() {
     const sample = classChapters.slice(0, 3);
     const icons = [Atom, Calculator, Globe];
     const badges = [
-      "🧠 High-Yield · Exam Favourite",
-      "📐 Core Foundation · Essential Concept",
-      "🌍 Crucial Concept · Scoring Topic",
+      "🧠 High-Yield",
+      "📐 Core Foundation",
+      "🌍 Crucial Concept",
     ];
 
     return sample.map((chap, idx) => ({
@@ -392,13 +392,13 @@ function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-background/90 to-background" />
         </div>
 
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 md:grid-cols-12 md:items-center">
-          <div className="space-y-6 md:col-span-7">
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary shadow-sm">
-              <Sparkles className="size-3.5" /> Class 5 to 12 · 100% Free Concept Learning
+        <div className="mx-auto grid w-full max-w-6xl gap-8 md:gap-10 px-4 md:grid-cols-12 md:items-center min-w-0">
+          <div className="space-y-5 sm:space-y-6 md:col-span-7 min-w-0">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-primary shadow-sm max-w-full truncate">
+              <Sparkles className="size-3.5 shrink-0" /> Class 5 to 12 · 100% Free Concept Learning
             </span>
 
-            <h1 className="text-4xl font-extrabold leading-[1.08] text-foreground sm:text-5xl md:text-6xl tracking-tight">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-[1.12] text-foreground tracking-tight break-words">
               Learn Class 5–12 Science &amp; Maths{" "}
               <span className="text-primary underline decoration-primary/30 decoration-wavy underline-offset-8">
                 with your ears &amp; eyes.
@@ -406,11 +406,11 @@ function Home() {
             </h1>
 
             {/* Mobile-First Instant Visual Card (Shown right below heading on mobile) */}
-            <div className="md:hidden relative overflow-hidden rounded-2xl border-2 border-primary/30 shadow-md bg-card my-2">
+            <div className="md:hidden relative overflow-hidden rounded-2xl border-2 border-primary/30 shadow-md bg-card my-2 w-full min-w-0">
               <img
                 src="/hero-audio-illustration.jpg"
                 alt="Students learning on commute, walking, bedtime"
-                className="w-full h-48 sm:h-56 object-cover object-center"
+                className="w-full h-44 sm:h-56 object-cover object-center"
               />
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-3 text-white">
                 <p className="text-xs font-bold flex items-center gap-1.5 text-amber-300">
@@ -422,63 +422,63 @@ function Home() {
               </div>
             </div>
 
-            <p className="max-w-xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+            <p className="max-w-xl text-sm sm:text-lg text-muted-foreground leading-relaxed">
               Master complex Science and Maths concepts without screen fatigue. 
               Story-driven audio lectures guided by Ritesh Sir — 21+ years of teaching experience, Ex-Resonance Kota. 
               Complete with one-screen summaries and instant-feedback tests in one daily loop.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-              <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-sm sm:text-base px-8 h-12">
-                <Link to="/learn">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1 w-full">
+              <Button asChild size="lg" className="rounded-full shadow-glow font-bold text-sm sm:text-base px-6 sm:px-8 h-12 w-full sm:w-auto text-center justify-center">
+                <Link to="/learn" search={{}}>
                   Start learning completely free
-                  <ArrowRight className="size-4 ml-1.5" />
+                  <ArrowRight className="size-4 ml-1.5 shrink-0" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="rounded-full font-semibold h-12">
+              <Button asChild size="lg" variant="outline" className="rounded-full font-semibold h-12 w-full sm:w-auto px-5 sm:px-8 text-center justify-center">
                 <Link to="/about">About Ritesh Sir (21+ yrs exp) →</Link>
               </Button>
             </div>
 
             {/* Trust and Pricing Strip */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-1 w-full min-w-0">
               <Link
                 to="/about"
-                className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] sm:text-xs font-bold text-primary hover:bg-primary/20 transition-all shadow-xs max-w-full"
               >
-                <GraduationCap className="size-3.5" />
-                <span>Guided by 21+ Years Kota Faculty · Read Story →</span>
+                <GraduationCap className="size-3.5 shrink-0" />
+                <span className="truncate">Guided by 21+ Yrs Kota Faculty · Story →</span>
               </Link>
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-sm">
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 text-[11px] sm:text-xs font-semibold text-emerald-700 dark:text-emerald-300 shadow-sm max-w-full">
+                <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 <span>🎉 100% Free for All Students</span>
               </div>
             </div>
 
             {/* Confidence Metrics */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 pt-1 text-xs sm:text-sm font-medium text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-1 text-xs sm:text-sm font-medium text-muted-foreground w-full">
               <span className="flex items-center gap-1.5">
-                <Flame className="size-4 text-orange-500" /> Daily streaks
+                <Flame className="size-4 text-orange-500 shrink-0" /> Daily streaks
               </span>
               <span className="flex items-center gap-1.5">
-                <Trophy className="size-4 text-amber-500" /> XP &amp; badges
+                <Trophy className="size-4 text-amber-500 shrink-0" /> XP &amp; badges
               </span>
               <span className="flex items-center gap-1.5">
-                <BookOpen className="size-4 text-primary" /> Class 5 to 12 Curated Curriculum
+                <BookOpen className="size-4 text-primary shrink-0" /> Class 5 to 12 Curriculum
               </span>
             </div>
 
-            {/* 4 Steps Grid on Mobile */}
-            <div className="grid grid-cols-2 gap-2 pt-2 md:hidden">
+            {/* 4 Steps Grid on Mobile - Auto-adjusting cards with readable multi-line text */}
+            <div className="grid grid-cols-2 gap-2 pt-2 md:hidden w-full min-w-0">
               {steps.map((step) => (
-                <Card key={step.title} className="rounded-2xl border-border/70 p-3 bg-card/90 shadow-sm flex items-center gap-2.5">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-                    <step.icon className="size-4" />
+                <Card key={step.title} className="rounded-2xl border-border/70 p-2.5 bg-card/90 shadow-sm flex items-start gap-2 min-w-0 overflow-hidden">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary mt-0.5">
+                    <step.icon className="size-3.5" />
                   </span>
-                  <div className="min-w-0">
-                    <h4 className="text-xs font-bold truncate">{step.title}</h4>
-                    <p className="text-[10px] text-muted-foreground truncate">{step.body}</p>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-bold leading-tight">{step.title}</h4>
+                    <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2 mt-0.5">{step.body}</p>
                   </div>
                 </Card>
               ))}
@@ -522,11 +522,12 @@ function Home() {
       </section>
 
       {/* 2. FOUNDER CREDIBILITY STRIP (Academic Authority) */}
+      {/* 2. FOUNDER CREDIBILITY STRIP (Academic Authority) */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-5 p-5 sm:p-6 rounded-3xl border border-border/80 bg-card/90 shadow-xs">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-5 p-4 sm:p-6 rounded-3xl border border-border/80 bg-card/90 shadow-xs w-full min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full sm:w-auto">
             <div className="relative shrink-0">
-              <div className="size-16 sm:size-20 rounded-full border-2 border-primary/50 p-0.5 bg-gradient-to-br from-primary to-amber-500 overflow-hidden shadow-md">
+              <div className="size-14 sm:size-20 rounded-full border-2 border-primary/50 p-0.5 bg-gradient-to-br from-primary to-amber-500 overflow-hidden shadow-md">
                 <img
                   src="/ritesh-sir.jpg"
                   alt="Ritesh Sir - Physics Educator & Founder"
@@ -534,26 +535,32 @@ function Home() {
                 />
               </div>
               <span
-                className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-card"
+                className="absolute -bottom-1 -right-1 grid size-5 sm:size-6 place-items-center rounded-full bg-emerald-600 text-white shadow-sm ring-2 ring-card"
                 title="Verified Master Educator"
               >
-                <ShieldCheck className="size-3.5" />
+                <ShieldCheck className="size-3 sm:size-3.5" />
               </span>
             </div>
 
-            <div className="space-y-0.5 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Academic Director</span>
-                <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0">21+ Yrs Kota Faculty</Badge>
+            <div className="space-y-0.5 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-primary">
+                  Academic Director
+                </span>
+                <Badge variant="secondary" className="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0">
+                  21+ Yrs Kota Faculty
+                </Badge>
               </div>
-              <h3 className="font-display text-lg sm:text-xl font-extrabold text-foreground">Guided by Ritesh Sir</h3>
-              <p className="text-xs text-muted-foreground truncate">
+              <h3 className="font-display text-base sm:text-xl font-extrabold text-foreground truncate">
+                Guided by Ritesh Sir
+              </h3>
+              <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 leading-snug">
                 Physics Educator · Ex-Resonance Kota · Mentor to 10,000+ CBSE, NEET &amp; JEE Students
               </p>
             </div>
           </div>
 
-          <Button asChild variant="outline" size="sm" className="rounded-full shrink-0 font-bold border-primary/40 text-primary hover:bg-primary/10 w-full sm:w-auto h-9">
+          <Button asChild variant="outline" size="sm" className="rounded-full shrink-0 font-bold border-primary/40 text-primary hover:bg-primary/10 w-full sm:w-auto h-auto py-2.5 px-4 text-xs sm:text-sm text-center">
             <Link to="/about">
               Read Founder's Story &amp; Vision →
             </Link>
@@ -563,63 +570,63 @@ function Home() {
 
       {/* 2.5. DAILY CREDITS & COMPLETELY FREE PROMISE */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="space-y-2 text-center md:text-left">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3.5 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                <Gift className="size-3.5" /> 100% Completely Free for Now
+        <div className="rounded-3xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-teal-500/10 p-4 sm:p-8 shadow-sm w-full min-w-0 overflow-hidden">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6 min-w-0">
+            <div className="space-y-2 text-center md:text-left min-w-0">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-3 py-1 text-xs font-bold text-emerald-800 dark:text-emerald-300 max-w-full">
+                <Gift className="size-3.5 shrink-0" /> 100% Completely Free for Now
               </div>
-              <h3 className="font-display text-xl sm:text-2xl font-bold text-foreground">
+              <h3 className="font-display text-lg sm:text-2xl font-bold text-foreground break-words">
                 All Chapters, Audio Lectures &amp; Quizzes are Completely Free!
               </h3>
-              <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
+              <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl leading-relaxed">
                 Easy Padhai is open and completely free for all students. Listen to concept-clearing audio lectures, maintain your daily study streak, and earn XP and badges without paying anything.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
-                <Sparkles className="size-5 text-primary mb-1" />
-                <span className="text-xs font-bold text-foreground">100% Free</span>
-                <span className="text-[10px] text-muted-foreground">For Now</span>
+            <div className="grid grid-cols-3 gap-2 w-full md:flex md:w-auto shrink-0 min-w-0">
+              <div className="flex flex-col items-center justify-center p-2 sm:p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-0">
+                <Sparkles className="size-4 sm:size-5 text-primary mb-1 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">100% Free</span>
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground">For Now</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
-                <Flame className="size-5 text-orange-500 mb-1" />
-                <span className="text-xs font-bold text-foreground">Daily Streaks</span>
-                <span className="text-[10px] text-muted-foreground">Keep Learning</span>
+              <div className="flex flex-col items-center justify-center p-2 sm:p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-0">
+                <Flame className="size-4 sm:size-5 text-orange-500 mb-1 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">Streaks</span>
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground">Keep Daily</span>
               </div>
-              <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-[110px]">
-                <Coins className="size-5 text-amber-500 mb-1" />
-                <span className="text-xs font-bold text-foreground">Earn XP</span>
-                <span className="text-[10px] text-muted-foreground">Top Leaderboard</span>
+              <div className="flex flex-col items-center justify-center p-2 sm:p-3 rounded-2xl bg-card border border-emerald-500/30 shadow-sm text-center min-w-0">
+                <Coins className="size-4 sm:size-5 text-amber-500 mb-1 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-bold text-foreground leading-tight">Earn XP</span>
+                <span className="text-[9px] sm:text-[10px] text-muted-foreground">Top Rank</span>
               </div>
             </div>
           </div>
 
           {/* Invite Friends Action Bar */}
-          <div className="mt-5 pt-4 border-t border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground text-center sm:text-left">
-              <span className="grid size-6 place-items-center rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+          <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-emerald-500/25 flex flex-col sm:flex-row items-center justify-between gap-3 min-w-0">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground text-center sm:text-left min-w-0">
+              <span className="grid size-6 place-items-center rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 shrink-0">
                 🎁
               </span>
-              <span>
-                Invite friends &amp; classmates: <strong>Both get +50 Bonus Credits</strong> upon joining!
+              <span className="leading-snug">
+                Invite friends: <strong>Both get +50 Bonus Credits</strong> upon joining!
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full sm:w-auto shrink-0">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
                   "Hey! I am learning Class 9-12 Science with Ritesh Sir (21+ yrs Kota faculty) on Easy Padhai — audio lectures, notes & instant tests. Join with my link and we both get 50 bonus credits: https://ep.studytube.co.in/auth"
                 )}`}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 text-xs font-bold shadow-sm inline-flex items-center gap-1.5 transition-colors"
+                className="rounded-full bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-sm inline-flex items-center gap-1.5 transition-colors"
               >
                 <span>📲 Share on WhatsApp</span>
               </a>
               <Button asChild size="sm" variant="outline" className="rounded-full text-xs font-semibold h-7 border-emerald-500/40">
-                <Link to="/wallet">Open Wallet &amp; Referrals</Link>
+                <Link to="/wallet">Open Rewards</Link>
               </Button>
             </div>
           </div>
@@ -645,31 +652,31 @@ function Home() {
           <SampleAudioPlayer />
 
           {/* Card 2: Interactive Test Mockup */}
-          <Card className="rounded-3xl border-border/80 p-5 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
-                  <Zap className="size-3.5" /> Instant Test Feedback
+          <Card className="rounded-3xl border-border/80 p-4 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between w-full min-w-0 overflow-hidden">
+            <div className="space-y-3 min-w-0">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider truncate">
+                  <Zap className="size-3.5 shrink-0" /> Instant Test Feedback
                 </span>
-                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold shrink-0">
                   +15 XP
                 </Badge>
               </div>
 
-              <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug">
+              <p className="text-xs sm:text-sm font-semibold text-foreground leading-snug break-words">
                 Q: Which law explains why a passenger falls backward when a vehicle suddenly accelerates forward?
               </p>
 
               {/* Options */}
               <div className="space-y-1.5 text-xs">
-                <div className="p-2 rounded-xl border border-border/60 bg-secondary/30 text-muted-foreground">
+                <div className="p-2 rounded-xl border border-border/60 bg-secondary/30 text-muted-foreground break-words">
                   A. Newton's Third Law
                 </div>
-                <div className="p-2 rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-semibold flex items-center justify-between">
-                  <span>B. Newton's First Law (Law of Inertia)</span>
+                <div className="p-2 rounded-xl border border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 font-semibold flex items-center justify-between gap-2">
+                  <span className="break-words">B. Newton's First Law (Law of Inertia)</span>
                   <CheckCircle2 className="size-3.5 text-emerald-600 shrink-0" />
                 </div>
-                <div className="p-2 rounded-xl border border-border/60 bg-secondary/30 text-muted-foreground">
+                <div className="p-2 rounded-xl border border-border/60 bg-secondary/30 text-muted-foreground break-words">
                   C. Newton's Second Law (F = ma)
                 </div>
               </div>
@@ -686,14 +693,14 @@ function Home() {
           </Card>
 
           {/* Card 3: Daily Streaks & Leaderboard Showcase */}
-          <Card className="rounded-3xl border-border/80 p-5 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-                  <Trophy className="size-3.5" /> Gamified Progress
+          <Card className="rounded-3xl border-border/80 p-4 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between w-full min-w-0 overflow-hidden">
+            <div className="space-y-3 min-w-0">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider truncate">
+                  <Trophy className="size-3.5 shrink-0" /> Gamified Progress
                 </span>
-                <span className="inline-flex items-center gap-1 text-xs font-extrabold text-orange-500">
-                  <Flame className="size-3.5 fill-orange-500" /> 14 Days Streak
+                <span className="inline-flex items-center gap-1 text-xs font-extrabold text-orange-500 shrink-0">
+                  <Flame className="size-3.5 fill-orange-500" /> 14 Days
                 </span>
               </div>
 
@@ -864,22 +871,22 @@ function Home() {
 
         {/* Featured Spotlight Chapters for Selected Class */}
         {spotlightChapters.length > 0 && (
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Sparkles className="size-3.5 text-primary" /> {classOrdinalLabel(selectedClass)} Sample Chapters
+          <div className="space-y-3 pt-2 w-full min-w-0">
+            <div className="flex items-center justify-between gap-2 min-w-0">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 truncate">
+                <Sparkles className="size-3.5 text-primary shrink-0" /> {classOrdinalLabel(selectedClass)} Sample Chapters
               </span>
               <Link
                 to="/learn"
                 search={{ class: selectedClass }}
                 onClick={() => handleSelectClass(selectedClass)}
-                className="text-xs font-bold text-primary hover:underline"
+                className="text-xs font-bold text-primary hover:underline shrink-0"
               >
                 View all in {classOrdinalLabel(selectedClass)} →
               </Link>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-3 w-full min-w-0">
               {spotlightChapters.map((chapter) => {
                 const Icon = chapter.icon;
                 return (
@@ -888,26 +895,26 @@ function Home() {
                     to="/learn/$slug"
                     params={{ slug: chapter.slug }}
                     onClick={() => handleSelectClass(selectedClass)}
-                    className="group block h-full"
+                    className="group block h-full w-full min-w-0"
                   >
-                    <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-5 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all">
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary">
+                    <Card className="card-hover shadow-card h-full rounded-3xl border-border/70 p-4 sm:p-6 bg-card flex flex-col justify-between space-y-4 group-hover:border-primary/50 transition-all w-full min-w-0 overflow-hidden">
+                      <div className="space-y-2.5 min-w-0">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary shrink-0">
                             <Icon className="size-3" />
                             <span>{chapter.subjectCategory}</span>
                           </span>
-                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold text-primary">
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary truncate max-w-[55%] sm:max-w-none">
                             {chapter.badge}
                           </span>
                         </div>
 
-                        <h3 className="font-display text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors">
+                        <h3 className="font-display text-base sm:text-lg font-bold leading-snug text-foreground group-hover:text-primary transition-colors break-words">
                           {chapter.title}
                         </h3>
 
-                        <div className="space-y-1 text-xs">
-                          <p className="font-bold text-foreground/90 leading-normal">
+                        <div className="space-y-1 text-xs min-w-0">
+                          <p className="font-bold text-foreground/90 leading-snug line-clamp-1">
                             {chapter.hook}
                           </p>
                           <p className="text-muted-foreground leading-relaxed line-clamp-2">
@@ -917,24 +924,24 @@ function Home() {
 
                         {/* Included Lecture Preview */}
                         {chapter.lessons && chapter.lessons[0] && (
-                          <div className="rounded-xl bg-secondary/60 p-2 text-[11px] flex items-center gap-2 border border-border/50">
+                          <div className="rounded-xl bg-secondary/60 p-2 text-[11px] flex items-center gap-2 border border-border/50 min-w-0 overflow-hidden">
                             <div className="flex size-5 items-center justify-center rounded-full bg-primary/20 text-primary shrink-0">
                               <Headphones className="size-3" />
                             </div>
-                            <span className="font-medium text-foreground truncate">
+                            <span className="font-medium text-foreground truncate min-w-0 flex-1">
                               {chapter.lessons[0].title}
                             </span>
                           </div>
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-border/40 flex items-center justify-between text-xs font-semibold text-muted-foreground">
-                        <span className="flex items-center gap-1 text-primary font-bold">
-                          <Headphones className="size-3.5" /> {chapter.lessonCount || 1}{" "}
-                          {chapter.lessonCount === 1 ? "Audio Lecture" : "Audio Lectures"}
+                      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground min-w-0">
+                        <span className="flex items-center gap-1 text-primary font-bold shrink-0">
+                          <Headphones className="size-3.5 shrink-0" /> {chapter.lessonCount || 1}{" "}
+                          {chapter.lessonCount === 1 ? "Audio" : "Audios"}
                         </span>
-                        <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
-                          Start Chapter <ArrowRight className="size-3" />
+                        <span className="text-accent group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold shrink-0">
+                          Start Chapter <ArrowRight className="size-3 shrink-0" />
                         </span>
                       </div>
                     </Card>
@@ -946,18 +953,18 @@ function Home() {
         )}
 
         {/* Bottom Full-Width Explorer Banner */}
-        <Card className="rounded-3xl border-border/70 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-          <div className="space-y-1.5 text-center sm:text-left">
-            <h3 className="text-xl font-bold tracking-tight text-foreground">
+        <Card className="rounded-3xl border-border/70 bg-gradient-to-r from-primary/10 via-card to-primary/5 p-5 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 shadow-sm w-full min-w-0 overflow-hidden">
+          <div className="space-y-1.5 text-center sm:text-left min-w-0">
+            <h3 className="text-lg sm:text-xl font-bold tracking-tight text-foreground break-words">
               Ready to explore the full curriculum?
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground max-w-md">
               Browse all {allChapters.length} chapters organized in sequence: Subject ➔ Chapter ➔ Lessons with audio lectures and notes.
             </p>
           </div>
-          <Button asChild size="lg" className="rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 shrink-0 gap-2">
+          <Button asChild size="lg" className="rounded-full bg-primary text-primary-foreground font-bold shadow-md hover:bg-primary/90 w-full sm:w-auto h-auto py-3 px-6 shrink-0 gap-2 text-xs sm:text-sm whitespace-normal text-center">
             <Link to="/learn" search={{ class: selectedClass }} onClick={() => handleSelectClass(selectedClass)}>
-              Open Curriculum Explorer <ArrowRight className="size-4" />
+              Open Curriculum Explorer <ArrowRight className="size-4 shrink-0" />
             </Link>
           </Button>
         </Card>
@@ -965,28 +972,28 @@ function Home() {
 
       {/* 5. CALL TO ACTION FOOTER */}
       <section className="mx-auto w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-8 sm:p-12 text-center space-y-6 shadow-sm">
-          <h2 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto">
+        <div className="rounded-3xl border border-primary/30 bg-gradient-to-r from-primary/15 via-orange-500/10 to-amber-500/15 p-5 sm:p-12 text-center space-y-5 sm:space-y-6 shadow-sm w-full min-w-0 overflow-hidden">
+          <h2 className="font-display text-2xl sm:text-4xl font-extrabold tracking-tight text-foreground max-w-xl mx-auto break-words leading-tight">
             Ready to make Class 5–12 Science &amp; Maths easy?
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-lg mx-auto">
+          <p className="text-xs sm:text-base text-muted-foreground max-w-lg mx-auto leading-relaxed">
             Join thousands of students learning everyday with audio lectures, notes, and tests prepared under the guidance of Ritesh Sir.
           </p>
-          <div>
-            <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-8 h-12">
-              <Link to="/learn">
-                Start Learning Completely Free Now
-                <ArrowRight className="size-4 ml-1.5" />
+          <div className="w-full flex justify-center">
+            <Button asChild size="lg" className="rounded-full shadow-glow font-bold px-5 sm:px-8 h-auto py-3.5 sm:py-4 text-xs sm:text-base w-full sm:w-auto max-w-sm whitespace-normal leading-snug">
+              <Link to="/learn" search={{}}>
+                <span>Start Learning Completely Free Now</span>
+                <ArrowRight className="size-4 shrink-0 inline ml-1.5" />
               </Link>
             </Button>
           </div>
 
           {/* Bottom Transparency & Feedback Notice */}
-          <div className="pt-4 border-t border-border/40 max-w-2xl mx-auto text-center space-y-1.5">
-            <p className="text-xs text-muted-foreground font-medium">
+          <div className="pt-4 border-t border-border/40 max-w-2xl mx-auto text-center space-y-1.5 min-w-0">
+            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium">
               ⚡ <strong>AI-Generated Lectures:</strong> Audio lectures are prepared using AI under the guidance of Ritesh Sir.
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] sm:text-xs text-muted-foreground">
               While reviewed for quality, AI can occasionally make mistakes. If you find anything, please{" "}
               <a
                 href="https://wa.me/917000588028?text=Hi"
@@ -1059,28 +1066,28 @@ function SampleAudioPlayer() {
   };
 
   return (
-    <Card className="rounded-3xl border-border/80 p-5 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
-            <Headphones className="size-3.5" /> Sample Audio Lecture
+    <Card className="rounded-3xl border-border/80 p-4 sm:p-6 bg-card/90 shadow-sm space-y-4 flex flex-col justify-between w-full min-w-0 overflow-hidden">
+      <div className="space-y-3 min-w-0">
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider truncate">
+            <Headphones className="size-3.5 shrink-0" /> Sample Audio Lecture
           </span>
-          <Badge variant="outline" className="text-[10px] font-semibold">
+          <Badge variant="outline" className="text-[10px] font-semibold shrink-0">
             2 Min Preview
           </Badge>
         </div>
 
-        <div>
-          <h4 className="font-display text-base font-bold text-foreground">
+        <div className="min-w-0">
+          <h4 className="font-display text-base font-bold text-foreground break-words">
             Exploration: Entering Science
           </h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
             Prepared under the guidance of Ritesh Sir · 21+ Yrs Kota Experience
           </p>
         </div>
 
         {/* Audio Waveform Animation */}
-        <div className="flex items-center justify-center gap-1 h-12 bg-secondary/40 rounded-2xl p-2 px-3 overflow-hidden">
+        <div className="flex items-center justify-center gap-1 h-12 bg-secondary/40 rounded-2xl p-2 px-3 overflow-hidden w-full">
           {[40, 75, 30, 90, 60, 100, 45, 80, 55, 95, 35, 85, 50, 70, 90, 40, 65, 85].map((h, i) => (
             <span
               key={i}
@@ -1097,8 +1104,8 @@ function SampleAudioPlayer() {
         </div>
 
         {/* Audio Progress Bar */}
-        <div className="space-y-1">
-          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+        <div className="space-y-1 w-full">
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden w-full">
             <div
               className="h-full bg-primary rounded-full transition-all"
               style={{ width: `${progressPercent}%` }}
@@ -1123,17 +1130,17 @@ function SampleAudioPlayer() {
       </div>
 
       {/* Player Controls */}
-      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+      <div className="pt-2 border-t border-border/40 flex items-center justify-between gap-2 min-w-0">
         <Button
           size="sm"
           onClick={togglePlay}
-          className="rounded-full text-xs font-bold gap-2 px-4 shadow-sm"
+          className="rounded-full text-xs font-bold gap-1.5 px-3 sm:px-4 shadow-sm shrink-0"
         >
           {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5 fill-current" />}
-          <span>{playing ? "Pause Audio" : "Play 2 Min Preview"}</span>
+          <span>{playing ? "Pause" : "Play 2 Min"}</span>
         </Button>
 
-        <div className="flex items-center gap-1 bg-secondary/80 rounded-full p-0.5">
+        <div className="flex items-center gap-1 bg-secondary/80 rounded-full p-0.5 shrink-0">
           {[1, 1.25, 1.5].map((s) => (
             <button
               key={s}
