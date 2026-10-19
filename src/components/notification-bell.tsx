@@ -67,7 +67,7 @@ export function NotificationBell({ className }: { className?: string }) {
     };
   }, [open]);
 
-  // Query notifications
+  // Query notifications (Only for logged-in users)
   const { data: notifications = [] } = useQuery({
     queryKey: ["my-notifications", user?.id, activeClass],
     queryFn: () =>
@@ -77,9 +77,12 @@ export function NotificationBell({ className }: { className?: string }) {
           classLevel: activeClass,
         },
       }),
+    enabled: Boolean(user),
     staleTime: 1000 * 30, // 30 seconds
     refetchOnWindowFocus: true,
   });
+
+  if (!user) return null;
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 

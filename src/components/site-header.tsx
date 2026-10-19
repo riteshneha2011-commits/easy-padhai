@@ -235,9 +235,7 @@ export function SiteHeader() {
                   <span>100 Free Credits</span>
                 </Link>
 
-                {/* Notification Bell */}
-                <NotificationBell />
-
+                {/* Theme & Sign In for guests */}
                 <div className="hidden sm:inline-flex">
                   <ThemeToggle />
                 </div>
