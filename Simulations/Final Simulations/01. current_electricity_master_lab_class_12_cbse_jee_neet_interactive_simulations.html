@@ -1,0 +1,3941 @@
+<!DOCTYPE html>
+<html lang="en" translate="no">
+<head>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Current Electricity Master Lab — Class 12 CBSE · JEE · NEET Interactive Simulations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050c16;
+    --bg-elev: #0b1829;
+    --panel: #0f2138;
+    --panel-2: #163050;
+    --border: #2e537d;
+    --border-hi: #38bdf8;
+    --text: #ffffff;
+    --muted: #d1e0f0;
+    --cyan: #38bdf8;
+    --mint: #34d399;
+    --gold: #fbbf24;
+    --orange: #fb923c;
+    --coral: #fb7185;
+    --purple: #c084fc;
+    --pink: #f472b6;
+    /* Bulletproof Webfont + Safe Windows Stack (avoids corrupted local Inter/Roboto symbol fonts) */
+    --font-sans: 'Lexend', 'Plus Jakarta Sans', 'Noto Sans Devanagari', Verdana, Tahoma, Georgia, sans-serif;
+    --font-mono: 'Consolas', 'Courier New', monospace;
+  }
+  * {
+    box-sizing: border-box;
+    font-family: var(--font-sans);
+    font-variant-ligatures: none;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: hidden;
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  button, select, input, option, optgroup, details, summary {
+    font-family: var(--font-sans);
+    font-size: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 11px;
+    transition: all 0.16s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+  button:hover:not(:disabled) {
+    border-color: var(--cyan);
+    background: #1f416b;
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  button.primary {
+    background: linear-gradient(135deg, #38bdf8, #34d399);
+    color: #03111c;
+    border-color: #7dd3fc;
+    font-weight: 800;
+  }
+  button.primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+  button.active-pill, button[aria-pressed="true"] {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+  }
+  /* 3-Way Language Segmented Control */
+  .lang-segmented {
+    display: inline-flex;
+    align-items: center;
+    background: #071220;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .lang-seg-btn {
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .lang-seg-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+  .lang-seg-btn.active {
+    background: var(--cyan);
+    color: #03111c;
+  }
+  select, input[type="number"], input[type="search"] {
+    background: #071322;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: #ffffff;
+    font-weight: 600;
+    outline: none;
+  }
+  select:focus, input:focus, button:focus-visible {
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--cyan);
+    cursor: pointer;
+    height: 7px;
+  }
+  /* Top App Header */
+  .app-header {
+    min-height: 68px;
+    background: rgba(11, 24, 41, 0.97);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, #38bdf8, #34d399);
+    color: #04131f;
+    font-weight: 800;
+    font-size: 19px;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.3);
+  }
+  .brand-title {
+    font-weight: 800;
+    font-size: 17px;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+  }
+  .brand-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    display: block;
+  }
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .badge-tag {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(52, 211, 153, 0.18);
+    border: 1px solid rgba(52, 211, 153, 0.55);
+    color: #6ee7b7;
+    font-weight: 700;
+  }
+  /* Main Shell Layout */
+  .main-shell {
+    display: grid;
+    grid-template-columns: 278px minmax(0, 1fr);
+    max-width: 1840px;
+    margin: 0 auto;
+    min-height: calc(100vh - 68px);
+  }
+  /* Left Topic Sidebar */
+  .topic-sidebar {
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sidebar-heading {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #93c5fd;
+    padding: 4px 10px;
+  }
+  .topic-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .topic-btn {
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 9px 11px;
+    border-radius: 10px;
+    background: rgba(15, 33, 56, 0.55);
+    border: 1px solid rgba(46, 83, 125, 0.45);
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .topic-btn:hover {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: var(--cyan);
+  }
+  .topic-btn.active {
+    background: linear-gradient(90deg, rgba(56, 189, 248, 0.25), rgba(52, 211, 153, 0.12));
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+  }
+  .topic-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--panel-2);
+    color: #7dd3fc;
+    font-size: 11px;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+  }
+  .topic-btn.active .topic-num {
+    background: var(--cyan);
+    color: #03111c;
+  }
+  .topic-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    line-height: 1.3;
+  }
+  .topic-tag {
+    font-size: 9.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(251, 191, 36, 0.2);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    color: #fde047;
+    font-weight: 700;
+  }
+  .sidebar-card {
+    margin-top: auto;
+    padding: 12px;
+    border-radius: 10px;
+    background: rgba(15, 33, 56, 0.95);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: #e2e8f0;
+    line-height: 1.5;
+  }
+  .sidebar-card strong {
+    color: #6ee7b7;
+    display: block;
+    margin-bottom: 4px;
+  }
+  /* Content Area */
+  .content-area {
+    padding: 18px 22px 36px;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* Topic Header Banner */
+  .lesson-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    background: linear-gradient(135deg, #10243d, #0b192c);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+  }
+  .banner-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: #7dd3fc;
+  }
+  .banner-title {
+    font-size: 23px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 4px 0 6px;
+  }
+  .banner-subtitle {
+    color: #e2e8f0;
+    font-size: 13.5px;
+    margin: 0;
+    line-height: 1.55;
+  }
+  .banner-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  /* Workspace Grid (Stage + Controls) */
+  .lab-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 345px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  }
+  .stage-column {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: radial-gradient(circle at 50% 35%, #0f233c 0%, #050d1a 85%);
+    position: relative;
+  }
+  /* Top HUD inside Stage */
+  .stage-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 14px;
+    background: #081526;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .hud-left, .hud-right {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .fullscreen-only {
+    display: none !important;
+  }
+  /* Live Readout Ribbon inside Stage */
+  .stage-metrics-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    padding: 8px 14px;
+    background: #0a192e;
+    border-bottom: 1px solid var(--border);
+  }
+  .ribbon-card {
+    background: #102542;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 8px;
+    padding: 7px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ribbon-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+  .ribbon-val {
+    font-size: 16px;
+    font-weight: 800;
+    color: #7dd3fc;
+    font-family: var(--font-sans);
+  }
+  .ribbon-val small {
+    font-size: 11.5px;
+    color: #6ee7b7;
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  /* Canvas Wrapper & Split Live Oscilloscope */
+  .canvas-area {
+    position: relative;
+    flex: 1 1 0%;
+    display: flex;
+    align-items: stretch;
+    min-height: 470px;
+    height: 470px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .sim-stage-viewport {
+    position: relative;
+    flex: 1 1 0%;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+  }
+  #sim-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: default;
+  }
+  /* On-Stage Floating Live Math Substitution Overlay */
+  .stage-math-overlay {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    max-width: min(540px, calc(100% - 28px));
+    background: rgba(6, 16, 30, 0.94);
+    border: 1.5px solid #34d399;
+    border-radius: 12px;
+    padding: 10px 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+    z-index: 12;
+    pointer-events: auto;
+  }
+  .stage-math-overlay[hidden] {
+    display: none !important;
+  }
+  .stage-math-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #6ee7b7;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .stage-math-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    color: #ffffff;
+    line-height: 1.45;
+  }
+  .math-step-line {
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: rgba(20, 46, 77, 0.75);
+    border-left: 3px solid #38bdf8;
+  }
+  .math-step-line.result {
+    border-left-color: #fbbf24;
+    color: #fef08a;
+    font-weight: 700;
+  }
+  /* Docked Live Graph Panel inside Stage (Always visible when Live Graph is ON) */
+  .stage-graph-dock {
+    width: 285px;
+    flex: 0 0 285px;
+    background: #081526;
+    border-left: 1px solid var(--border);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow-y: auto;
+    z-index: 6;
+  }
+  .stage-graph-dock[hidden] {
+    display: none !important;
+  }
+  #mini-graph-canvas {
+    width: 100%;
+    height: 220px;
+    flex-shrink: 0;
+    background: #050d1a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: block;
+  }
+  .mini-graph-stats {
+    margin-top: auto;
+    padding: 8px 10px;
+    background: #051120;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    border-radius: 8px;
+    font-size: 11.5px;
+    color: #6ee7b7;
+    font-family: var(--font-mono);
+    line-height: 1.5;
+  }
+  /* Interactive Drag Hint Pill */
+  .canvas-hint-pill {
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    max-width: calc(100% - 28px);
+    background: rgba(6, 16, 30, 0.95);
+    border: 1.5px solid #38bdf8;
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  }
+  .canvas-hint-pill[hidden] {
+    display: none !important;
+  }
+  /* Playbar at bottom of Stage */
+  .stage-playbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #081526;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .play-btns {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  /* Right Controls Panel */
+  .controls-column {
+    background: var(--bg-elev);
+    border-left: 1px solid var(--border);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    max-height: 700px;
+    overflow-y: auto;
+  }
+  .control-section-title {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #6ee7b7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+  .preset-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .preset-box label {
+    display: block;
+    font-size: 11.5px;
+    color: #e2e8f0;
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+  .preset-box select {
+    width: 100%;
+    font-size: 12.5px;
+  }
+  .preset-note {
+    font-size: 12px;
+    color: #e0f2fe;
+    margin: 8px 0 0;
+    line-height: 1.5;
+  }
+  .sliders-container {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+  .slider-card {
+    background: #10243e;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 11px;
+  }
+  .slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .slider-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .slider-num-wrap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .slider-num-wrap input[type="number"] {
+    width: 72px;
+    padding: 3px 6px;
+    font-size: 12px;
+    text-align: right;
+  }
+  .slider-unit {
+    font-size: 11px;
+    color: #7dd3fc;
+    min-width: 26px;
+    font-weight: 700;
+  }
+  .layer-toggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #f1f5f9;
+    cursor: pointer;
+  }
+  .check-item input {
+    accent-color: var(--mint);
+    width: 15px;
+    height: 15px;
+  }
+  /* Lower Pedagogical Panels */
+  .pedagogy-grid {
+    display: grid;
+    grid-template-columns: 1.18fr 0.82fr;
+    gap: 16px;
+  }
+  .info-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .info-panel h2 {
+    margin: 4px 0 10px;
+    font-size: 17px;
+    color: #ffffff;
+  }
+  .formula-box {
+    background: #061221;
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    border-left: 4px solid var(--mint);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #6ee7b7;
+    margin: 10px 0;
+    line-height: 1.6;
+  }
+  /* Live Step-by-Step Math Substitution Box in Pedagogy Section */
+  .live-math-panel {
+    background: #071628;
+    border: 1.5px solid #38bdf8;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 12px 0;
+  }
+  .live-math-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #7dd3fc;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .jeeneet-box {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 12px;
+  }
+  .jeeneet-title {
+    color: #fde047;
+    font-weight: 800;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  #main-graph-canvas {
+    width: 100%;
+    height: 250px;
+    background: #050d1a;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: block;
+    margin-top: 10px;
+  }
+  /* ======================================================================
+     FULL-SCREEN CLASSROOM MODE (10/10 Smartboard Layout - Zero Cutoff & Live Graph Fix)
+     ====================================================================== */
+  body.fullscreen-mode {
+    overflow: hidden;
+    height: 100vh;
+    height: 100dvh;
+  }
+  body.fullscreen-mode .app-header,
+  body.fullscreen-mode .topic-sidebar,
+  body.fullscreen-mode .lesson-banner,
+  body.fullscreen-mode .pedagogy-grid {
+    display: none !important;
+  }
+  body.fullscreen-mode .main-shell {
+    display: block;
+    max-width: none;
+    min-height: 0;
+    height: 100vh;
+    height: 100dvh;
+  }
+  body.fullscreen-mode .content-area {
+    padding: 0;
+    height: 100%;
+  }
+  body.fullscreen-mode .lab-workspace {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    border: 0;
+    border-radius: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+    grid-template-columns: minmax(0, 1fr) 330px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  body.fullscreen-mode.fs-controls-collapsed .lab-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.fullscreen-mode.fs-controls-collapsed .controls-column {
+    display: none !important;
+  }
+  body.fullscreen-mode .stage-column {
+    height: 100%;
+    max-height: 100dvh;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  body.fullscreen-mode .stage-hud {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    gap: 6px;
+  }
+  body.fullscreen-mode .stage-metrics-ribbon {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    gap: 6px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  body.fullscreen-mode .ribbon-card {
+    padding: 5px 9px;
+  }
+  body.fullscreen-mode .ribbon-val {
+    font-size: 14.5px;
+  }
+  body.fullscreen-mode .fullscreen-only {
+    display: inline-flex !important;
+  }
+  body.fullscreen-mode .canvas-area {
+    min-height: 0 !important;
+    height: auto !important;
+    flex: 1 1 0% !important;
+    overflow: hidden;
+  }
+  body.fullscreen-mode .sim-stage-viewport {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    flex: 1 1 0%;
+  }
+  body.fullscreen-mode .stage-graph-dock {
+    width: 280px;
+    flex: 0 0 280px;
+    height: 100%;
+  }
+  body.fullscreen-mode #mini-graph-canvas {
+    height: 250px;
+  }
+  body.fullscreen-mode .stage-playbar {
+    flex-shrink: 0;
+    padding: 8px 14px;
+  }
+  body.fullscreen-mode .controls-column {
+    height: 100%;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px 28px;
+    background: #091728;
+    border-left: 1px solid var(--border);
+  }
+  /* Toast Notification */
+  #toast-banner {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #0d2744;
+    border: 1.5px solid var(--cyan);
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.65);
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  #toast-banner.show {
+    opacity: 1;
+  }
+  @media (max-width: 1100px) {
+    .main-shell {
+      grid-template-columns: 1fr;
+    }
+    .topic-sidebar {
+      border-right: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 12px;
+    }
+    .topic-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    }
+    .sidebar-card {
+      display: none;
+    }
+    .lab-workspace {
+      grid-template-columns: 1fr;
+    }
+    .controls-column {
+      border-left: 0;
+      border-top: 1px solid var(--border);
+      max-height: none;
+    }
+    .pedagogy-grid {
+      grid-template-columns: 1fr;
+    }
+    body.fullscreen-mode .lab-workspace {
+      grid-template-columns: minmax(0, 1fr) 295px;
+    }
+    body.fullscreen-mode.fs-controls-collapsed .lab-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    body.fullscreen-mode .stage-graph-dock {
+      width: 245px;
+      flex: 0 0 245px;
+    }
+    body.fullscreen-mode .controls-column {
+      position: static;
+      width: auto;
+      height: 100%;
+      max-height: 100dvh;
+      border-top: 0;
+      border-left: 1px solid var(--border);
+      border-radius: 0;
+      box-shadow: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-logo">⚡</div>
+    <div>
+      <span class="brand-title" id="app-main-title">Current Electricity Master Lab</span>
+      <span class="brand-sub" id="app-main-sub">Class 12 Physics · CBSE · JEE Main/Adv · NEET (9 Labs + Circuit Sandbox + Live Math)</span>
+    </div>
+  </div>
+  <div class="header-controls">
+    <span class="badge-tag" id="header-badge">9 Labs · Sandbox Mode · Live Math</span>
+    <div class="lang-segmented" role="group" aria-label="Select Language">
+      <button type="button" class="lang-seg-btn" id="btn-lang-en" data-lang="en">English</button>
+      <button type="button" class="lang-seg-btn" id="btn-lang-hi" data-lang="hi">हिंदी</button>
+      <button type="button" class="lang-seg-btn active" id="btn-lang-hinglish" data-lang="hinglish">Hinglish</button>
+    </div>
+    <button id="lang-toggle" title="Cycle Language (English / हिंदी / Hinglish)">🌐 Lang: Hinglish</button>
+    <button id="btn-download-html" title="Download Standalone HTML File for Smartboard / Offline Use">⬇ Download HTML</button>
+    <button id="btn-fullscreen" class="primary" title="Launch Full-Screen Smartboard Mode (Shortcut: F)">[ ] Full Screen Mode</button>
+  </div>
+</header>
+
+<div class="main-shell">
+  <aside class="topic-sidebar" aria-label="Chapter 3 Topics">
+    <div class="sidebar-heading" id="sidebar-heading-text">CH 03 · CURRENT ELECTRICITY</div>
+    <div class="topic-list" id="topic-nav-list"></div>
+    <div class="sidebar-card" id="sidebar-tip-card">
+      <strong id="sidebar-tip-title">💡 Smartboard Teacher Tip</strong>
+      <span id="sidebar-tip-body">Top bar se 'Labels' ya 'Hints' ko 1-click mein hide karke bilkul clean diagram dikhayein! Topic 09 (Sandbox Mode) mein apna custom circuit banayein.</span>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <section class="lesson-banner">
+      <div>
+        <div class="banner-eyebrow" id="lesson-eyebrow">TOPIC 01 · MICROSCOPIC MODEL OF CURRENT</div>
+        <h1 class="banner-title" id="lesson-title">Electron Drift, Mobility & Relaxation Time</h1>
+        <p class="banner-subtitle" id="lesson-subtitle"></p>
+      </div>
+      <div class="banner-actions">
+        <button id="btn-quick-action" class="active-pill">Special Action</button>
+        <button id="btn-reset-params">Reset Defaults</button>
+      </div>
+    </section>
+
+    <section class="lab-workspace" id="lab-workspace">
+      <div class="stage-column">
+        <!-- Top Stage HUD (Quick View Toggles for Labels, Hints, Live Math, Graph & Fullscreen) -->
+        <div class="stage-hud">
+          <div class="hud-left">
+            <button id="fs-exit-btn" class="fullscreen-only">← Exit Full Screen</button>
+            <select id="fs-topic-select" class="fullscreen-only" aria-label="Select Simulation Topic in Full Screen"></select>
+            <span id="stage-mode-badge" style="font-size:12px;color:#6ee7b7;font-weight:800;">● Live Physics + Math</span>
+          </div>
+          <div class="hud-right">
+            <button id="btn-toggle-labels" aria-pressed="true" title="Show or Hide All Labels on Canvas">Labels: ON</button>
+            <button id="btn-toggle-hints" aria-pressed="true" title="Show or Hide Bottom Instruction Pill">Hints: ON</button>
+            <button id="btn-toggle-math" aria-pressed="false" title="Show Live Step-by-Step Math Overlay on Stage">Live Math</button>
+            <button id="btn-toggle-mini-graph" aria-pressed="true">Live Graph</button>
+            <button id="btn-zoom-out" title="Zoom Out">−</button>
+            <button id="btn-zoom-reset" title="Reset Zoom">100%</button>
+            <button id="btn-zoom-in" title="Zoom In">+</button>
+            <button id="fs-lang-btn" class="fullscreen-only">🌐 EN / हिं / Hinglish</button>
+            <button id="fs-collapse-controls" class="fullscreen-only primary" aria-expanded="true">Hide Controls</button>
+          </div>
+        </div>
+
+        <!-- Live Readouts Ribbon -->
+        <div class="stage-metrics-ribbon" id="metrics-ribbon"></div>
+
+        <!-- Main Interactive Canvas + Floating Live Math Overlay + Optional Split Live Scope -->
+        <div class="canvas-area" id="canvas-container">
+          <div class="sim-stage-viewport" id="sim-stage-viewport">
+            <canvas id="sim-canvas" width="960" height="480" aria-label="Interactive Current Electricity Physics Canvas"></canvas>
+
+            <!-- Floating On-Stage Live Math Substitution Card -->
+            <div class="stage-math-overlay" id="stage-math-overlay" hidden>
+              <div class="stage-math-header">
+                <span id="stage-math-title">LIVE STEP-BY-STEP MATH SUBSTITUTION</span>
+                <button id="btn-close-stage-math" style="padding:2px 7px;font-size:11px;">×</button>
+              </div>
+              <div class="stage-math-lines" id="stage-math-content"></div>
+            </div>
+
+            <!-- Toggleable Bottom Instruction Pill -->
+            <div class="canvas-hint-pill" id="canvas-hint">Drag interactive handles directly on the canvas</div>
+          </div>
+
+          <aside class="stage-graph-dock" id="mini-graph-dock">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <strong style="font-size:12px;color:#7dd3fc;" id="mini-graph-title">Live Characteristic Curve</strong>
+              <button id="btn-close-mini-graph" style="padding:2px 7px;font-size:11px;">×</button>
+            </div>
+            <canvas id="mini-graph-canvas" width="260" height="220"></canvas>
+            <p id="mini-graph-caption" style="font-size:11.5px;color:#e2e8f0;margin:0;line-height:1.45;"></p>
+            <div class="mini-graph-stats" id="mini-graph-stats"></div>
+          </aside>
+        </div>
+
+        <!-- Bottom Playback Bar -->
+        <div class="stage-playbar">
+          <div class="play-btns">
+            <button id="btn-play" class="primary">Pause</button>
+            <button id="btn-step">Step +</button>
+            <button id="btn-restart-sim">Restart Time</button>
+            <label style="font-size:12px;color:#e2e8f0;display:inline-flex;align-items:center;gap:5px;font-weight:700;">
+              <span id="lbl-speed">Speed</span>
+              <select id="sim-speed" style="padding:4px 8px;font-size:12px;">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="1" selected>1.0x</option>
+                <option value="2">2.0x</option>
+              </select>
+            </label>
+          </div>
+          <div style="font-size:12px;color:#6ee7b7;font-family:var(--font-mono);font-weight:800;" id="sim-clock-readout">t = 0.00 s</div>
+        </div>
+      </div>
+
+      <!-- Right Controls Panel -->
+      <aside class="controls-column" id="controls-panel" aria-label="Simulation Controls">
+        <div class="control-section-title">
+          <span id="ctrl-panel-heading">Experiment Controls</span>
+          <button id="btn-defaults-side" style="padding:3px 8px;font-size:11px;">Reset</button>
+        </div>
+
+        <div class="preset-box">
+          <label for="preset-select" id="lbl-preset-box">Classroom & JEE/NEET Cases</label>
+          <select id="preset-select"></select>
+          <p class="preset-note" id="preset-note"></p>
+        </div>
+
+        <div class="sliders-container" id="sliders-list"></div>
+
+        <div>
+          <div class="control-section-title" style="margin-bottom:6px;"><span id="lbl-visual-layers">Clean View & Layers</span></div>
+          <div class="layer-toggles">
+            <label class="check-item"><input type="checkbox" id="chk-labels" checked> <span id="lbl-chk-lbl">Canvas Labels</span></label>
+            <label class="check-item"><input type="checkbox" id="chk-hints" checked> <span id="lbl-chk-hints">Bottom Hint</span></label>
+            <label class="check-item"><input type="checkbox" id="chk-vectors" checked> <span id="lbl-chk-vec">Vectors (E, vd, I)</span></label>
+            <label class="check-item"><input type="checkbox" id="chk-electrons" checked> <span id="lbl-chk-elec">Charge Carriers</span></label>
+            <label class="check-item"><input type="checkbox" id="chk-glow" checked> <span id="lbl-chk-glow">Thermal Glow</span></label>
+            <label class="check-item"><input type="checkbox" id="chk-math-overlay"> <span id="lbl-chk-math">Stage Math Box</span></label>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Bottom Concept, Live Math Substitution & JEE/NEET Pedagogy Section -->
+    <section class="pedagogy-grid">
+      <article class="info-panel">
+        <div class="banner-eyebrow" id="pedagogy-eyebrow">CONCEPT, FORMULA & LIVE NUMERICAL SUBSTITUTION</div>
+        <h2 id="concept-heading">How This Phenomenon Works</h2>
+        <p id="concept-explain" style="color:#f1f5f9;font-size:13.5px;margin:0 0 10px;line-height:1.65;white-space:pre-line;"></p>
+        <div class="formula-box" id="concept-formula"></div>
+
+        <!-- Dedicated Live Step-by-Step Numerical Substitution Panel -->
+        <div class="live-math-panel" id="live-math-box">
+          <div class="live-math-title">
+            <span id="live-math-panel-title">LIVE STEP-BY-STEP NUMERICAL SUBSTITUTION</span>
+            <span style="font-size:10.5px;color:#6ee7b7;">Updates Live with Sliders</span>
+          </div>
+          <div class="stage-math-lines" id="pedagogy-math-content"></div>
+        </div>
+
+        <div class="jeeneet-box">
+          <div class="jeeneet-title" id="jeeneet-box-title">JEE / NEET High-Yield Concept Trap & Question</div>
+          <div id="jeeneet-question" style="font-weight:700;color:#ffffff;font-size:13.5px;margin-bottom:6px;line-height:1.5;"></div>
+          <details>
+            <summary id="jeeneet-summary-lbl" style="cursor:pointer;color:#7dd3fc;font-size:12.5px;font-weight:700;">Show Teacher Explanation / Solution</summary>
+            <p id="jeeneet-answer" style="margin:6px 0 0;color:#e2e8f0;font-size:13px;line-height:1.6;"></p>
+          </details>
+        </div>
+      </article>
+
+      <article class="info-panel">
+        <div class="banner-eyebrow" id="graph-eyebrow">QUANTITATIVE GRAPH ANALYSIS</div>
+        <h2 id="main-graph-heading">Live Physics Graph</h2>
+        <canvas id="main-graph-canvas" width="560" height="250"></canvas>
+        <p id="main-graph-desc" style="color:#e2e8f0;font-size:12.5px;margin:8px 0 0;line-height:1.5;"></p>
+      </article>
+    </section>
+  </main>
+</div>
+
+<div id="toast-banner" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+const CANVAS_FONT = "'Lexend', 'Plus Jakarta Sans', 'Noto Sans Devanagari', Verdana, Tahoma, sans-serif";
+
+const UI_TEXT = {
+  en: {
+    appTitle: 'Current Electricity Master Lab',
+    appSub: 'Class 12 Physics · CBSE · JEE Main/Adv · NEET (9 Labs + Circuit Sandbox + Live Math)',
+    badge: '9 Labs · Sandbox Mode · Live Math',
+    sidebarHeading: 'CH 03 · CURRENT ELECTRICITY',
+    tipTitle: '💡 Smartboard Teacher Tip',
+    tipBody: 'Click "Labels: ON/OFF" or "Hints: ON/OFF" in the top bar for a 100% uncluttered view! Open Topic 09 (Sandbox Mode) to build your own custom circuits.',
+    resetDefaults: 'Reset Defaults',
+    exitFs: '<- Exit Full Screen',
+    solverBadge: '● Live Physics + Math',
+    liveGraphBtn: 'Live Graph',
+    hideControls: 'Hide Controls',
+    showControls: 'Show Controls',
+    pause: 'Pause',
+    play: 'Play',
+    step: 'Step +',
+    restartTime: 'Restart Time',
+    speed: 'Speed',
+    ctrlHeading: 'Experiment Controls',
+    presetLabel: 'Classroom & JEE/NEET Cases',
+    presetPlaceholder: '— Choose a Classroom Preset Case —',
+    visualLayers: 'Clean View & Layers',
+    vecLayer: 'Vectors (E, vd, I)',
+    elecLayer: 'Charge Carriers',
+    lblLayer: 'Canvas Labels',
+    hintLayer: 'Bottom Hint',
+    glowLayer: 'Thermal Glow',
+    mathLayer: 'Stage Math Box',
+    pedagogyEyebrow: 'CONCEPT, FORMULA & LIVE NUMERICAL SUBSTITUTION',
+    liveMathHeader: 'LIVE STEP-BY-STEP NUMERICAL SUBSTITUTION',
+    jeeneetTitle: 'JEE / NEET High-Yield Concept Trap & Question',
+    jeeneetSummary: 'Show Teacher Explanation / Solution',
+    graphEyebrow: 'QUANTITATIVE GRAPH ANALYSIS'
+  },
+  hi: {
+    appTitle: 'विद्युत धारा मास्टर लैब (Current Electricity Lab)',
+    appSub: 'कक्षा 12 भौतिकी · CBSE · JEE · NEET (9 लैब्स + सर्किट सैंडबॉक्स + लाइव कैलकुलेशन)',
+    badge: '9 लैब्स · सैंडबॉक्स मोड · लाइव मैथ',
+    sidebarHeading: 'अध्याय 03 · विद्युत धारा (CURRENT ELECTRICITY)',
+    tipTitle: '💡 स्मार्टबोर्ड टीचर टिप',
+    tipBody: 'ऊपर दिए गए "Labels" या "Hints" बटन को दबाकर कैनवास से सारे टेक्स्ट हटाएं और बिल्कुल साफ़ डायग्राम दिखाएं! Topic 09 (Sandbox Mode) में खुद का सर्किट बनाएं।',
+    resetDefaults: 'डिफ़ॉल्ट रीसेट करें',
+    exitFs: '<- फुल स्क्रीन से बाहर आएं',
+    solverBadge: '● लाइव फिजिक्स + मैथ',
+    liveGraphBtn: 'लाइव ग्राफ़',
+    hideControls: 'कंट्रोल्स छुपाएं',
+    showControls: 'कंट्रोल्स दिखाएं',
+    pause: 'रोकें (Pause)',
+    play: 'चलाएं (Play)',
+    step: 'स्टेप +',
+    restartTime: 'समय रीसेट',
+    speed: 'गति (Speed)',
+    ctrlHeading: 'प्रयोग नियंत्रण (Controls)',
+    presetLabel: 'क्लासरूम और JEE/NEET केसेस',
+    presetPlaceholder: '— कोई क्लासरूम केस चुनें —',
+    visualLayers: 'क्लीन व्यू और लेयर्स',
+    vecLayer: 'सदिश (E, vd, I)',
+    elecLayer: 'आवेश वाहक (Carriers)',
+    lblLayer: 'कैनवास लेबल्स',
+    hintLayer: 'नीचे के निर्देश',
+    glowLayer: 'ऊष्मीय चमक (Glow)',
+    mathLayer: 'स्क्रीन मैथ बॉक्स',
+    pedagogyEyebrow: 'कॉन्सेप्ट, सूत्र और लाइव स्टेप-बाय-स्टेप गणना',
+    liveMathHeader: 'लाइव स्टेप-बाय-स्टेप संख्यात्मक गणना (LIVE MATH SUBSTITUTION)',
+    jeeneetTitle: 'JEE / NEET महत्वपूर्ण प्रश्न और कॉन्सेप्ट ट्रैप',
+    jeeneetSummary: 'उत्तर और व्याख्या देखें (Show Solution)',
+    graphEyebrow: 'ग्राफ़ विश्लेषण (Quantitative Graph)'
+  },
+  hinglish: {
+    appTitle: 'Current Electricity Master Lab',
+    appSub: 'Class 12 Physics · CBSE · JEE · NEET (9 Labs + Circuit Sandbox + Live Math)',
+    badge: '9 Labs · Sandbox Mode · Live Math',
+    sidebarHeading: 'CH 03 · CURRENT ELECTRICITY',
+    tipTitle: '💡 Smartboard Teacher Tip',
+    tipBody: 'Top bar se "Labels" ya "Hints" button dabakar canvas ko bilkul clean karein! Topic 09 (Sandbox Mode) mein bulbs, switches aur resistors jodkar apna circuit banayein.',
+    resetDefaults: 'Reset Defaults',
+    exitFs: '<- Exit Full Screen',
+    solverBadge: '● Live Physics + Math',
+    liveGraphBtn: 'Live Graph',
+    hideControls: 'Hide Controls',
+    showControls: 'Show Controls',
+    pause: 'Pause',
+    play: 'Play',
+    step: 'Step +',
+    restartTime: 'Restart Time',
+    speed: 'Speed',
+    ctrlHeading: 'Experiment Controls',
+    presetLabel: 'Classroom & JEE/NEET Cases',
+    presetPlaceholder: '— Choose a Classroom Preset Case —',
+    visualLayers: 'Clean View & Layers',
+    vecLayer: 'Vectors (E, vd, I)',
+    elecLayer: 'Charge Carriers',
+    lblLayer: 'Canvas Labels',
+    hintLayer: 'Bottom Hint',
+    glowLayer: 'Thermal Glow',
+    mathLayer: 'Stage Math Box',
+    pedagogyEyebrow: 'CONCEPT, FORMULA & LIVE NUMERICAL SUBSTITUTION',
+    liveMathHeader: 'LIVE STEP-BY-STEP NUMERICAL SUBSTITUTION',
+    jeeneetTitle: 'JEE / NEET High-Yield Concept Trap & Question',
+    jeeneetSummary: 'Show Teacher Explanation / Solution',
+    graphEyebrow: 'QUANTITATIVE GRAPH ANALYSIS'
+  }
+};
+
+// ============================================================================
+// 1. COMPLETE TOPIC DEFINITIONS (01 to 09, including 09: SANDBOX CIRCUIT BUILDER)
+// ============================================================================
+const TOPICS = [
+  {
+    id: 'drift',
+    num: '01',
+    tag: 'Microscopic',
+    title: {
+      en: 'Electron Drift, Mobility & Relaxation Time',
+      hi: 'इलेक्ट्रॉन अनुगमन वेग (Drift Velocity), गतिशीलता और विश्रांति काल',
+      hinglish: 'Electron Drift Velocity, Mobility & Relaxation Time'
+    },
+    eyebrow: 'TOPIC 01 · MICROSCOPIC DRUDE MODEL OF CONDUCTION',
+    subtitle: {
+      en: 'See how slow drift velocity (mm/s) superimposed on fast random thermal motion creates electric current, while lattice vibrations scatter electrons.',
+      hi: 'देखें कि कैसे तेज़ रैंडम थर्मल गति के ऊपर एक धीमा अनुगमन वेग (vd) जुड़कर विद्युत धारा (I = neAvd) बनाता है, और तापमान बढ़ने पर लैटिस कंपन से टक्कर कैसे बढ़ती है।',
+      hinglish: 'Dekhiye kaise fast random thermal motion ke upar ek slow drift velocity (vd) add hokar electric current (I = neAvd) banata hai, aur temperature badhne par lattice vibrations se collisions kaise badhte hain.'
+    },
+    hint: {
+      en: 'Drag the yellow Area Handle on the top wire edge to resize thickness, or click any electron to track its collision path!',
+      hi: 'कैनवास पर तार के ऊपरी पीले हैंडल (Area Handle) को पकड़कर मोटाई बदलें, या किसी भी इलेक्ट्रॉन पर क्लिक करके उसका पथ ट्रैक करें!',
+      hinglish: 'Canvas par wire ke top yellow handle (Area Handle) ko drag karke thickness badlein, ya kisi bhi electron par click karke uska collision path track karein!'
+    },
+    quickActionLabel: { en: 'Track Another Electron', hi: 'नया इलेक्ट्रॉन ट्रैक करें', hinglish: 'Track Next Electron' },
+    params: [
+      { key: 'E', label: { en: 'Electric Field (E)', hi: 'विद्युत क्षेत्र (E)', hinglish: 'Electric Field (E)' }, min: 0, max: 20, step: 0.5, value: 8, unit: 'V/m' },
+      { key: 'T', label: { en: 'Lattice Temperature (T)', hi: 'लैटिस तापमान (T)', hinglish: 'Lattice Temperature (T)' }, min: 100, max: 600, step: 20, value: 300, unit: 'K' },
+      { key: 'A', label: { en: 'Cross-Section Area (A)', hi: 'अनुप्रस्थ काट क्षेत्रफल (A)', hinglish: 'Cross-Section Area (A)' }, min: 1.0, max: 6.0, step: 0.2, value: 3.0, unit: 'mm^2' },
+      { key: 'n', label: { en: 'Carrier Density (n)', hi: 'मुक्त इलेक्ट्रॉन घनत्व (n)', hinglish: 'Carrier Density (n)' }, min: 2, max: 12, step: 0.5, value: 8.5, unit: 'x10^28/m^3' }
+    ],
+    presets: [
+      {
+        name: { en: 'Standard Copper Wire (Room Temp)', hi: 'सामान्य ताँबे का तार (Room Temp)', hinglish: 'Standard Copper Wire (Room Temp)' },
+        values: { E: 8, T: 300, A: 3.0, n: 8.5 },
+        note: { en: 'Electrons drift LEFT (opposite to E) while conventional current I flows RIGHT (along E).', hi: 'इलेक्ट्रॉन बाईं ओर (-E दिशा में) ड्रिफ्ट करते हैं जबकि पारंपरिक धारा दाईं ओर (+E दिशा में) बहती है।', hinglish: 'Electrons left side (-E direction mein) drift karte hain jabki conventional current I right side (+E direction mein) flow karta hai.' }
+      },
+      {
+        name: { en: 'Zero Electric Field (Pure Thermal Motion)', hi: 'शून्य विद्युत क्षेत्र (केवल थर्मल गति)', hinglish: 'Zero Electric Field (Pure Thermal Motion)' },
+        values: { E: 0, T: 350, A: 3.0, n: 8.5 },
+        note: { en: 'When E = 0, electrons still move rapidly due to thermal agitation, but net drift velocity vd = 0 and current I = 0!', hi: 'E = 0 होने पर इलेक्ट्रॉन अभी भी तेज़ रैंडम थर्मल गति करते हैं, लेकिन नेट अनुगमन वेग (vd = 0) और धारा शून्य होती है!', hinglish: 'E = 0 hone par bhi electrons fast random thermal motion karte hain, lekin net drift velocity (vd = 0) aur current zero hota hai!' }
+      },
+      {
+        name: { en: 'High Temperature (Short Relaxation Time tau)', hi: 'उच्च तापमान (घटा हुआ विश्रांति काल tau)', hinglish: 'High Temperature (Reduced Relaxation Time tau)' },
+        values: { E: 10, T: 580, A: 3.0, n: 8.5 },
+        note: { en: 'Higher temperature makes lattice ions vibrate violently, increasing collision frequency (reducing tau and mobility mu).', hi: 'तापमान बढ़ने पर धनायन तेज़ी से कांपते हैं, टक्कर जल्दी होती है (tau घटता है) और गतिशीलता कम हो जाती है।', hinglish: 'Temperature badhne par lattice ions tezi se vibrate karte hain, collisions jaldi hote hain (tau ghat-ta hai) aur mobility mu kam ho jati hai.' }
+      }
+    ],
+    formula: 'vd = (e * E * tau) / m_e   |   mu = vd / E = (e * tau) / m_e   |   I = n * e * A * vd   |   J = I / A',
+    explain: {
+      en: 'Inside a metal without an electric field, free electrons move at ~10^5 m/s in random directions, colliding with positive metal ions (zero net current). Applying an electric field E accelerates electrons opposite to E between collisions, giving a small net drift speed vd (~mm/s).',
+      hi: 'बिना किसी विद्युत क्षेत्र के भी धातु के अंदर मुक्त इलेक्ट्रॉन ~10^5 m/s की रफ्तार से हर दिशा में भागते हैं, पर उनका औसत वेग शून्य होता है। जब विद्युत क्षेत्र (E) लगाया जाता है, तो हर दो टक्करों के बीच इलेक्ट्रॉन पर -eE बल लगता है जिससे औसत अनुगमन वेग (vd) प्राप्त होता है।',
+      hinglish: 'Bina kisi electric field ke bhi conductor ke andar free electrons ~10^5 m/s ki speed se random directions mein move karte hain, par average velocity zero hoti hai. Jab electric field (E) lagaya jata hai, toh har do collisions ke beech electron par -eE force lagta hai jisse average drift speed vd (~mm/s) milta hai.'
+    },
+    qText: {
+      en: 'If the potential difference V across a wire is kept constant while its length L is doubled and cross-sectional area A is also doubled, what happens to the drift velocity vd?',
+      hi: 'यदि किसी चालक तार के सिरों पर विभवांतर (V) स्थिर रखते हुए उसकी लंबाई (L) दोगुनी और अनुप्रस्थ काट का क्षेत्रफल (A) भी दोगुना कर दिया जाए, तो अनुगमन वेग (vd) पर क्या प्रभाव पड़ेगा?',
+      hinglish: 'Agar kisi wire ke across voltage (V) constant rakhte hue uski length (L) double aur cross-section area (A) bhi double kar diya jaye, toh drift velocity (vd) par kya farak padega?'
+    },
+    qAns: {
+      en: 'Drift velocity vd becomes HALF! Because vd = (e*tau/m)*(V/L) depends only on Electric Field E = V/L and is independent of area A.',
+      hi: 'अनुगमन वेग (vd) आधा हो जाएगा! क्योंकि vd = (e*tau/m)(V/L) केवल विद्युत क्षेत्र E = V/L पर निर्भर करता है, क्षेत्रफल (A) पर नहीं।',
+      hinglish: 'Drift velocity (vd) HALF ho jayega! Kyunki vd = (e*tau/m)*(V/L) sirf Electric Field E = V/L par depend karta hai, Area (A) par nahi.'
+    },
+    graphDesc: {
+      en: 'Linear graph of Drift Velocity vd vs Electric Field E (Slope = Mobility mu).',
+      hi: 'अनुगमन वेग vd और विद्युत क्षेत्र E के बीच सरल रेखीय ग्राफ़ (Slope = गतिशीलता mu)।',
+      hinglish: 'Drift Velocity vd vs Electric Field E ka straight-line graph (Slope = Mobility mu).'
+    }
+  },
+  {
+    id: 'resistance',
+    num: '02',
+    tag: 'Materials',
+    title: {
+      en: 'Resistivity, Temperature & Material Types',
+      hi: 'प्रतिरोधकता, तापमान और पदार्थों के प्रकार (Metals vs Semiconductors)',
+      hinglish: 'Resistivity, Temperature & Material Types (Cu, Nichrome, Si)'
+    },
+    eyebrow: 'TOPIC 02 · OHMIC CONDUCTORS, ALLOYS & SEMICONDUCTORS',
+    subtitle: {
+      en: 'Drag the conductor length & radius directly on canvas, and compare how Copper (Metal), Nichrome (Alloy), and Silicon (Semiconductor) respond to heating.',
+      hi: 'कैनवास पर सीधे तार की लंबाई (L) और मोटाई (A) को खींचकर बदलें, और देखें कि ताँबा (धातु), नाइक्रोम (मिश्रधातु) और सिलिकॉन (अर्धचालक) गर्म करने पर कैसे व्यवहार करते हैं।',
+      hinglish: 'Canvas par seedhe wire ki length (L) aur area (A) ko drag karke badlein, aur compare karein ki Copper (Metal), Nichrome (Alloy) aur Silicon (Semiconductor) heat karne par kaise behave karte hain.'
+    },
+    hint: {
+      en: 'Drag the green right-edge handle (Length L) or yellow top handle (Area A) directly on the wire!',
+      hi: 'कैनवास पर तार के दाएँ हरे हैंडल (Length L) या ऊपरी पीले हैंडल (Area A) को माउस से पकड़कर खींचें!',
+      hinglish: 'Canvas par wire ke right green handle (Length L) ya top yellow handle (Area A) ko mouse se pakadkar drag karein!'
+    },
+    quickActionLabel: { en: 'Switch Material (Cu -> Nichrome -> Si)', hi: 'पदार्थ बदलें (ताँबा -> नाइक्रोम -> सिलिकॉन)', hinglish: 'Switch Material (Cu -> Nichrome -> Si)' },
+    params: [
+      { key: 'mat', label: { en: 'Conductor Material', hi: 'चालक पदार्थ (Material)', hinglish: 'Conductor Material' }, min: 0, max: 2, step: 1, value: 0, unit: '', choices: ['Copper (Metal: alpha > 0)', 'Nichrome (Alloy: very small alpha)', 'Silicon (Semiconductor: alpha < 0)'] },
+      { key: 'L', label: { en: 'Conductor Length (L)', hi: 'तार की लंबाई (L)', hinglish: 'Conductor Length (L)' }, min: 1.0, max: 10.0, step: 0.2, value: 5.0, unit: 'm' },
+      { key: 'A', label: { en: 'Cross-Section Area (A)', hi: 'अनुप्रस्थ काट क्षेत्रफल (A)', hinglish: 'Cross-Section Area (A)' }, min: 0.5, max: 5.0, step: 0.1, value: 2.0, unit: 'mm^2' },
+      { key: 'T', label: { en: 'Temperature (T)', hi: 'तापमान (T)', hinglish: 'Temperature (T)' }, min: 0, max: 300, step: 5, value: 25, unit: 'deg C' },
+      { key: 'V', label: { en: 'Applied Voltage (V)', hi: 'आरोपित वोल्टेज (V)', hinglish: 'Applied Voltage (V)' }, min: 1, max: 12, step: 0.5, value: 6, unit: 'V' }
+    ],
+    presets: [
+      {
+        name: { en: 'Copper Wire (Pure Metal: High positive alpha)', hi: 'ताँबे का तार (शुद्ध धातु: धनात्मक alpha)', hinglish: 'Copper Wire (Pure Metal: Positive alpha)' },
+        values: { mat: 0, L: 5.0, A: 2.0, T: 25, V: 6 },
+        note: { en: 'In metals, heating increases collisions, so resistivity rho(T) = rho0[1 + alpha(T - 20)] rises linearly.', hi: 'धातुओं में तापमान बढ़ने पर टक्करें बढ़ती हैं, इसलिए प्रतिरोधकता rho(T) तापमान के साथ बढ़ती है।', hinglish: 'Metals mein temperature badhne par collisions badhte hain, isliye resistivity rho(T) linearly badhti hai.' }
+      },
+      {
+        name: { en: 'Silicon Semiconductor (NTC: Negative alpha)', hi: 'सिलिकॉन अर्धचालक (ऋणात्मक alpha < 0)', hinglish: 'Silicon Semiconductor (NTC: alpha < 0)' },
+        values: { mat: 2, L: 5.0, A: 2.0, T: 180, V: 6 },
+        note: { en: 'In semiconductors, heating generates new electron-hole pairs exponentially, so resistivity drops sharply!', hi: 'अर्धचालक में तापमान बढ़ने पर मुक्त आवेश वाहकों की संख्या तेजी से बढ़ती है, इसलिए प्रतिरोधकता तेजी से घटती है!', hinglish: 'Semiconductors mein T badhne par carrier density n(T) exponentially badhti hai, isliye resistivity tezi se gir jati hai!' }
+      },
+      {
+        name: { en: 'Stretched Wire to 2x Length (Volume Constant)', hi: 'खींचकर दोगुना लंबा किया गया तार (आयतन नियत)', hinglish: 'Wire Stretched to 2x Length (Volume Constant)' },
+        values: { mat: 0, L: 8.0, A: 1.0, T: 25, V: 6 },
+        note: { en: 'When a wire is stretched to n times its length, its area shrinks to A/n, so new resistance becomes R_new = n^2 * R!', hi: 'जब तार को खींचकर लंबाई n गुना की जाती है, तो क्षेत्रफल घटकर A/n हो जाता है और नया प्रतिरोध R\' = n^2 * R हो जाता है!', hinglish: 'Jab wire ko stretch karke length n times ki jati hai, toh area A/n ho jata hai aur naya resistance R_new = n^2 * R ho jata hai!' }
+      }
+    ],
+    formula: 'R = rho(T) * (L / A)   |   Metals: rho(T) = rho0 * [1 + alpha * (T - 20)]   |   Stretched Wire: R_new = n^2 * R_old',
+    explain: {
+      en: 'Resistance depends on geometry (L/A) and material resistivity (rho). Resistivity (rho) depends ONLY on material and temperature, whereas Resistance (R = rho*L/A) also changes when you stretch or cut the wire.',
+      hi: 'प्रतिरोध (R) दो बातों पर निर्भर करता है: चालक की ज्यामिति (L/A) और पदार्थ की प्रतिरोधकता (rho)। तार की लंबाई या मोटाई बदलने से प्रतिरोध (R) बदलता है, लेकिन प्रतिरोधकता (rho) केवल पदार्थ और तापमान पर निर्भर करती है।',
+      hinglish: 'Resistance (R) do cheezon par depend karta hai: geometry (L/A) aur material property (rho). Wire ko lamba ya patla karne se Resistance (R) badalta hai, lekin Resistivity (rho) sirf material aur temperature (T) par depend karti hai!'
+    },
+    qText: {
+      en: 'If a wire of resistance R is stretched uniformly so that its radius becomes half of its initial radius (r -> r/2), what will be its new resistance?',
+      hi: 'यदि R प्रतिरोध वाले एक तार को खींचकर उसकी त्रिज्या आधी (r -> r/2) कर दी जाए, तो उसका नया प्रतिरोध कितना हो जाएगा?',
+      hinglish: 'Agar R resistance wale ek wire ko stretch karke uska radius half (r -> r/2) kar diya jaye, toh uska naya resistance kitna ho jayega?'
+    },
+    qAns: {
+      en: '16 R! Since area A = pi*r^2, halving the radius makes area A/4. By volume conservation, length becomes 4L. Thus R_new = (4L)/(A/4) = 16 R.',
+      hi: '16 गुना (16 R)! क्योंकि त्रिज्या आधी करने से क्षेत्रफल A/4 हो जाता है और आयतन नियत रहने से लंबाई 4L हो जाती है। अतः नया प्रतिरोध = 16 R।',
+      hinglish: '16 R (16 times)! Kyunki radius half karne se area A/4 reh jata hai, aur volume constant rehne se length 4L ho jati hai. Isliye R_new = 16 R.'
+    },
+    graphDesc: {
+      en: 'Resistivity rho(T) vs Temperature T curve for the selected material.',
+      hi: 'चुने गए पदार्थ के लिए प्रतिरोधकता rho(T) बनाम तापमान (T) का ग्राफ़।',
+      hinglish: 'Selected material ke liye Resistivity rho(T) vs Temperature T curve.'
+    }
+  },
+  {
+    id: 'circuit',
+    num: '03',
+    tag: 'DC Networks',
+    title: {
+      en: 'Ohm’s Law, Resistor Networks & Multimeter Probes',
+      hi: 'ओम का नियम, प्रतिरोधों का संयोजन और मल्टीमीटर प्रोब्स',
+      hinglish: 'Ohm’s Law, Resistor Networks & Draggable Multimeter Probes'
+    },
+    eyebrow: 'TOPIC 03 · SERIES, PARALLEL & MIXED COMBINATIONS + POWER GLOW',
+    subtitle: {
+      en: 'Drag the Red (V+) and Cyan-White (V-) voltmeter probes to any node in the circuit to measure live potential drops, branch currents, and I^2*R thermal heating.',
+      hi: 'कैनवास पर लाल (V+) और सफेद-नीले (V-) वोल्टमीटर प्रोब्स को पकड़कर सर्किट के किसी भी नोड पर रखें! प्रत्येक शाखा में धारा और I^2*R ऊष्मीय चमक देखें।',
+      hinglish: 'Canvas par Red (V+) aur Cyan-White (V-) voltmeter probes ko drag karke circuit ke kisi bhi node par rakhein! Har branch mein current aur I^2*R thermal heating glow live dekhein.'
+    },
+    hint: {
+      en: 'Drag the Red (V+) and Cyan-White (V-) Probe pins on the canvas to snap them onto different circuit nodes!',
+      hi: 'कैनवास पर लाल (V+) और सफेद-नीले (V-) मल्टीमीटर पिनों को माउस से पकड़कर अलग-अलग नोड्स पर रखें!',
+      hinglish: 'Canvas par Red (V+) aur Cyan-White (V-) multimeter pins ko mouse se drag karke alag-alag circuit nodes par snap karein!'
+    },
+    quickActionLabel: { en: 'Switch Circuit (Series -> Parallel -> Mixed)', hi: 'परिपथ बदलें (श्रेणी -> समांतर -> मिश्रित)', hinglish: 'Switch Topology (Series -> Parallel -> Mixed)' },
+    params: [
+      { key: 'mode', label: { en: 'Circuit Topology', hi: 'परिपथ संयोजन (Topology)', hinglish: 'Circuit Topology' }, min: 0, max: 2, step: 1, value: 2, unit: '', choices: ['Series (R1 + R2 + R3)', 'Parallel (R1 || R2 || R3)', 'Mixed (R1 in series with R2 || R3)'] },
+      { key: 'V', label: { en: 'Battery Voltage (Vs)', hi: 'बैटरी वोल्टेज (Vs)', hinglish: 'Battery Voltage (Vs)' }, min: 2, max: 24, step: 1, value: 12, unit: 'V' },
+      { key: 'R1', label: { en: 'Resistor R1', hi: 'प्रतिरोध R1', hinglish: 'Resistor R1' }, min: 1, max: 20, step: 1, value: 4, unit: 'Ohm' },
+      { key: 'R2', label: { en: 'Resistor R2', hi: 'प्रतिरोध R2', hinglish: 'Resistor R2' }, min: 1, max: 20, step: 1, value: 6, unit: 'Ohm' },
+      { key: 'R3', label: { en: 'Resistor R3', hi: 'प्रतिरोध R3', hinglish: 'Resistor R3' }, min: 1, max: 20, step: 1, value: 12, unit: 'Ohm' }
+    ],
+    presets: [
+      {
+        name: { en: 'Mixed Network (Classic: 4 Ohm + 6 Ohm || 12 Ohm)', hi: 'मिश्रित परिपथ (4 Ohm + 6 Ohm || 12 Ohm)', hinglish: 'Mixed Network (4 Ohm + 6 Ohm || 12 Ohm)' },
+        values: { mode: 2, V: 12, R1: 4, R2: 6, R3: 12 },
+        note: { en: '6 Ohm || 12 Ohm gives 4 Ohm. Total Req = 4 + 4 = 8 Ohm, Total Current = 1.5 A.', hi: '6 Ohm और 12 Ohm का समांतर तुल्य 4 Ohm है। कुल प्रतिरोध = 8 Ohm, कुल धारा = 1.5 A।', hinglish: '6 Ohm aur 12 Ohm ka parallel equivalent 4 Ohm hai. Total Req = 8 Ohm, Total Current = 1.5 A.' }
+      },
+      {
+        name: { en: 'Series Voltage Divider (Same I, V proportional to R)', hi: 'श्रेणीक्रम विभव विभाजक (समान धारा I)', hinglish: 'Series Voltage Divider (Same I, V prop. to R)' },
+        values: { mode: 0, V: 18, R1: 2, R2: 4, R3: 3 },
+        note: { en: 'In series, all resistors carry the same current I, and the largest resistor dissipates the most power (P = I^2*R).', hi: 'श्रेणीक्रम में तीनों प्रतिरोधों में समान धारा बहती है, और सबसे बड़े प्रतिरोध में सबसे अधिक ऊष्मा निकलती है।', hinglish: 'Series mein teeno resistors mein same current flow hota hai, aur sabse bade resistor mein sabse zyada heat nikalti hai.' }
+      },
+      {
+        name: { en: 'Parallel Current Divider (Same V, I proportional to 1/R)', hi: 'समांतर क्रम धारा विभाजक (समान विभव V)', hinglish: 'Parallel Current Divider (Same V, I prop. to 1/R)' },
+        values: { mode: 1, V: 12, R1: 3, R2: 6, R3: 12 },
+        note: { en: 'In parallel, the smallest resistor (R1 = 3 Ohm) draws the largest current and glows brightest (P = V^2/R)!', hi: 'समांतर क्रम में सबसे छोटे प्रतिरोध (R1 = 3 Ohm) में सबसे अधिक धारा बहती है!', hinglish: 'Parallel mein sabse chhote resistor (R1 = 3 Ohm) mein sabse zyada current jata hai!' }
+      }
+    ],
+    formula: 'Series: Req = R1+R2+R3  |  Parallel: 1/Req = 1/R1+1/R2+1/R3  |  Mixed: Req = R1 + (R2*R3)/(R2+R3)  |  P = I^2*R',
+    explain: {
+      en: 'In series, charge conservation forces the exact same current I through every resistor, so voltage divides in proportion to resistance (V = I*R). In parallel, all branches share the same voltage V, so current divides inversely (I = V/R).',
+      hi: 'श्रेणीक्रम (Series) में हर प्रतिरोध से समान धारा गुजरती है, इसलिए विभव प्रतिरोध के अनुपात में बंटता है। समांतर क्रम (Parallel) में विभवांतर समान रहता है और धारा कम प्रतिरोध वाले रास्ते से अधिक बहती है।',
+      hinglish: 'Series mein har resistor se exact same current I guzarta hai, isliye voltage R ke proportion mein divide hota hai. Parallel mein har branch par voltage same rehta hai, isliye chhota resistor zyada current khinchta hai.'
+    },
+    qText: {
+      en: 'Two bulbs rated (100 W, 220 V) and (60 W, 220 V) are connected in SERIES across a 220 V mains supply. Which bulb will glow brighter?',
+      hi: '100 W, 220 V और 60 W, 220 V के दो बल्बों को 220 V की सप्लाई के साथ श्रेणीक्रम (Series) में जोड़ा गया है। कौन सा बल्ब अधिक चमकेगा?',
+      hinglish: '100 W, 220 V aur 60 W, 220 V rated do bulbs ko 220 V supply ke sath SERIES mein joda gaya hai. Kaun sa bulb zyada bright chamkega?'
+    },
+    qAns: {
+      en: 'The 60 W bulb will glow brighter! Because R = V_rated^2 / P_rated, the 60 W bulb has a HIGHER resistance than the 100 W bulb. In series, P_actual = I^2*R is greater for the 60 W bulb.',
+      hi: '60 W वाला बल्ब अधिक चमकेगा! क्योंकि 60 W बल्ब का प्रतिरोध 100 W वाले से अधिक होता है। श्रेणीक्रम में धारा समान होने से P = I^2*R के कारण 60 W बल्ब ज्यादा चमकेगा।',
+      hinglish: '60 W wala bulb zyada bright chamkega! Kyunki R = V_rated^2 / P_rated se 60 W bulb ka resistance 100 W wale se ZYADA hota hai, aur series mein P = I^2*R se 60 W bulb zyada glow karega.'
+    },
+    graphDesc: {
+      en: 'Ohm’s Law I-V Characteristic line (Slope = 1 / Req).',
+      hi: 'ओम के नियम का I-V अभिलाक्षणिक ग्राफ़ (Slope = 1 / Req)।',
+      hinglish: 'Ohm’s Law I-V Characteristic graph (Slope = 1 / Req).'
+    }
+  },
+  {
+    id: 'cell',
+    num: '04',
+    tag: 'Power & Cells',
+    title: {
+      en: 'Cells, Internal Resistance & Max Power Transfer',
+      hi: 'सेल, आंतरिक प्रतिरोध और अधिकतम शक्ति स्थानांतरण प्रमेय',
+      hinglish: 'Cells, Internal Resistance & Maximum Power Transfer Theorem'
+    },
+    eyebrow: 'TOPIC 04 · EMF vs TERMINAL VOLTAGE & CELL GROUPING',
+    subtitle: {
+      en: 'Explore how internal resistance drops terminal voltage (V = E - Ir), compare Series/Parallel cell banks, and verify the Maximum Power Transfer Theorem.',
+      hi: 'देखें कि कैसे सेल का आंतरिक प्रतिरोध (r) टर्मिनल वोल्टेज को घटाता है (V = E - Ir), सेलों के संयोजन की तुलना करें और अधिकतम शक्ति प्रमेय (R = req) को सत्यापित करें।',
+      hinglish: 'Dekhiye kaise cell ka internal resistance (r) terminal voltage ko drop karta hai (V = E - Ir), Series/Parallel cell grouping compare karein aur Maximum Power Transfer (R = req) verify karein.'
+    },
+    hint: {
+      en: 'Drag the green Load Resistance (R) slider directly on the bottom resistor or click Match R = req!',
+      hi: 'कैनवास पर नीचे बने लोड प्रतिरोध (Drag Load R) के हरे स्लाइडर को माउस से खिसकाएं!',
+      hinglish: 'Canvas par niche bane Load Resistance (Drag Load R) ke green slider ko mouse se slide karein ya Match R = req button dabayein!'
+    },
+    quickActionLabel: { en: 'Match R = req (Max Power)', hi: 'R = req सेट करें (अधिकतम शक्ति)', hinglish: 'Match R = req (Max Power)' },
+    params: [
+      { key: 'group', label: { en: 'Cell Grouping Mode', hi: 'सेल संयोजन (Grouping)', hinglish: 'Cell Grouping Mode' }, min: 0, max: 2, step: 1, value: 0, unit: '', choices: ['Single Cell (E, r)', 'Series Bank (n cells in series)', 'Parallel Bank (m cells in parallel)'] },
+      { key: 'E', label: { en: 'Each Cell EMF (E)', hi: 'प्रत्येक सेल का EMF (E)', hinglish: 'Each Cell EMF (E)' }, min: 1.5, max: 12.0, step: 0.5, value: 6.0, unit: 'V' },
+      { key: 'r', label: { en: 'Internal Resistance (r)', hi: 'आंतरिक प्रतिरोध (r)', hinglish: 'Internal Resistance (r)' }, min: 0.5, max: 6.0, step: 0.5, value: 2.0, unit: 'Ohm' },
+      { key: 'N', label: { en: 'Number of Cells (n or m)', hi: 'सेलों की संख्या (N)', hinglish: 'Number of Cells (N)' }, min: 2, max: 6, step: 1, value: 3, unit: 'cells' },
+      { key: 'R', label: { en: 'External Load Resistance (R)', hi: 'बाह्य लोड प्रतिरोध (R)', hinglish: 'External Load Resistance (R)' }, min: 0.2, max: 20.0, step: 0.2, value: 4.0, unit: 'Ohm' }
+    ],
+    presets: [
+      {
+        name: { en: 'Maximum Power Transfer Point (R = req)', hi: 'अधिकतम शक्ति बिंदु (R = req)', hinglish: 'Maximum Power Transfer Point (R = req)' },
+        values: { group: 0, E: 6.0, r: 3.0, N: 3, R: 3.0 },
+        note: { en: 'When external load R = req, load power reaches its maximum peak P_max = E^2 / (4r) and terminal voltage is E/2!', hi: 'जब बाह्य प्रतिरोध R = req होता है, तब लोड को अधिकतम शक्ति मिलती है और टर्मिनल वोल्टेज ठीक E/2 रह जाता है!', hinglish: 'Jab external load R = req hota hai, tab load ko maximum power milti hai aur terminal voltage V = E/2 hota hai!' }
+      },
+      {
+        name: { en: 'Series Cell Bank (Best when R >> n*r)', hi: 'श्रेणीक्रम सेल बैंक (जब बाहरी R बड़ा हो)', hinglish: 'Series Cell Bank (Best when R >> n*r)' },
+        values: { group: 1, E: 3.0, r: 1.0, N: 4, R: 12.0 },
+        note: { en: 'In series, E_eq = n*E and r_eq = n*r.', hi: 'श्रेणीक्रम में कुल EMF = nE और आंतरिक प्रतिरोध = nr हो जाता है।', hinglish: 'Series mein total EMF = nE aur internal resistance = nr ho jata hai.' }
+      },
+      {
+        name: { en: 'Parallel Cell Bank (Best when R << r/m)', hi: 'समांतर सेल बैंक (जब बाहरी R छोटा हो)', hinglish: 'Parallel Cell Bank (Best when R << r/m)' },
+        values: { group: 2, E: 6.0, r: 4.0, N: 4, R: 1.0 },
+        note: { en: 'In parallel, E_eq = E but internal resistance drops to r/m.', hi: 'समांतर क्रम में कुल EMF = E रहता है परंतु आंतरिक प्रतिरोध घटकर r/m हो जाता है।', hinglish: 'Parallel mein total EMF = E rehta hai lekin internal resistance ghatkar r/m ho jata hai.' }
+      }
+    ],
+    formula: 'V_term = E_eq - I * r_eq   |   I = E_eq / (R + r_eq)   |   P_load = I^2 * R   |   P_max = E_eq^2 / (4 * r_eq)',
+    explain: {
+      en: 'A real cell has internal electrolyte resistance r. When current I is drawn, internal drop I*r reduces terminal voltage to V = E - I*r. Power delivered to the external load P = I^2*R peaks when R = r_eq.',
+      hi: 'जब सेल से धारा (I) ली जाती है, तो सेल के अंदर इलेक्ट्रोलाइट के प्रतिरोध (r) के कारण I*r विभव पतन होता है, इसलिए बाहर मिलने वाला टर्मिनल वोल्टेज V = E - I*r रह जाता है।',
+      hinglish: 'Jab cell se current (I) liya jata hai, toh internal resistance (r) ke karan I*r voltage drop hota hai, isliye terminal voltage V = E - I*r reh jata hai.'
+    },
+    qText: {
+      en: 'At the condition of Maximum Power Transfer (R = r), what is the percentage efficiency (eta = P_load / P_total) of the battery?',
+      hi: 'अधिकतम शक्ति स्थानांतरण (R = r) की स्थिति में बैटरी की दक्षता (Efficiency eta = P_load / P_total) कितनी होती है?',
+      hinglish: 'Maximum Power Transfer (R = r) ki condition mein battery ki efficiency (eta = P_load / P_total) kitni hoti hai?'
+    },
+    qAns: {
+      en: 'Exactly 50%! Because when R = r, half of the total power is delivered to the external load R and the other half is dissipated inside r.',
+      hi: 'केवल 50%! क्योंकि R = r होने पर आधी शक्ति बाहरी लोड R में और आधी शक्ति सेल के आंतरिक प्रतिरोध r में खर्च होती है।',
+      hinglish: 'Sirf 50%! Kyunki R = r hone par aadhi power external load R mein milti hai aur baki aadhi power internal resistance r mein waste ho jati hai.'
+    },
+    graphDesc: {
+      en: 'Load Power P_load vs Load Resistance R curve, peaking at R = r_eq.',
+      hi: 'लोड शक्ति (P_load) बनाम बाह्य प्रतिरोध (R) का वक्र, जिसका शिखर R = r_eq पर होता है।',
+      hinglish: 'Load Power P_load vs Load Resistance R curve, jiska peak R = r_eq par milta hai.'
+    }
+  },
+  {
+    id: 'kirchhoff',
+    num: '05',
+    tag: 'KCL & KVL',
+    title: {
+      en: 'Kirchhoff’s Laws & Interactive KVL Loop Walker',
+      hi: 'किरचॉफ के नियम (KCL व KVL) और इंटरैक्टिव लूप वॉकर',
+      hinglish: 'Kirchhoff’s Laws (KCL & KVL) & Interactive Loop Walker'
+    },
+    eyebrow: 'TOPIC 05 · MULTI-SOURCE MESH ANALYSIS & POTENTIAL LANDSCAPE',
+    subtitle: {
+      en: 'Solve a two-battery multi-loop network in real time and watch the animated KVL Probe walk around any loop to prove Sum(Delta V) = 0.',
+      hi: 'दो बैटरियों वाले बहु-लूप परिपथ को लाइव हल होते देखें और एनिमेटेड KVL वॉकर के ज़रिए प्रत्येक प्रतिरोध व सेल पर विभव के चढ़ाव-उतार (Sum Delta V = 0) को समझें।',
+      hinglish: 'Do batteries wale multi-loop network ko real-time solve hote dekhein aur animated KVL Probe ke zariye har resistor aur cell par potential rises/drops (Sum Delta V = 0) samjhein.'
+    },
+    hint: {
+      en: 'Watch the yellow KVL Probe travel around the selected loop and trace the potential profile on the graph!',
+      hi: 'पीले KVL Probe को चुने गए लूप के चारों ओर घूमते देखें और ग्राफ़ पर विभव का उतार-चढ़ाव देखें!',
+      hinglish: 'Yellow KVL Probe ko selected loop ke charon taraf ghoomte dekhein aur graph par potential profile trace hote dekhein!'
+    },
+    quickActionLabel: { en: 'Switch Active KVL Loop (1 -> 2 -> Outer)', hi: 'सक्रिय KVL लूप बदलें (1 -> 2 -> बाहरी)', hinglish: 'Switch Active KVL Loop (1 -> 2 -> Outer)' },
+    params: [
+      { key: 'loop', label: { en: 'Active KVL Loop Path', hi: 'सक्रिय KVL लूप पथ', hinglish: 'Active KVL Loop Path' }, min: 0, max: 2, step: 1, value: 0, unit: '', choices: ['Left Loop 1 (A->B->E->F->A)', 'Right Loop 2 (B->C->D->E->B)', 'Outer Loop 3 (A->B->C->D->E->F->A)'] },
+      { key: 'E1', label: { en: 'Left Battery EMF (E1)', hi: 'बाईं बैटरी का EMF (E1)', hinglish: 'Left Battery EMF (E1)' }, min: 2, max: 24, step: 1, value: 14, unit: 'V' },
+      { key: 'E2', label: { en: 'Right Battery EMF (E2)', hi: 'दाईं बैटरी का EMF (E2)', hinglish: 'Right Battery EMF (E2)' }, min: 2, max: 24, step: 1, value: 6, unit: 'V' },
+      { key: 'R1', label: { en: 'Left Resistor (R1)', hi: 'बायाँ प्रतिरोध (R1)', hinglish: 'Left Resistor (R1)' }, min: 1, max: 15, step: 1, value: 4, unit: 'Ohm' },
+      { key: 'R2', label: { en: 'Center Shared Resistor (R2)', hi: 'मध्य साझा प्रतिरोध (R2)', hinglish: 'Center Shared Resistor (R2)' }, min: 1, max: 15, step: 1, value: 6, unit: 'Ohm' },
+      { key: 'R3', label: { en: 'Right Resistor (R3)', hi: 'दायाँ प्रतिरोध (R3)', hinglish: 'Right Resistor (R3)' }, min: 1, max: 15, step: 1, value: 3, unit: 'Ohm' }
+    ],
+    presets: [
+      {
+        name: { en: 'Standard Two-Battery Network', hi: 'सामान्य दो-बैटरी नेटवर्क', hinglish: 'Standard Two-Battery Network' },
+        values: { loop: 0, E1: 14, E2: 6, R1: 4, R2: 6, R3: 3 },
+        note: { en: 'Check KCL at Junction B: I1 + I3 = I2.', hi: 'जंक्शन B पर KCL देखें: I1 + I3 = I2।', hinglish: 'Junction B par KCL check karein: I1 + I3 = I2.' }
+      },
+      {
+        name: { en: 'Strong Right Battery (Current Reversal / Charging E1)', hi: 'प्रबल दाईं बैटरी (धारा विपरीत / E1 चार्जिंग)', hinglish: 'Strong Right Battery (Current Reversal / Charging E1)' },
+        values: { loop: 1, E1: 6, E2: 20, R1: 4, R2: 6, R3: 2 },
+        note: { en: 'Here E2 is so large that VB > E1, forcing current BACKWARDS into E1 (+ terminal), charging battery E1!', hi: 'यहाँ E2 इतना बड़ा है कि बाईं बैटरी E1 डिस्चार्ज होने के बजाय चार्ज होने लगती है (I1 ऋणात्मक)!', hinglish: 'Yahan E2 itna strong hai ki VB > E1 ho jata hai, jisse left battery E1 charge hone lagti hai (I1 negative)!' }
+      }
+    ],
+    formula: 'KCL at Node B: I1 + I3 = I2   |   KVL Loop 1: E1 - I1*R1 - I2*R2 = 0   |   KVL Loop 2: E2 - I3*R3 - I2*R2 = 0',
+    explain: {
+      en: 'Kirchhoff’s Junction Rule (KCL) expresses conservation of charge at any node. Kirchhoff’s Loop Rule (KVL) expresses conservation of energy around any closed path (Sum Delta V = 0).',
+      hi: 'किरचॉफ का संधि नियम (KCL) आवेश संरक्षण पर और लूप नियम (KVL) ऊर्जा संरक्षण पर आधारित है। बंद लूप में पूरे चक्कर का विभव योग शून्य होता है।',
+      hinglish: 'Kirchhoff ka First Law (KCL) charge conservation par aur Second Law (KVL) energy conservation par based hai. Closed loop mein pure chakkar ka potential sum zero (Sum Delta V = 0) hota hai.'
+    },
+    qText: {
+      en: 'When current enters the positive terminal of a cell of EMF E and internal resistance r (charging of cell), what is the terminal potential difference across the cell?',
+      hi: 'जब किसी सेल (EMF = E, आंतरिक प्रतिरोध = r) के धन टर्मिनल में धारा प्रवेश कर रही हो (अर्थात सेल चार्ज हो रहा हो), तो उसका टर्मिनल वोल्टेज क्या होता है?',
+      hinglish: 'Jab kisi cell (EMF = E, internal resistance = r) ke positive terminal mein current enter kar raha ho (charging mode), tab uska terminal voltage kya hota hai?'
+    },
+    qAns: {
+      en: 'V = E + I*r (Terminal voltage becomes GREATER than EMF E during charging)!',
+      hi: 'V = E + I*r (चार्जिंग के समय टर्मिनल वोल्टेज EMF से अधिक हो जाता है)!',
+      hinglish: 'V = E + I*r (Charging ke waqt terminal voltage cell ke EMF se ZYADA ho jata hai)!'
+    },
+    graphDesc: {
+      en: 'Step-by-step KVL potential landscape V(x) around the chosen closed loop, returning to 0 V.',
+      hi: 'चुने गए बंद लूप के अनुदिश विभव का उतार-चढ़ाव, जो चक्कर पूरा होने पर पुनः 0 V पर आ जाता है।',
+      hinglish: 'Selected closed loop ke along step-by-step potential profile V(x), jo loop pura hone par wapas 0 V par aa jata hai.'
+    }
+  },
+  {
+    id: 'wheatstone',
+    num: '06',
+    tag: 'Bridge & Lab',
+    title: {
+      en: 'Wheatstone Bridge & 100 cm Meter Bridge Lab',
+      hi: 'व्हीटस्टोन सेतु और 100 cm प्रैक्टिकल मीटर सेतु लैब',
+      hinglish: 'Wheatstone Bridge & 100 cm Practical Meter Bridge Lab'
+    },
+    eyebrow: 'TOPIC 06 · NULL DEFLECTION METHOD & PRACTICAL METER BRIDGE',
+    subtitle: {
+      en: 'Switch between the Diamond Wheatstone Bridge and the 100 cm Lab Meter Bridge. Drag the Jockey (J) along the wire to find the exact null point!',
+      hi: 'डायमंड व्हीटस्टोन ब्रिज और 100 cm प्रैक्टिकल मीटर ब्रिज दोनों को चलाकर देखें! मीटर ब्रिज के तार पर जॉकी (J) को माउस से स्लाइड करके शून्य विक्षेप (Null Point) खोजें।',
+      hinglish: 'Diamond Wheatstone Bridge aur 100 cm Practical Meter Bridge dono ko chalakar dekhein! Meter Bridge ke wire par Jockey (J) ko mouse se slide karke exact Null Point khojein.'
+    },
+    hint: {
+      en: 'In Meter Bridge mode, drag the yellow/green Jockey (J) left or right along the 0 to 100 cm scale wire!',
+      hi: 'Meter Bridge मोड में कैनवास पर जॉकी (J) को पकड़कर 0 से 100 cm स्केल वाले तार पर बाएँ-दाएँ खिसकाएं!',
+      hinglish: 'Meter Bridge mode mein canvas par Jockey (J) ko pakadkar 0 se 100 cm scale wire par left-right slide karein!'
+    },
+    quickActionLabel: { en: 'Auto-Balance Bridge (Null Point)', hi: 'सेतु संतुलित करें (Auto Null Point)', hinglish: 'Auto-Balance Bridge (Null Point)' },
+    params: [
+      { key: 'view', label: { en: 'Apparatus Mode', hi: 'उपकरण मोड (Apparatus)', hinglish: 'Apparatus Mode' }, min: 0, max: 1, step: 1, value: 1, unit: '', choices: ['Diamond Wheatstone Bridge (P, Q, R, S)', '100 cm Practical Meter Bridge (Drag Jockey)'] },
+      { key: 'P', label: { en: 'Known Resistance P (or Box R)', hi: 'ज्ञात प्रतिरोध P (या बॉक्स R)', hinglish: 'Known Resistance P (or Box R)' }, min: 1, max: 30, step: 1, value: 10, unit: 'Ohm' },
+      { key: 'Q', label: { en: 'Arm Q (Diamond Mode only)', hi: 'भुजा Q (केवल डायमंड मोड)', hinglish: 'Arm Q (Diamond Mode only)' }, min: 1, max: 30, step: 1, value: 15, unit: 'Ohm' },
+      { key: 'R', label: { en: 'Unknown / Target Arm R (or X)', hi: 'अज्ञात प्रतिरोध R (या X)', hinglish: 'Unknown / Target Arm R (or X)' }, min: 1, max: 30, step: 1, value: 15, unit: 'Ohm' },
+      { key: 'S', label: { en: 'Variable Arm S (Diamond Mode)', hi: 'परिवर्ती भुजा S (डायमंड मोड)', hinglish: 'Variable Arm S (Diamond Mode)' }, min: 1, max: 45, step: 0.5, value: 22.5, unit: 'Ohm' },
+      { key: 'jockey', label: { en: 'Meter Bridge Jockey Position (l1)', hi: 'मीटर ब्रिज जॉकी स्थिति (l1)', hinglish: 'Meter Bridge Jockey Position (l1)' }, min: 5, max: 95, step: 0.5, value: 40, unit: 'cm' }
+    ],
+    presets: [
+      {
+        name: { en: 'Meter Bridge Null Point (R=10, X=15 -> l1=40 cm)', hi: 'मीटर ब्रिज संतुलन बिंदु (R=10, X=15 -> l1=40 cm)', hinglish: 'Meter Bridge Null Point (R=10, X=15 -> l1=40 cm)' },
+        values: { view: 1, P: 10, Q: 15, R: 15, S: 22.5, jockey: 40 },
+        note: { en: 'At l1 = 40 cm, l1 / (100 - l1) = 40/60 = 2/3 = 10/15. Galvanometer current Ig = 0!', hi: 'जब l1 = 40 cm होता है, तो गैल्वेनोमीटर में धारा शून्य (Null Deflection) हो जाती है!', hinglish: 'Jab l1 = 40 cm hota hai, toh Bridge balanced hai aur Galvanometer current Ig = 0 ho jata hai!' }
+      },
+      {
+        name: { en: 'Diamond Wheatstone Bridge (Balanced P/Q = R/S)', hi: 'डायमंड व्हीटस्टोन ब्रिज (संतुलित P/Q = R/S)', hinglish: 'Diamond Wheatstone Bridge (Balanced P/Q = R/S)' },
+        values: { view: 0, P: 8, Q: 12, R: 10, S: 15, jockey: 40 },
+        note: { en: 'Since 8/12 = 10/15, nodes B and D are at the exact same potential (VB = VD = 6 V) and Ig = 0.', hi: '8/12 = 10/15 होने के कारण बिंदु B और D का विभव बराबर (VB = VD) है।', hinglish: '8/12 = 10/15 hone ke karan Node B aur Node D ka potential equal (VB = VD) hai.' }
+      }
+    ],
+    formula: 'Wheatstone Balance: P / Q = R / S  (Ig = 0, VB = VD)   |   Meter Bridge: X = R * (100 - l1) / l1',
+    explain: {
+      en: 'A Wheatstone bridge measures an unknown resistance accurately using a null detector. When VB = VD, zero current flows through the galvanometer. In a Meter Bridge, a uniform 100 cm wire forms the ratio arms l1 and (100 - l1).',
+      hi: 'व्हीटस्टोन सेतु और मीटर सेतु शून्य विक्षेप (Null Method) पर काम करते हैं। जब P/Q = R/S होता है, तब दोनों मध्य बिंदुओं का विभव बराबर हो जाता है (VB = VD) और गैल्वेनोमीटर से कोई धारा नहीं बहती।',
+      hinglish: 'Wheatstone bridge aur Meter bridge Null Deflection method par kaam karte hain. Jab P/Q = R/S hota hai, tab dono mid-nodes ka potential equal ho jata hai (VB = VD) aur galvanometer se zero current flow hota hai.'
+    },
+    qText: {
+      en: 'In a balanced Wheatstone bridge, if the positions of the Battery and the Galvanometer are interchanged, will the bridge remain balanced?',
+      hi: 'संतुलित व्हीटस्टोन ब्रिज में यदि बैटरी और गैल्वेनोमीटर की स्थिति आपस में बदल दी जाए, तो क्या ब्रिज अभी भी संतुलित रहेगा?',
+      hinglish: 'Ek balanced Wheatstone bridge mein agar Battery aur Galvanometer ki positions aapas mein interchange kar di jayein, toh kya bridge abhi bhi balanced rahega?'
+    },
+    qAns: {
+      en: 'Yes, it remains balanced! Because P/Q = R/S is equivalent to P/R = Q/S.',
+      hi: 'हाँ, ब्रिज अभी भी संतुलित रहेगा! क्योंकि P/Q = R/S से P/R = Q/S भी सत्य होता है।',
+      hinglish: 'Haan, bridge bilkul balanced rahega! Kyunki P/Q = R/S se P/R = Q/S bhi true hota hai.'
+    },
+    graphDesc: {
+      en: 'Bridge unbalance voltage (VB - VD) vs Jockey Position l1 (or Arm S).',
+      hi: 'असंतुलन वोल्टेज (VB - VD) बनाम जॉकी की स्थिति (l1)।',
+      hinglish: 'Unbalance voltage (VB - VD) vs Jockey position (l1) graph.'
+    }
+  },
+  {
+    id: 'potentiometer',
+    num: '07',
+    tag: 'Zero-Current Lab',
+    title: {
+      en: 'Potentiometer: EMF Comparison & Internal Resistance',
+      hi: 'विभवमापी (Potentiometer): EMF की तुलना और आंतरिक प्रतिरोध',
+      hinglish: 'Potentiometer Lab: EMF Comparison & Internal Resistance'
+    },
+    eyebrow: 'TOPIC 07 · THE IDEAL INFINITE-RESISTANCE VOLTMETER',
+    subtitle: {
+      en: 'Drag the jockey along the 400 cm potentiometer wire to find the exact zero-current balance length for comparing cells or finding internal resistance r.',
+      hi: '400 cm लंबे विभवमापी तार पर जॉकी को स्लाइड करके शून्य-धारा संतुलन लंबाई (Balance Length l) खोजें! जानें क्यों यह वोल्टमीटर से श्रेष्ठ है।',
+      hinglish: '400 cm lambe potentiometer wire par Jockey ko slide karke zero-current balance length (l) khojein! Samjhein kyun yeh voltmeter se superior hai.'
+    },
+    hint: {
+      en: 'Drag the Jockey (J) along the 0-400 cm wire, and click the Shunt Key K2 badge on the canvas to open/close it!',
+      hi: 'कैनवास पर जॉकी (J) को 0-400 cm तार पर ड्रैग करें और नीचे Shunt Key (K2) पर क्लिक करके उसे खोलें या बंद करें!',
+      hinglish: 'Canvas par Jockey (J) ko 0-400 cm wire par drag karein aur niche Shunt Key (K2) badge par click karke open/close karein!'
+    },
+    quickActionLabel: { en: 'Snap Jockey to Null Point', hi: 'जॉकी को संतुलन बिंदु पर ले जाएं', hinglish: 'Snap Jockey to Null Point' },
+    params: [
+      { key: 'exp', label: { en: 'Potentiometer Experiment', hi: 'विभवमापी प्रयोग (Experiment)', hinglish: 'Potentiometer Experiment' }, min: 0, max: 1, step: 1, value: 0, unit: '', choices: ['Exp 1: Find Internal Resistance r (Shunt Key K2)', 'Exp 2: Compare EMFs of Two Cells (E1 vs E2)'] },
+      { key: 'V0', label: { en: 'Driver Battery (V0)', hi: 'मुख्य ड्राइवर बैटरी (V0)', hinglish: 'Driver Battery (V0)' }, min: 4, max: 12, step: 0.5, value: 8.0, unit: 'V' },
+      { key: 'E1', label: { en: 'Test Cell EMF (E1)', hi: 'परीक्षण सेल का EMF (E1)', hinglish: 'Test Cell EMF (E1)' }, min: 1.0, max: 4.5, step: 0.1, value: 2.4, unit: 'V' },
+      { key: 'r1', label: { en: 'Test Cell Internal Res. (r)', hi: 'सेल का आंतरिक प्रतिरोध (r)', hinglish: 'Test Cell Internal Res. (r)' }, min: 0.5, max: 5.0, step: 0.5, value: 2.0, unit: 'Ohm' },
+      { key: 'Rsh', label: { en: 'Shunt Box Resistance (R)', hi: 'शंट प्रतिरोध बॉक्स (R)', hinglish: 'Shunt Box Resistance (R)' }, min: 1.0, max: 10.0, step: 0.5, value: 4.0, unit: 'Ohm' },
+      { key: 'k2', label: { en: 'Shunt Key K2 / Cell Switch', hi: 'शंट कुंजी K2 / सेल स्विच', hinglish: 'Shunt Key K2 / Cell Switch' }, min: 0, max: 1, step: 1, value: 0, unit: '', choices: ['Key K2 OPEN (Measures E1 -> l1) / Cell 1', 'Key K2 CLOSED (Measures V -> l2) / Cell 2'] },
+      { key: 'Lpos', label: { en: 'Jockey Position (l)', hi: 'जॉकी की लंबाई (l)', hinglish: 'Jockey Position (l)' }, min: 10, max: 390, step: 1, value: 133, unit: 'cm' }
+    ],
+    presets: [
+      {
+        name: { en: 'Step 1: Open Circuit Balance l1 (Key K2 Open -> E1)', hi: 'चरण 1: खुला परिपथ संतुलन l1 (K2 खुली -> E1 मापन)', hinglish: 'Step 1: Open Circuit Balance l1 (Key K2 Open -> E1)' },
+        values: { exp: 0, V0: 8.0, E1: 2.4, r1: 2.0, Rsh: 4.0, k2: 0, Lpos: 133 },
+        note: { en: 'With Key K2 open, zero current flows inside the test cell at balance (l1 = 133.3 cm), measuring true EMF E1 = 2.4 V!', hi: 'कुंजी K2 खुली होने पर टेस्ट सेल से कोई धारा नहीं निकलती, इसलिए l1 सीधे शुद्ध EMF (E1 = 2.4 V) मापती है!', hinglish: 'Key K2 open hone par balance point par test cell se zero current nikalta hai, isliye l1 seedhe true EMF measure karta hai!' }
+      },
+      {
+        name: { en: 'Step 2: Shunted Balance l2 (Key K2 Closed -> Terminal V)', hi: 'चरण 2: शंट युक्त संतुलन l2 (K2 बंद -> टर्मिनल V)', hinglish: 'Step 2: Shunted Balance l2 (Key K2 Closed -> Terminal V)' },
+        values: { exp: 0, V0: 8.0, E1: 2.4, r1: 2.0, Rsh: 4.0, k2: 1, Lpos: 89 },
+        note: { en: 'Closing K2 connects shunt R = 4 Ohm across the cell, dropping terminal voltage to 1.6 V (l2 = 88.9 cm). r = R*(l1/l2 - 1) = 2 Ohm!', hi: 'कुंजी K2 बंद करने पर टर्मिनल वोल्टेज घटकर 1.6 V रह जाता है। सूत्र r = R(l1/l2 - 1) से r = 2 Ohm मिलता है!', hinglish: 'Key K2 close karne par terminal voltage ghatkar 1.6 V reh jata hai. Formula r = R(l1/l2 - 1) se r = 2 Ohm milta hai!' }
+      }
+    ],
+    formula: 'Potential Gradient k = V_AB / L   |   At Null Point: E = k * l1   |   Internal Resistance: r = R * (l1 / l2 - 1)',
+    explain: {
+      en: 'A Potentiometer at its null point draws ZERO current from the secondary cell (Ig = 0), acting as an ideal voltmeter with infinite resistance!',
+      hi: 'विभवमापी में संतुलन बिंदु (Null Point) पर गैल्वेनोमीटर में धारा शून्य (Ig = 0) होती है, इसलिए यह अनंत प्रतिरोध वाले आदर्श वोल्टमीटर की तरह शुद्ध EMF मापता है।',
+      hinglish: 'Potentiometer mein Null Point par galvanometer current zero (Ig = 0) hota hai, isliye yeh infinite resistance wale ideal voltmeter ki tarah true EMF measure karta hai.'
+    },
+    qText: {
+      en: 'What happens if the driver cell EMF (V0) in the primary circuit is smaller than the secondary test cell EMF (E1) to be measured?',
+      hi: 'यदि मुख्य परिपथ के ड्राइवर सेल (V0) का विद्युत वाहक बल, मापे जाने वाले द्वितीयक सेल (E1) से कम हो, तो संतुलन बिंदु कहाँ मिलेगा?',
+      hinglish: 'Agar primary circuit ke driver cell (V0) ka voltage, secondary test cell (E1) ke EMF se kam ho, toh balance point kahan milega?'
+    },
+    qAns: {
+      en: 'No balance point will be found anywhere on the wire! The galvanometer will deflect in the same direction at both ends.',
+      hi: 'पूरे तार पर कहीं भी संतुलन बिंदु (Null Point) नहीं मिलेगा और गैल्वेनोमीटर में दोनों सिरों पर एक ही दिशा में विक्षेप आएगा!',
+      hinglish: 'Pure wire par kahin bhi balance point (Null Point) nahi milega aur galvanometer mein dono ends par ek hi direction mein deflection aayega!'
+    },
+    graphDesc: {
+      en: 'Difference between wire potential k*l and test cell voltage across the 400 cm wire.',
+      hi: '400 cm तार पर विभव अंतर (k*l - V_cell) का ग्राफ़।',
+      hinglish: '400 cm wire par voltage difference (k*l - V_cell) ka graph.'
+    }
+  },
+  {
+    id: 'rc',
+    num: '08',
+    tag: 'Transients',
+    title: {
+      en: 'RC Circuit Transient: Charging & Discharging',
+      hi: 'RC परिपथ: कैपेसिटर का आवेशन (Charging) और अनावेशन (Discharging)',
+      hinglish: 'RC Circuit Transient: Charging & Discharging of Capacitor'
+    },
+    eyebrow: 'TOPIC 08 · EXPONENTIAL GROWTH/DECAY & TIME CONSTANT tau = RC',
+    subtitle: {
+      en: 'Flip the switch between Charge and Discharge! Watch plate charges, electric field arrows, and real-time oscilloscope traces unfold with time constant tau = RC.',
+      hi: 'कैनवास पर स्विच को क्लिक करके चार्जिंग और डिस्चार्जिंग के बीच बदलें! कैपेसिटर की प्लेटों पर जमा होते आवेश और लाइव ऑसिलोस्कोप ग्राफ़ पर tau = RC का प्रभाव देखें।',
+      hinglish: 'Canvas par Switch ko click karke Charging aur Discharging ke beech flip karein! Capacitor plates par jama hote charges aur live oscilloscope graph par tau = RC ka asar dekhein.'
+    },
+    hint: {
+      en: 'Click directly on the green Switch S on the canvas to flip between Charging (A) and Discharging (B)!',
+      hi: 'कैनवास पर बने हरे स्विच (Switch S) पर सीधे क्लिक करें ताकि चार्जिंग (A) और डिस्चार्जिंग (B) के बीच तुरंत बदल सकें!',
+      hinglish: 'Canvas par bane green Switch (Switch S) par seedhe click karein taki Charging (A) aur Discharging (B) ke beech turant switch ho sake!'
+    },
+    quickActionLabel: { en: 'Flip Switch (Charge <-> Discharge)', hi: 'स्विच बदलें (चार्ज <-> डिस्चार्ज)', hinglish: 'Flip Switch (Charge <-> Discharge)' },
+    params: [
+      { key: 'sw', label: { en: 'Switch Position', hi: 'स्विच की स्थिति', hinglish: 'Switch Position' }, min: 0, max: 1, step: 1, value: 0, unit: '', choices: ['Position A: Charging from Battery V0', 'Position B: Discharging through Resistor R'] },
+      { key: 'V0', label: { en: 'Supply Voltage (V0)', hi: 'सप्लाई वोल्टेज (V0)', hinglish: 'Supply Voltage (V0)' }, min: 2, max: 20, step: 1, value: 10, unit: 'V' },
+      { key: 'R', label: { en: 'Series Resistance (R)', hi: 'श्रेणी प्रतिरोध (R)', hinglish: 'Series Resistance (R)' }, min: 1, max: 10, step: 0.5, value: 2.0, unit: 'kOhm' },
+      { key: 'C', label: { en: 'Capacitance (C)', hi: 'धारिता (Capacitance C)', hinglish: 'Capacitance (C)' }, min: 100, max: 1000, step: 50, value: 500, unit: 'uF' }
+    ],
+    presets: [
+      {
+        name: { en: 'Fast Charging (Small Time Constant tau = 0.5 s)', hi: 'तीव्र चार्जिंग (छोटा समय नियतांक tau = 0.5 s)', hinglish: 'Fast Charging (Small Time Constant tau = 0.5 s)' },
+        values: { sw: 0, V0: 12, R: 1.0, C: 500 },
+        note: { en: 'With tau = R*C = 0.5 s, the capacitor reaches 63.2% voltage in just 0.5 s.', hi: 'tau = RC = 0.5 s होने पर कैपेसिटर मात्र 0.5 s में 63.2% चार्ज हो जाता है।', hinglish: 'tau = RC = 0.5 s hone par capacitor sirf 0.5 s mein 63.2% charge ho jata hai.' }
+      },
+      {
+        name: { en: 'Exponential Discharging (Switch at B)', hi: 'चरघातांकी डिस्चार्जिंग (स्विच B पर)', hinglish: 'Exponential Discharging (Switch at B)' },
+        values: { sw: 1, V0: 12, R: 2.0, C: 500 },
+        note: { en: 'During discharging, capacitor voltage VC(t) decays as exp(-t/RC), reaching 36.8% at t = tau.', hi: 'डिस्चार्जिंग मोड में वोल्टेज VC(t) = V0*e^(-t/RC) के अनुसार घटता है।', hinglish: 'Discharging mode mein voltage VC(t) = V0*e^(-t/RC) ke hisab se ghat-ta hai.' }
+      }
+    ],
+    formula: 'Charging: VC(t) = V0 * (1 - e^(-t/tau)),  I(t) = (V0/R) * e^(-t/tau)   |   Discharging: VC(t) = V0 * e^(-t/tau),  tau = R * C',
+    explain: {
+      en: 'At t = 0+ just after closing the charging switch, an uncharged capacitor acts like a SHORT CIRCUIT (maximum current I0 = V0/R). At t -> infinity (steady state), the capacitor acts as an OPEN CIRCUIT (I = 0).',
+      hi: 'चार्जिंग स्विच बंद करते ही (t = 0 पर) अनचार्ज्ड कैपेसिटर एक शॉर्ट सर्किट की तरह काम करता है (अधिकतम धारा I0 = V0/R)। स्थायी अवस्था (t -> अनंत) में कैपेसिटर ओपन सर्किट बन जाता है (I = 0)।',
+      hinglish: 'Charging switch close karte hi (t = 0+ par) uncharged capacitor ek SHORT CIRCUIT ki tarah behave karta hai (I0 = V0/R). Steady state (t -> infinity) mein capacitor OPEN CIRCUIT ban jata hai (I = 0).'
+    },
+    qText: {
+      en: 'During the charging of an initially uncharged capacitor C through a resistor R from a battery V0, what fraction of the energy supplied by the battery is wasted as heat in R?',
+      hi: 'किसी अनचार्ज्ड कैपेसिटर C को प्रतिरोध R के माध्यम से बैटरी V0 से पूर्ण चार्ज करने में बैटरी द्वारा दी गई कुल ऊर्जा का कितना प्रतिशत प्रतिरोध R में ऊष्मा बन जाता है?',
+      hinglish: 'Ek uncharged capacitor C ko resistor R ke through battery V0 se full charge karne mein battery dwara di gayi total energy ka kitna percent resistor R mein heat ban kar dissipate hota hai?'
+    },
+    qAns: {
+      en: 'Exactly 50%! The battery supplies C*V0^2, while the capacitor stores 1/2 * C*V0^2. The remaining 50% is dissipated as heat in R.',
+      hi: 'ठीक 50% (1/2 CV0^2)! बैटरी कुल CV0^2 ऊर्जा देती है, जिसमें से आधी कैपेसिटर में संचित होती है और बाकी 50% प्रतिरोध R में ऊष्मा बन जाती है।',
+      hinglish: 'Exact 50% (1/2 CV0^2)! Battery total CV0^2 energy supply karti hai, jismein se 50% capacitor mein store hoti hai aur baki 50% resistor R mein heat ban jati hai.'
+    },
+    graphDesc: {
+      en: 'Exponential RC transient curve VC(t) over a 5*tau window.',
+      hi: '5*tau समय अंतराल में कैपेसिटर वोल्टेज VC(t) का चरघातांकी वक्र।',
+      hinglish: '5*tau time window mein capacitor voltage VC(t) ka exponential curve.'
+    }
+  },
+  // ==========================================================================
+  // NEW TOPIC 09: INTERACTIVE CIRCUIT BUILDER SANDBOX MODE
+  // ==========================================================================
+  {
+    id: 'sandbox',
+    num: '09',
+    tag: 'Free-Build',
+    title: {
+      en: 'Interactive Circuit Builder Sandbox (Bulbs, Switches & Shorts)',
+      hi: 'इंटरैक्टिव सर्किट बिल्डर सैंडबॉक्स (बल्ब, स्विच और शॉर्ट-सर्किट)',
+      hinglish: 'Interactive Circuit Builder Sandbox (Bulbs, Switches & Shorts)'
+    },
+    eyebrow: 'TOPIC 09 · CUSTOM CIRCUIT SANDBOX & BULB BRIGHTNESS LAB',
+    subtitle: {
+      en: 'Build your own multi-branch circuit! Click directly on any branch slot on the canvas to cycle between a glowing Bulb, Resistor, Switch, Wire (Short), or Open Air.',
+      hi: 'अपना खुद का सर्किट बनाएं! कैनवास पर किसी भी शाखा (Slot S1, S2, S3, S4) पर सीधे क्लिक करके वहाँ बल्ब, प्रतिरोध, स्विच, शॉर्ट-सर्किट तार या खुला परिपथ लगाएं।',
+      hinglish: 'Apna custom circuit banayein! Canvas par kisi bhi branch slot (S1, S2, S3, S4) par seedhe click karke wahan glowing Bulb, Resistor, Switch, Short-Circuit Wire ya Open gap lagayein!'
+    },
+    hint: {
+      en: 'Click any branch slot (S1, S2, S3, S4) on the canvas to change its component, or drag the V+ / V- probes to any node!',
+      hi: 'कैनवास पर किसी भी स्लॉट (S1, S2, S3, S4) पर क्लिक करके उसका कॉम्पोनेंट बदलें, या V+ / V- प्रोब्स को नोड्स पर ड्रैग करें!',
+      hinglish: 'Canvas par kisi bhi slot (S1, S2, S3, S4) par click karke component badlein, ya V+ / V- probes ko nodes par drag karein!'
+    },
+    quickActionLabel: {
+      en: 'Load Short-Circuit Demo',
+      hi: 'शॉर्ट-सर्किट डेमो लोड करें',
+      hinglish: 'Load Short-Circuit Demo'
+    },
+    params: [
+      { key: 'Vs', label: { en: 'Battery EMF (Vs)', hi: 'बैटरी वोल्टेज (Vs)', hinglish: 'Battery EMF (Vs)' }, min: 2, max: 24, step: 1, value: 12, unit: 'V' },
+      { key: 's1', label: { en: 'Top Series Slot S1', hi: 'ऊपरी श्रेणी स्लॉट S1', hinglish: 'Top Series Slot S1' }, min: 0, max: 3, step: 1, value: 0, unit: '', choices: ['Bulb B1 (Glowing Load)', 'Resistor R1', 'Closed Wire (0.01 Ohm)', 'Open Switch (Infinite R)'] },
+      { key: 'r1', label: { en: 'Slot S1 Resistance', hi: 'स्लॉट S1 का प्रतिरोध', hinglish: 'Slot S1 Resistance' }, min: 1, max: 20, step: 1, value: 4, unit: 'Ohm' },
+      { key: 's2', label: { en: 'Parallel Branch 1 (Slot S2)', hi: 'समांतर शाखा 1 (स्लॉट S2)', hinglish: 'Parallel Branch 1 (Slot S2)' }, min: 0, max: 3, step: 1, value: 0, unit: '', choices: ['Bulb B2 (Glowing Load)', 'Resistor R2', 'Closed Wire (Short-Circuit!)', 'Open Switch (Branch OFF)'] },
+      { key: 'r2', label: { en: 'Slot S2 Resistance', hi: 'स्लॉट S2 का प्रतिरोध', hinglish: 'Slot S2 Resistance' }, min: 1, max: 20, step: 1, value: 6, unit: 'Ohm' },
+      { key: 's3', label: { en: 'Parallel Branch 2 (Slot S3)', hi: 'समांतर शाखा 2 (स्लॉट S3)', hinglish: 'Parallel Branch 2 (Slot S3)' }, min: 0, max: 3, step: 1, value: 0, unit: '', choices: ['Bulb B3 (Glowing Load)', 'Resistor R3', 'Closed Wire (Short-Circuit!)', 'Open Switch (Branch OFF)'] },
+      { key: 'r3', label: { en: 'Slot S3 Resistance', hi: 'स्लॉट S3 का प्रतिरोध', hinglish: 'Slot S3 Resistance' }, min: 1, max: 20, step: 1, value: 6, unit: 'Ohm' },
+      { key: 's4', label: { en: 'Parallel Branch 3 (Slot S4)', hi: 'समांतर शाखा 3 (स्लॉट S4)', hinglish: 'Parallel Branch 3 (Slot S4)' }, min: 0, max: 3, step: 1, value: 3, unit: '', choices: ['Bulb B4 (Glowing Load)', 'Resistor R4', 'Closed Wire (Short-Circuit!)', 'Open Switch (Branch OFF)'] }
+    ],
+    presets: [
+      {
+        name: { en: '3-Bulb Brightness Puzzle (B1 in Series with B2 || B3)', hi: '3-बल्ब चमक पहेली (B1 श्रेणी में, B2 || B3 समांतर में)', hinglish: '3-Bulb Brightness Puzzle (B1 in Series with B2 || B3)' },
+        values: { Vs: 12, s1: 0, r1: 6, s2: 0, r2: 6, s3: 0, r3: 6, s4: 3 },
+        note: {
+          en: 'All 3 identical 6 Ohm bulbs are ON. B1 carries total current (1.33 A -> 10.67 W) so it glows 4x brighter than B2 and B3 (0.67 A -> 2.67 W each)!',
+          hi: 'तीनों 6 Ohm बल्ब चालू हैं। मुख्य शाखा का बल्ब B1 कुल धारा (1.33 A) लेता है इसलिए वह समांतर बल्बों B2 व B3 से 4 गुना अधिक चमकता है!',
+          hinglish: 'Teeno identical 6 Ohm bulbs ON hain. Main branch ka bulb B1 total current (1.33 A) leta hai isliye woh B2 aur B3 se 4 times zyada bright chamakta hai!'
+        }
+      },
+      {
+        name: { en: 'What if Parallel Bulb B3 Fuses / Opens?', hi: 'यदि समांतर बल्ब B3 फ्यूज हो जाए (Open Switch) तो क्या होगा?', hinglish: 'What if Parallel Bulb B3 Opens / Fuses?' },
+        values: { Vs: 12, s1: 0, r1: 6, s2: 0, r2: 6, s3: 3, r3: 6, s4: 3 },
+        note: {
+          en: 'Opening B3 increases total Req from 9 Ohm to 12 Ohm! Total current drops, so Series Bulb B1 becomes DIMMER while surviving Parallel Bulb B2 becomes BRIGHTER!',
+          hi: 'B3 बंद करने पर कुल प्रतिरोध 9 Ohm से बढ़कर 12 Ohm हो जाता है! इससे मुख्य बल्ब B1 धीमा (Dim) हो जाता है जबकि दूसरा बल्ब B2 पहले से अधिक चमकने लगता है!',
+          hinglish: 'B3 open karne par total Req 9 Ohm se badhkar 12 Ohm ho jata hai! Isse series bulb B1 DIM ho jata hai jabki bacha hua bulb B2 pehle se BRIGHT ho jata hai!'
+        }
+      },
+      {
+        name: { en: 'Short-Circuit Demo (Wire across Parallel Branches!)', hi: 'शॉर्ट-सर्किट डेमो (बल्बों के समांतर में सीधा तार!)', hinglish: 'Short-Circuit Demo (Wire across Parallel Bulbs!)' },
+        values: { Vs: 12, s1: 0, r1: 6, s2: 0, r2: 6, s3: 0, r3: 6, s4: 2 },
+        note: {
+          en: 'Slot S4 is a closed wire (short-circuit)! Almost 100% of current bypasses Bulbs B2 & B3 through S4, so B2 & B3 go completely DARK while B1 glows at maximum!',
+          hi: 'स्लॉट S4 एक सीधा तार (Short-Circuit) है! लगभग सारी धारा B2 और B3 को छोड़कर सीधे तार S4 से निकल जाती है, जिससे B2 व B3 बुझ जाते हैं और B1 पूरी चमक से जलता है!',
+          hinglish: 'Slot S4 ek closed wire (Short-Circuit) hai! Sara current Bulbs B2 aur B3 ko bypass karke S4 wire se nikal jata hai, jisse B2 & B3 bujh jate hain aur B1 full bright जलता hai!'
+        }
+      }
+    ],
+    formula: 'R_parallel = 1 / (1/R_S2 + 1/R_S3 + 1/R_S4)   |   R_total = R_S1 + R_parallel   |   P_bulb = I_branch^2 * R_bulb',
+    explain: {
+      en: 'In this Sandbox Mode, you can test any combination of Bulbs, Resistors, Open Switches, and Short-Circuit Wires. A bulb’s brightness depends strictly on the actual power dissipated in it (P = I^2*R = V^2/R). Placing a zero-resistance wire in parallel with a bulb shorts it out (voltage across the parallel bank drops to ~0 V).',
+      hi: 'इस सैंडबॉक्स मोड में आप बल्ब, प्रतिरोध, खुले स्विच और शॉर्ट-सर्किट तार का कोई भी संयोजन बनाकर देख सकते हैं। किसी बल्ब की चमक उसकी वास्तविक शक्ति खपत (P = I^2*R) पर निर्भर करती है। यदि किसी बल्ब के समांतर में सीधा तार जोड़ दिया जाए, तो बल्ब शॉर्ट-सर्किट होकर बुझ जाता है।',
+      hinglish: 'Is Sandbox Mode mein aap Bulbs, Resistors, Open Switches aur Short-Circuit Wires ka koi भी combination test kar sakte hain. Bulb ki brightness uske actual power dissipation (P = I^2*R) par depend karti hai. Parallel mein zero-resistance wire lagane par bulbs short-circuit hokar bujh jate hain.'
+    },
+    qText: {
+      en: 'In Preset 1 (Bulb B1 in series with parallel combination of identical Bulbs B2 and B3), if Bulb B3 fuses (opens), how does the brightness of B1 and B2 change?',
+      hi: 'Preset 1 (बल्ब B1 के साथ समांतर में जुड़े दो समान बल्ब B2 व B3) में यदि बल्ब B3 फ्यूज हो जाए, तो B1 और B2 की चमक पर क्या प्रभाव पड़ेगा?',
+      hinglish: 'Preset 1 (Bulb B1 ke sath parallel mein jude identical Bulbs B2 aur B3) mein agar Bulb B3 fuse ho jaye, toh B1 aur B2 ki brightness kaise badlegi?'
+    },
+    qAns: {
+      en: 'B1 becomes DIMMER and B2 becomes BRIGHTER! When B3 opens, equivalent resistance increases from 1.5 R to 2 R, so main current through B1 decreases (B1 dims). Since V_B1 = I*R decreases, the remaining voltage across B2 (V_s - V_B1) increases, making B2 glow brighter!',
+      hi: 'B1 की चमक घट जाएगी और B2 की चमक बढ़ जाएगी! B3 के हटते ही कुल प्रतिरोध 1.5 R से बढ़कर 2 R हो जाता है जिससे मुख्य धारा घटती है (B1 धीमा पड़ता है), और B1 पर विभव पतन घटने से B2 को अधिक वोल्टेज मिलता है!',
+      hinglish: 'B1 DIM ho jayega aur B2 BRIGHT ho jayega! B3 open hone se total resistance 1.5 R se badhkar 2 R ho jata hai, jisse main current ghat-ta hai (B1 dims). B1 par voltage drop kam hone se B2 ke across voltage badh jata hai, isliye B2 zyada bright chamakta hai!'
+    },
+    graphDesc: {
+      en: 'Power dissipated (Watts) across each active branch (S1, S2, S3, S4) vs Supply Voltage Vs.',
+      hi: 'सप्लाई वोल्टेज Vs के साथ विभिन्न शाखाओं में शक्ति खपत (Watts) का तुलनात्मक ग्राफ़।',
+      hinglish: 'Supply Voltage Vs ke sath active branches ki power (Watts) ka comparison graph.'
+    }
+  }
+];
+
+// ============================================================================
+// 2. APPLICATION STATE & DOM REFERENCES
+// ============================================================================
+const $ = id => document.getElementById(id);
+let currentTopicIndex = 0;
+let params = {};
+let simTime = 0;
+let isPlaying = true;
+let simSpeed = 1.0;
+let zoomLevel = 1.0;
+let currentLang = 'hinglish';
+let showMiniGraph = true;
+let showStageMath = false;
+let isFullscreen = false;
+let fsControlsCollapsed = false;
+
+let trackedElectronIdx = 0;
+let driftParticles = [];
+let circuitParticles = [];
+let probePos = {
+  redNode: 0,
+  blackNode: 2,
+  redXY: null,
+  blackXY: null,
+  dragging: null
+};
+let kvlWalkerProgress = 0;
+let rcState = {
+  vc: 0,
+  history: []
+};
+
+function T(obj) {
+  if (!obj) return '';
+  if (typeof obj === 'string') return obj;
+  return obj[currentLang] || obj.en || '';
+}
+
+function showToast(msg) {
+  const t = $('toast-banner');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function initParticles() {
+  driftParticles = [];
+  for (let i = 0; i < 36; i++) {
+    driftParticles.push({
+      x: Math.random(),
+      y: (Math.random() - 0.5) * 0.82,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      trail: []
+    });
+  }
+  circuitParticles = [];
+  for (let i = 0; i < 48; i++) {
+    circuitParticles.push({
+      branch: i % 4,
+      u: (i / 12) % 1
+    });
+  }
+}
+initParticles();
+
+// ============================================================================
+// 3. UI INITIALIZATION & LANGUAGE / TOPIC LOADING
+// ============================================================================
+function syncLanguageButtons() {
+  const ui = UI_TEXT[currentLang];
+  $('app-main-title').textContent = ui.appTitle;
+  $('app-main-sub').textContent = ui.appSub;
+  $('header-badge').textContent = ui.badge;
+  $('sidebar-heading-text').textContent = ui.sidebarHeading;
+  $('sidebar-tip-title').textContent = ui.tipTitle;
+  $('sidebar-tip-body').textContent = ui.tipBody;
+  $('btn-reset-params').textContent = ui.resetDefaults;
+  $('fs-exit-btn').textContent = ui.exitFs;
+  $('stage-mode-badge').textContent = ui.solverBadge;
+  $('btn-toggle-mini-graph').textContent = ui.liveGraphBtn;
+  $('fs-collapse-controls').textContent = fsControlsCollapsed ? ui.showControls : ui.hideControls;
+  $('btn-play').textContent = isPlaying ? ui.pause : ui.play;
+  $('btn-step').textContent = ui.step;
+  $('btn-restart-sim').textContent = ui.restartTime;
+  $('lbl-speed').textContent = ui.speed;
+  $('ctrl-panel-heading').textContent = ui.ctrlHeading;
+  $('lbl-preset-box').textContent = ui.presetLabel;
+  $('lbl-visual-layers').textContent = ui.visualLayers;
+  $('lbl-chk-vec').textContent = ui.vecLayer;
+  $('lbl-chk-elec').textContent = ui.elecLayer;
+  $('lbl-chk-lbl').textContent = ui.lblLayer;
+  $('lbl-chk-hints').textContent = ui.hintLayer;
+  $('lbl-chk-glow').textContent = ui.glowLayer;
+  $('lbl-chk-math').textContent = ui.mathLayer;
+  $('pedagogy-eyebrow').textContent = ui.pedagogyEyebrow;
+  $('live-math-panel-title').textContent = ui.liveMathHeader;
+  $('stage-math-title').textContent = ui.liveMathHeader;
+  $('jeeneet-box-title').textContent = ui.jeeneetTitle;
+  $('jeeneet-summary-lbl').textContent = ui.jeeneetSummary;
+  $('graph-eyebrow').textContent = ui.graphEyebrow;
+
+  const langNames = { en: 'English', hi: 'हिंदी', hinglish: 'Hinglish' };
+  $('lang-toggle').textContent = `🌐 Lang: ${langNames[currentLang]}`;
+  $('fs-lang-btn').textContent = `🌐 ${langNames[currentLang]}`;
+
+  ['en', 'hi', 'hinglish'].forEach(code => {
+    const b = $('btn-lang-' + code);
+    if (b) b.classList.toggle('active', code === currentLang);
+  });
+
+  const lblOn = $('chk-labels').checked;
+  $('btn-toggle-labels').textContent = `Labels: ${lblOn ? 'ON' : 'OFF'}`;
+  $('btn-toggle-labels').setAttribute('aria-pressed', String(lblOn));
+
+  const hintOn = $('chk-hints').checked;
+  $('btn-toggle-hints').textContent = `Hints: ${hintOn ? 'ON' : 'OFF'}`;
+  $('btn-toggle-hints').setAttribute('aria-pressed', String(hintOn));
+  $('canvas-hint').hidden = !hintOn;
+
+  $('btn-toggle-math').setAttribute('aria-pressed', String(showStageMath));
+  $('stage-math-overlay').hidden = !showStageMath;
+
+  $('mini-graph-dock').hidden = !showMiniGraph;
+  $('btn-toggle-mini-graph').setAttribute('aria-pressed', String(showMiniGraph));
+  $('btn-toggle-mini-graph').textContent = `${ui.liveGraphBtn}: ${showMiniGraph ? 'ON' : 'OFF'}`;
+}
+
+function setLanguage(langCode) {
+  currentLang = langCode;
+  syncLanguageButtons();
+  buildTopicNav();
+  renderTopicHeader();
+  renderControls();
+  updateSimulation(0);
+}
+
+function buildTopicNav() {
+  const nav = $('topic-nav-list');
+  const fsSelect = $('fs-topic-select');
+  nav.replaceChildren();
+  fsSelect.replaceChildren();
+
+  TOPICS.forEach((t, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'topic-btn' + (idx === currentTopicIndex ? ' active' : '');
+    btn.innerHTML = `
+      <span class="topic-num">${t.num}</span>
+      <span class="topic-name">${T(t.title)}</span>
+      <span class="topic-tag">${t.tag}</span>
+    `;
+    btn.addEventListener('click', () => loadTopic(idx));
+    nav.appendChild(btn);
+
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = `${t.num} · ${T(t.title)}`;
+    fsSelect.appendChild(opt);
+  });
+  fsSelect.value = String(currentTopicIndex);
+}
+
+function loadTopic(idx, customValues = null) {
+  currentTopicIndex = idx;
+  const topic = TOPICS[idx];
+  params = {};
+  topic.params.forEach(p => {
+    params[p.key] = customValues && customValues[p.key] !== undefined ? customValues[p.key] : p.value;
+  });
+  simTime = 0;
+  zoomLevel = 1.0;
+  probePos.redXY = null;
+  probePos.blackXY = null;
+  probePos.redNode = 0;
+  probePos.blackNode = 2;
+  if (topic.id === 'rc') {
+    rcState.vc = params.sw === 1 ? params.V0 : 0;
+    rcState.history = [];
+  }
+  syncLanguageButtons();
+  buildTopicNav();
+  renderTopicHeader();
+  renderControls();
+  updateSimulation(0);
+}
+
+function renderTopicHeader() {
+  const topic = TOPICS[currentTopicIndex];
+  $('lesson-eyebrow').textContent = topic.eyebrow;
+  $('lesson-title').textContent = T(topic.title);
+  $('lesson-subtitle').textContent = T(topic.subtitle);
+  $('canvas-hint').textContent = T(topic.hint);
+  $('btn-quick-action').textContent = T(topic.quickActionLabel);
+  $('concept-heading').textContent = T(topic.title);
+  $('concept-explain').textContent = T(topic.explain);
+  $('concept-formula').textContent = topic.formula;
+  $('jeeneet-question').textContent = T(topic.qText);
+  $('jeeneet-answer').textContent = T(topic.qAns);
+  $('main-graph-desc').textContent = T(topic.graphDesc);
+  $('mini-graph-caption').textContent = T(topic.graphDesc);
+}
+
+function renderControls() {
+  const topic = TOPICS[currentTopicIndex];
+  const ui = UI_TEXT[currentLang];
+  const presetSel = $('preset-select');
+  presetSel.replaceChildren();
+  const defOpt = document.createElement('option');
+  defOpt.value = '';
+  defOpt.textContent = ui.presetPlaceholder;
+  presetSel.appendChild(defOpt);
+  topic.presets.forEach((pr, i) => {
+    const o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = T(pr.name);
+    presetSel.appendChild(o);
+  });
+  $('preset-note').textContent = T(topic.presets[0]?.note);
+
+  const list = $('sliders-list');
+  list.replaceChildren();
+  topic.params.forEach(spec => {
+    const card = document.createElement('div');
+    card.className = 'slider-card';
+    if (spec.choices) {
+      const lbl = document.createElement('div');
+      lbl.className = 'slider-label';
+      lbl.style.marginBottom = '6px';
+      lbl.textContent = T(spec.label);
+      const sel = document.createElement('select');
+      sel.id = 'ctrl-' + spec.key;
+      sel.style.width = '100%';
+      spec.choices.forEach((ch, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(spec.min + i * spec.step);
+        opt.textContent = ch;
+        sel.appendChild(opt);
+      });
+      sel.value = String(params[spec.key]);
+      sel.addEventListener('change', () => {
+        setParamValue(spec.key, Number(sel.value));
+      });
+      card.append(lbl, sel);
+    } else {
+      const head = document.createElement('div');
+      head.className = 'slider-header';
+      const lbl = document.createElement('span');
+      lbl.className = 'slider-label';
+      lbl.textContent = T(spec.label);
+
+      const numWrap = document.createElement('div');
+      numWrap.className = 'slider-num-wrap';
+      const numInput = document.createElement('input');
+      numInput.type = 'number';
+      numInput.id = 'num-' + spec.key;
+      numInput.min = spec.min;
+      numInput.max = spec.max;
+      numInput.step = spec.step;
+      numInput.value = params[spec.key];
+      const unitSpan = document.createElement('span');
+      unitSpan.className = 'slider-unit';
+      unitSpan.textContent = spec.unit;
+      numWrap.append(numInput, unitSpan);
+      head.append(lbl, numWrap);
+
+      const rangeInput = document.createElement('input');
+      rangeInput.type = 'range';
+      rangeInput.id = 'rng-' + spec.key;
+      rangeInput.min = spec.min;
+      rangeInput.max = spec.max;
+      rangeInput.step = spec.step;
+      rangeInput.value = params[spec.key];
+
+      rangeInput.addEventListener('input', () => {
+        const v = Number(rangeInput.value);
+        numInput.value = v;
+        setParamValue(spec.key, v, false);
+      });
+      numInput.addEventListener('change', () => {
+        let v = Number(numInput.value);
+        if (!Number.isFinite(v)) v = spec.value;
+        v = Math.max(spec.min, Math.min(spec.max, v));
+        numInput.value = v;
+        rangeInput.value = v;
+        setParamValue(spec.key, v, false);
+      });
+
+      card.append(head, rangeInput);
+    }
+    list.appendChild(card);
+  });
+}
+
+function setParamValue(key, val, syncInputs = true) {
+  const prevSw = params.sw;
+  params[key] = val;
+  if (syncInputs) {
+    const num = $('num-' + key);
+    const rng = $('rng-' + key);
+    const sel = $('ctrl-' + key);
+    if (num) num.value = val;
+    if (rng) rng.value = val;
+    if (sel) sel.value = String(val);
+  }
+  if (TOPICS[currentTopicIndex].id === 'rc' && key === 'sw' && prevSw !== val) {
+    simTime = 0;
+  }
+  updateSimulation(0);
+}
+
+// ============================================================================
+// 4. PHYSICS SOLVER + LIVE STEP-BY-STEP MATH SUBSTITUTION GENERATOR
+// ============================================================================
+function computePhysics(topicId, p) {
+  switch (topicId) {
+    case 'drift': {
+      const tau = 2.5 * (300 / p.T);
+      const vd = 1.76 * p.E * tau;
+      const mu = 1.76 * tau;
+      const I = p.n * 1.602 * p.A * (vd * 0.01);
+      const J = I / p.A;
+      return {
+        tau, vd, mu, I, J,
+        metrics: [
+          { label: 'Drift Speed (vd)', val: vd.toFixed(2), unit: 'mm/s' },
+          { label: 'Relaxation Time (tau)', val: tau.toFixed(2), unit: 'x10^-14 s' },
+          { label: 'Current (I = neAvd)', val: I.toFixed(2), unit: 'A' },
+          { label: 'Current Density (J)', val: J.toFixed(2), unit: 'A/mm^2' },
+          { label: 'Mobility (mu = vd/E)', val: (tau * 17.6).toFixed(1), unit: 'cm^2/V.s' }
+        ],
+        mathSteps: [
+          `Step 1 (Relaxation Time): tau = 2.5 * (300 / T) = 2.5 * (300 / ${p.T}) = ${tau.toFixed(2)} x 10^-14 s`,
+          `Step 2 (Drift Velocity): vd = (e/m) * E * tau = 1.76 * ${p.E} * ${tau.toFixed(2)} = ${vd.toFixed(2)} mm/s`,
+          `Step 3 (Electric Current): I = n * e * A * vd = (${p.n}x10^28) * (1.6x10^-19) * (${p.A} mm^2) * (${vd.toFixed(2)} mm/s) = ${I.toFixed(2)} A`,
+          `Result: J = I / A = ${I.toFixed(2)} / ${p.A.toFixed(1)} = ${J.toFixed(2)} A/mm^2`
+        ]
+      };
+    }
+    case 'resistance': {
+      const T = p.T;
+      let rho20, alpha, rho, matName, step1Str;
+      if (p.mat === 0) {
+        matName = 'Copper (Metal)';
+        rho20 = 1.68;
+        alpha = 0.0039;
+        rho = rho20 * (1 + alpha * (T - 20));
+        step1Str = `Step 1 (Resistivity): rho(T) = 1.68 * [1 + 0.0039 * (${T} - 20)] = ${rho.toFixed(3)} x 10^-8 Ohm.m`;
+      } else if (p.mat === 1) {
+        matName = 'Nichrome (Alloy)';
+        rho20 = 100.0;
+        alpha = 0.0004;
+        rho = rho20 * (1 + alpha * (T - 20));
+        step1Str = `Step 1 (Resistivity): rho(T) = 100 * [1 + 0.0004 * (${T} - 20)] = ${rho.toFixed(2)} x 10^-8 Ohm.m`;
+      } else {
+        matName = 'Silicon (Semiconductor)';
+        rho20 = 60.0;
+        alpha = -0.025;
+        rho = rho20 * Math.exp(-0.014 * (T - 20));
+        step1Str = `Step 1 (NTC Semiconductor): rho(T) = 60 * exp[-0.014 * (${T} - 20)] = ${rho.toFixed(2)} rel. Ohm.m`;
+      }
+      const R = (rho * 0.01) * (p.L / p.A);
+      const I = p.V / Math.max(0.001, R);
+      const P = p.V * I;
+      return {
+        rho, R, I, P, matName, alpha,
+        metrics: [
+          { label: 'Material Type', val: p.mat === 0 ? 'Copper' : p.mat === 1 ? 'Nichrome' : 'Silicon', unit: '' },
+          { label: 'Resistivity rho(T)', val: rho.toFixed(2), unit: p.mat === 2 ? 'rel. Ohm.m' : 'x10^-8 Ohm.m' },
+          { label: 'Resistance (R = rho*L/A)', val: R.toFixed(3), unit: 'Ohm' },
+          { label: 'Current (I = V/R)', val: I.toFixed(2), unit: 'A' },
+          { label: 'Heating Power (I^2*R)', val: P.toFixed(2), unit: 'W' }
+        ],
+        mathSteps: [
+          step1Str,
+          `Step 2 (Geometry L/A): R = rho_scaled * (L / A) = ${(rho * 0.01).toFixed(4)} * (${p.L.toFixed(1)} / ${p.A.toFixed(1)}) = ${R.toFixed(3)} Ohm`,
+          `Step 3 (Ohm's Law): I = V / R = ${p.V.toFixed(1)} / ${R.toFixed(3)} = ${I.toFixed(2)} A`,
+          `Result (Thermal Power): P = V * I = ${p.V.toFixed(1)} * ${I.toFixed(2)} = ${P.toFixed(2)} W`
+        ]
+      };
+    }
+    case 'circuit': {
+      const { mode, V, R1, R2, R3 } = p;
+      let Req, I_tot, I1, I2, I3, V1, V2, V3, nodes, step1Str, step2Str;
+      if (mode === 0) {
+        Req = R1 + R2 + R3;
+        I_tot = V / Req;
+        I1 = I2 = I3 = I_tot;
+        V1 = I1 * R1; V2 = I2 * R2; V3 = I3 * R3;
+        step1Str = `Step 1 (Series Req): Req = R1 + R2 + R3 = ${R1} + ${R2} + ${R3} = ${Req.toFixed(2)} Ohm`;
+        step2Str = `Step 2 (Series Current): I = Vs / Req = ${V} / ${Req.toFixed(2)} = ${I_tot.toFixed(2)} A (Same in all)`;
+        nodes = [
+          { name: 'Node A (+)', v: V, x: 0.16, y: 0.25 },
+          { name: 'Node B', v: V - V1, x: 0.42, y: 0.25 },
+          { name: 'Node C', v: V - V1 - V2, x: 0.68, y: 0.25 },
+          { name: 'Node D (0V)', v: 0, x: 0.86, y: 0.75 }
+        ];
+      } else if (mode === 1) {
+        Req = 1 / (1 / R1 + 1 / R2 + 1 / R3);
+        I1 = V / R1; I2 = V / R2; I3 = V / R3;
+        I_tot = I1 + I2 + I3;
+        V1 = V2 = V3 = V;
+        step1Str = `Step 1 (Parallel Req): 1/Req = 1/${R1} + 1/${R2} + 1/${R3}  =>  Req = ${Req.toFixed(2)} Ohm`;
+        step2Str = `Step 2 (Branch Currents): I1 = ${V}/${R1}=${I1.toFixed(2)}A,  I2 = ${V}/${R2}=${I2.toFixed(2)}A,  I3 = ${V}/${R3}=${I3.toFixed(2)}A`;
+        nodes = [
+          { name: 'Top Rail (+)', v: V, x: 0.25, y: 0.18 },
+          { name: 'Branch 2 Top', v: V, x: 0.55, y: 0.18 },
+          { name: 'Bottom Rail (0V)', v: 0, x: 0.55, y: 0.82 },
+          { name: 'Battery (-)', v: 0, x: 0.25, y: 0.82 }
+        ];
+      } else {
+        const Rp = (R2 * R3) / (R2 + R3);
+        Req = R1 + Rp;
+        I_tot = V / Req;
+        I1 = I_tot;
+        V1 = I1 * R1;
+        const Vp = V - V1;
+        V2 = V3 = Vp;
+        I2 = Vp / R2;
+        I3 = Vp / R3;
+        step1Str = `Step 1 (Mixed Req): Rp = (R2*R3)/(R2+R3) = (${R2}*${R3})/(${R2}+${R3}) = ${Rp.toFixed(2)} Ohm  =>  Req = ${R1} + ${Rp.toFixed(2)} = ${Req.toFixed(2)} Ohm`;
+        step2Str = `Step 2 (Main & Branch I): I_tot = ${V}/${Req.toFixed(2)} = ${I_tot.toFixed(2)} A  |  V_parallel = ${V} - ${V1.toFixed(2)} = ${Vp.toFixed(2)} V`;
+        nodes = [
+          { name: 'Node A (Source +)', v: V, x: 0.18, y: 0.24 },
+          { name: 'Node B (Junction)', v: Vp, x: 0.50, y: 0.24 },
+          { name: 'Node C (Return 0V)', v: 0, x: 0.82, y: 0.78 },
+          { name: 'Node D (Source -)', v: 0, x: 0.18, y: 0.78 }
+        ];
+      }
+      const P1 = V1 * I1, P2 = V2 * I2, P3 = V3 * I3, P_tot = V * I_tot;
+      const vR = nodes[probePos.redNode]?.v ?? V;
+      const vB = nodes[probePos.blackNode]?.v ?? 0;
+      const vProbe = vR - vB;
+      return {
+        Req, I_tot, I1, I2, I3, V1, V2, V3, P1, P2, P3, P_tot, nodes, vProbe,
+        metrics: [
+          { label: 'Equivalent Res. (Req)', val: Req.toFixed(2), unit: 'Ohm' },
+          { label: 'Total Current (I_tot)', val: I_tot.toFixed(2), unit: 'A' },
+          { label: 'Probe Voltmeter (dV)', val: vProbe.toFixed(2), unit: 'V' },
+          { label: 'Branch Currents', val: `${I1.toFixed(1)} | ${I2.toFixed(1)} | ${I3.toFixed(1)}`, unit: 'A' },
+          { label: 'Total Power (P_tot)', val: P_tot.toFixed(1), unit: 'W' }
+        ],
+        mathSteps: [
+          step1Str,
+          step2Str,
+          `Step 3 (Probe Voltmeter): dV = V_red - V_black = ${vR.toFixed(2)} V - ${vB.toFixed(2)} V = ${vProbe.toFixed(2)} V`,
+          `Result (Power Dissipation): P1 = ${P1.toFixed(1)}W,  P2 = ${P2.toFixed(1)}W,  P3 = ${P3.toFixed(1)}W  (Total = ${P_tot.toFixed(1)} W)`
+        ]
+      };
+    }
+    case 'cell': {
+      const { group, E, r, N, R } = p;
+      let Eeq, req, grpStr;
+      if (group === 0) {
+        Eeq = E; req = r;
+        grpStr = `Step 1 (Single Cell): E_eq = ${E.toFixed(2)} V,  r_eq = ${r.toFixed(2)} Ohm`;
+      } else if (group === 1) {
+        Eeq = N * E; req = N * r;
+        grpStr = `Step 1 (Series Bank of ${N}): E_eq = ${N}*${E} = ${Eeq.toFixed(2)} V,  r_eq = ${N}*${r} = ${req.toFixed(2)} Ohm`;
+      } else {
+        Eeq = E; req = r / N;
+        grpStr = `Step 1 (Parallel Bank of ${N}): E_eq = ${E.toFixed(2)} V,  r_eq = ${r}/${N} = ${req.toFixed(2)} Ohm`;
+      }
+      const I = Eeq / (R + req);
+      const Vterm = I * R;
+      const Vdrop = I * req;
+      const Pload = I * I * R;
+      const Pmax = (Eeq * Eeq) / (4 * req);
+      const eff = (R / (R + req)) * 100;
+      return {
+        Eeq, req, I, Vterm, Vdrop, Pload, Pmax, eff,
+        metrics: [
+          { label: 'Equivalent EMF (E_eq)', val: Eeq.toFixed(2), unit: 'V' },
+          { label: 'Internal Res. (r_eq)', val: req.toFixed(2), unit: 'Ohm' },
+          { label: 'Circuit Current (I)', val: I.toFixed(2), unit: 'A' },
+          { label: 'Terminal Voltage (V)', val: Vterm.toFixed(2), unit: 'V' },
+          { label: 'Load Power (P_load)', val: Pload.toFixed(2), unit: `W (Max ${Pmax.toFixed(1)}W)` },
+          { label: 'Efficiency (eta)', val: eff.toFixed(1), unit: '%' }
+        ],
+        mathSteps: [
+          grpStr,
+          `Step 2 (Circuit Current): I = E_eq / (R + r_eq) = ${Eeq.toFixed(2)} / (${R.toFixed(1)} + ${req.toFixed(2)}) = ${I.toFixed(2)} A`,
+          `Step 3 (Terminal Voltage): V = E_eq - I * r_eq = ${Eeq.toFixed(2)} - (${I.toFixed(2)} * ${req.toFixed(2)}) = ${Vterm.toFixed(2)} V`,
+          `Result (Load Power): P_load = I^2 * R = (${I.toFixed(2)})^2 * ${R.toFixed(1)} = ${Pload.toFixed(2)} W  (Efficiency = ${eff.toFixed(1)}%)`
+        ]
+      };
+    }
+    case 'kirchhoff': {
+      const { E1, E2, R1, R2, R3 } = p;
+      const G1 = 1 / R1, G2 = 1 / R2, G3 = 1 / R3;
+      const VB = (E1 * G1 + E2 * G3) / (G1 + G2 + G3);
+      const I1 = (E1 - VB) / R1;
+      const I3 = (E2 - VB) / R3;
+      const I2 = VB / R2;
+      return {
+        VB, I1, I2, I3,
+        metrics: [
+          { label: 'Junction Potential (VB)', val: VB.toFixed(2), unit: 'V (ref VE=0)' },
+          { label: 'Left Current (I1)', val: I1.toFixed(2), unit: 'A' },
+          { label: 'Middle Current (I2)', val: I2.toFixed(2), unit: 'A' },
+          { label: 'Right Current (I3)', val: I3.toFixed(2), unit: 'A' },
+          { label: 'KCL (I1 + I3 - I2)', val: Math.abs(I1 + I3 - I2).toFixed(4), unit: 'A (0 = Exact)' }
+        ],
+        mathSteps: [
+          `Step 1 (Nodal Eq at B): (E1 - VB)/R1 + (E2 - VB)/R3 = VB/R2  =>  (${E1}-VB)/${R1} + (${E2}-VB)/${R3} = VB/${R2}`,
+          `Step 2 (Solve Node Potential): VB = (${(E1*G1 + E2*G3).toFixed(2)}) / (${(G1+G2+G3).toFixed(3)}) = ${VB.toFixed(2)} V`,
+          `Step 3 (Branch Currents): I1 = (${E1}-${VB.toFixed(2)})/${R1} = ${I1.toFixed(2)} A,  I3 = (${E2}-${VB.toFixed(2)})/${R3} = ${I3.toFixed(2)} A`,
+          `Result (KCL & KVL Check): I2 = I1 + I3 = ${I1.toFixed(2)} + (${I3.toFixed(2)}) = ${I2.toFixed(2)} A  |  Loop 1 Sum dV = +${E1} - ${(I1*R1).toFixed(2)} - ${(I2*R2).toFixed(2)} = 0.00 V`
+        ]
+      };
+    }
+    case 'wheatstone': {
+      const Vs = 10;
+      const Rg = 10;
+      let P = p.P, Q = p.Q, R = p.R, S = p.S;
+      if (p.view === 1) {
+        const l1 = p.jockey;
+        const l2 = 100 - l1;
+        Q = Math.max(0.1, l1 * 0.2);
+        S = Math.max(0.1, l2 * 0.2);
+      }
+      const a11 = 1 / P + 1 / Q + 1 / Rg;
+      const a12 = -1 / Rg;
+      const b1 = Vs / P;
+      const a21 = -1 / Rg;
+      const a22 = 1 / R + 1 / S + 1 / Rg;
+      const b2 = Vs / R;
+      const det = a11 * a22 - a12 * a21;
+      const VB = (b1 * a22 - b2 * a12) / det;
+      const VD = (a11 * b2 - a21 * b1) / det;
+      const Ig = (VB - VD) / Rg;
+      const nullL1 = (100 * p.P) / (p.P + p.R);
+      const balanced = Math.abs(Ig * 1000) < 0.8;
+      return {
+        Vs, P, Q, R, S, VB, VD, Ig, nullL1, balanced,
+        metrics: [
+          { label: 'Node B Potential (VB)', val: VB.toFixed(3), unit: 'V' },
+          { label: 'Node D Potential (VD)', val: VD.toFixed(3), unit: 'V' },
+          { label: 'Galvanometer (Ig)', val: (Ig * 1000).toFixed(2), unit: 'mA' },
+          { label: p.view === 1 ? 'Exact Null Point (l1*)' : 'Target S for Balance', val: p.view === 1 ? nullL1.toFixed(1) : ((Q * R) / P).toFixed(1), unit: p.view === 1 ? 'cm' : 'Ohm' },
+          { label: 'Bridge Status', val: balanced ? 'BALANCED (NULL)' : 'UNBALANCED', unit: '' }
+        ],
+        mathSteps: p.view === 1 ? [
+          `Step 1 (Meter Bridge Ratio): l1 = ${p.jockey.toFixed(1)} cm,  100 - l1 = ${(100 - p.jockey).toFixed(1)} cm  =>  Ratio l1/(100-l1) = ${(p.jockey / (100 - p.jockey)).toFixed(3)}`,
+          `Step 2 (Resistance Ratio): R_box / X = ${p.P} / ${p.R} = ${(p.P / p.R).toFixed(3)}  (Exact Null at l1* = ${nullL1.toFixed(1)} cm)`,
+          `Step 3 (Mid-Node Potentials): VB = ${VB.toFixed(3)} V,  VD = ${VD.toFixed(3)} V  =>  dV = ${(VB - VD).toFixed(3)} V`,
+          `Result (Galvanometer Current): Ig = (VB - VD) / Rg = ${(Ig * 1000).toFixed(2)} mA  [${balanced ? 'NULL BALANCE ACHIEVED' : 'UNBALANCED'}]`
+        ] : [
+          `Step 1 (Arm Ratios): P / Q = ${P} / ${Q} = ${(P / Q).toFixed(3)}   vs   R / S = ${R} / ${S} = ${(R / S).toFixed(3)}`,
+          `Step 2 (Node Voltages): VB = ${VB.toFixed(3)} V,   VD = ${VD.toFixed(3)} V`,
+          `Step 3 (Galvanometer Current): Ig = (VB - VD) / Rg = (${VB.toFixed(3)} - ${VD.toFixed(3)}) / 10 = ${(Ig * 1000).toFixed(2)} mA`,
+          `Result: Target S for Null Balance = (Q * R) / P = (${Q} * ${R}) / ${P} = ${((Q * R) / P).toFixed(2)} Ohm`
+        ]
+      };
+    }
+    case 'potentiometer': {
+      const L_total = 400;
+      const V_AB = p.V0 * 0.9;
+      const k = V_AB / L_total;
+      let V_target, modeText;
+      const E2_fixed = 1.5;
+      if (p.exp === 0) {
+        if (p.k2 === 0) {
+          V_target = p.E1;
+          modeText = 'Key K2 OPEN (Measures E1)';
+        } else {
+          V_target = (p.E1 * p.Rsh) / (p.Rsh + p.r1);
+          modeText = 'Key K2 CLOSED (Measures V)';
+        }
+      } else {
+        V_target = p.k2 === 0 ? p.E1 : E2_fixed;
+        modeText = p.k2 === 0 ? 'Cell 1 Active (E1)' : 'Cell 2 Active (E2=1.5V)';
+      }
+      const V_jockey = k * p.Lpos;
+      const l_null = V_target / k;
+      const l1_open = p.E1 / k;
+      const l2_shunt = ((p.E1 * p.Rsh) / (p.Rsh + p.r1)) / k;
+      const Ig_mA = ((V_jockey - V_target) / 15) * 1000;
+      const possible = l_null <= L_total;
+      return {
+        L_total, V_AB, k, V_target, V_jockey, l_null, l1_open, l2_shunt, Ig_mA, possible, modeText,
+        metrics: [
+          { label: 'Potential Gradient (k)', val: (k * 1000).toFixed(2), unit: 'mV/cm' },
+          { label: 'Wire Voltage at J (k*l)', val: V_jockey.toFixed(3), unit: 'V' },
+          { label: 'Test Cell Voltage', val: V_target.toFixed(3), unit: 'V' },
+          { label: 'Exact Null Length (l*)', val: possible ? l_null.toFixed(1) : '> 400 (Impossible)', unit: possible ? 'cm' : '' },
+          { label: 'Galvanometer (Ig)', val: Math.abs(Ig_mA) < 0.8 ? '0.00 (NULL)' : Ig_mA.toFixed(1), unit: 'mA' }
+        ],
+        mathSteps: [
+          `Step 1 (Potential Gradient): k = V_AB / L = ${V_AB.toFixed(2)} V / 400 cm = ${k.toFixed(4)} V/cm (${(k*1000).toFixed(2)} mV/cm)`,
+          `Step 2 (Wire Potential at Jockey): V_wire(l) = k * l = ${k.toFixed(4)} * ${p.Lpos} cm = ${V_jockey.toFixed(3)} V`,
+          `Step 3 (Null Length l*): l* = V_target / k = ${V_target.toFixed(3)} / ${k.toFixed(4)} = ${l_null.toFixed(1)} cm`,
+          `Result (Internal Res. Formula): r = R * (l1 / l2 - 1) = ${p.Rsh} * (${l1_open.toFixed(1)} / ${l2_shunt.toFixed(1)} - 1) = ${p.r1.toFixed(2)} Ohm`
+        ]
+      };
+    }
+    case 'rc': {
+      const tau = p.R * p.C * 0.001;
+      const V0 = p.V0;
+      const vc = rcState.vc;
+      const vr = p.sw === 0 ? (V0 - vc) : -vc;
+      const I_mA = vr / p.R;
+      const Q_uC = p.C * vc;
+      const U_mJ = 0.5 * p.C * vc * vc * 0.001;
+      return {
+        tau, V0, vc, vr, I_mA, Q_uC, U_mJ,
+        metrics: [
+          { label: 'Time Constant (tau = RC)', val: tau.toFixed(2), unit: 's' },
+          { label: 'Capacitor Voltage VC(t)', val: vc.toFixed(2), unit: `V (${((vc / V0) * 100).toFixed(0)}%)` },
+          { label: 'Current I(t)', val: I_mA.toFixed(2), unit: 'mA' },
+          { label: 'Plate Charge q(t)', val: (Q_uC / 1000).toFixed(2), unit: 'mC' },
+          { label: 'Stored Energy (1/2 CV^2)', val: U_mJ.toFixed(2), unit: 'mJ' }
+        ],
+        mathSteps: [
+          `Step 1 (Time Constant): tau = R * C = (${p.R.toFixed(1)} x 10^3 Ohm) * (${p.C} x 10^-6 F) = ${tau.toFixed(2)} s`,
+          p.sw === 0
+            ? `Step 2 (Charging Voltage): VC(t) = V0 * (1 - e^(-t/tau)) = ${V0} * (1 - e^(-${simTime.toFixed(2)}/${tau.toFixed(2)})) = ${vc.toFixed(2)} V`
+            : `Step 2 (Discharging Voltage): VC(t) = V_init * e^(-t/tau)  =>  Current VC = ${vc.toFixed(2)} V`,
+          `Step 3 (Instantaneous Current): I(t) = (V_source - VC) / R = ${vr.toFixed(2)} V / ${p.R.toFixed(1)} kOhm = ${I_mA.toFixed(2)} mA`,
+          `Result (Stored Energy): U = 0.5 * C * VC^2 = 0.5 * (${p.C} uF) * (${vc.toFixed(2)} V)^2 = ${U_mJ.toFixed(2)} mJ`
+        ]
+      };
+    }
+    case 'sandbox': {
+      // Slot resistance helper: 0=Bulb(r), 1=Resistor(r), 2=Closed Wire(0.01 Ohm), 3=Open Switch(1e9 Ohm)
+      const slotRes = (type, rVal) => type === 2 ? 0.01 : type === 3 ? 1e9 : rVal;
+      const R_s1 = slotRes(p.s1, p.r1);
+      const R_s2 = slotRes(p.s2, p.r2);
+      const R_s3 = slotRes(p.s3, p.r3);
+      const R_s4 = slotRes(p.s4, 6);
+      const G_par = (p.s2 === 3 ? 0 : 1 / R_s2) + (p.s3 === 3 ? 0 : 1 / R_s3) + (p.s4 === 3 ? 0 : 1 / R_s4);
+      const R_par = G_par > 0 ? 1 / G_par : 1e9;
+      const R_tot = (p.s1 === 3 || G_par === 0) ? 1e9 : (R_s1 + R_par);
+      const I_main = R_tot >= 1e8 ? 0 : p.Vs / R_tot;
+      const V_s1 = I_main * (R_s1 >= 1e8 ? 0 : R_s1);
+      const V_par = R_tot >= 1e8 ? 0 : Math.max(0, p.Vs - V_s1);
+      const I_b2 = p.s2 === 3 ? 0 : V_par / R_s2;
+      const I_b3 = p.s3 === 3 ? 0 : V_par / R_s3;
+      const I_b4 = p.s4 === 3 ? 0 : V_par / R_s4;
+      const P_s1 = I_main * I_main * (R_s1 >= 1e8 ? 0 : R_s1);
+      const P_s2 = I_b2 * I_b2 * (R_s2 >= 1e8 ? 0 : R_s2);
+      const P_s3 = I_b3 * I_b3 * (R_s3 >= 1e8 ? 0 : R_s3);
+      const P_s4 = I_b4 * I_b4 * (R_s4 >= 1e8 ? 0 : R_s4);
+
+      const nodes = [
+        { name: 'Node A (Source +)', v: p.Vs, x: 0.16, y: 0.22 },
+        { name: 'Node B (After S1)', v: V_par, x: 0.44, y: 0.22 },
+        { name: 'Node C (Return 0V)', v: 0, x: 0.44, y: 0.80 },
+        { name: 'Node D (Source -)', v: 0, x: 0.16, y: 0.80 }
+      ];
+      const vR = nodes[probePos.redNode]?.v ?? p.Vs;
+      const vB = nodes[probePos.blackNode]?.v ?? 0;
+      const vProbe = vR - vB;
+      const isShorted = p.s2 === 2 || p.s3 === 2 || p.s4 === 2;
+
+      return {
+        R_s1, R_s2, R_s3, R_s4, R_par, R_tot, I_main, V_s1, V_par, I_b2, I_b3, I_b4, P_s1, P_s2, P_s3, P_s4, nodes, vProbe, isShorted,
+        metrics: [
+          { label: 'Total Circuit Res.', val: R_tot >= 1e8 ? 'OPEN (Inf)' : R_tot.toFixed(2), unit: R_tot >= 1e8 ? '' : 'Ohm' },
+          { label: 'Main Current (I_S1)', val: I_main.toFixed(2), unit: 'A' },
+          { label: 'Parallel Bank V_BC', val: V_par.toFixed(2), unit: isShorted ? 'V (SHORTED!)' : 'V' },
+          { label: 'Bulb/Slot Powers', val: `${P_s1.toFixed(1)} | ${P_s2.toFixed(1)} | ${P_s3.toFixed(1)}`, unit: 'W' },
+          { label: 'Probe Voltmeter (dV)', val: vProbe.toFixed(2), unit: 'V' }
+        ],
+        mathSteps: [
+          `Step 1 (Parallel Bank Req): 1/R_par = ${p.s2===3?'0':`1/${R_s2}`} + ${p.s3===3?'0':`1/${R_s3}`} + ${p.s4===3?'0':`1/${R_s4}`}  =>  R_par = ${R_par >= 1e8 ? 'OPEN' : R_par.toFixed(3) + ' Ohm'}`,
+          `Step 2 (Total Req & Main I): R_tot = R_S1 + R_par = ${R_tot >= 1e8 ? 'Infinity' : R_tot.toFixed(2) + ' Ohm'}  =>  I_main = ${p.Vs} / ${R_tot >= 1e8 ? 'Inf' : R_tot.toFixed(2)} = ${I_main.toFixed(2)} A`,
+          `Step 3 (Node Voltages): V_S1 = I_main * R_S1 = ${V_s1.toFixed(2)} V   |   Parallel Bank Voltage V_BC = ${p.Vs} - ${V_s1.toFixed(2)} = ${V_par.toFixed(2)} V`,
+          `Result (Slot Power Glow): P_S1 = ${P_s1.toFixed(2)} W,   P_S2 = ${P_s2.toFixed(2)} W,   P_S3 = ${P_s3.toFixed(2)} W`
+        ]
+      };
+    }
+  }
+}
+
+// ============================================================================
+// 5. HIGH-CONTRAST CANVAS DRAWING HELPERS (Guaranteed WCAG AAA Readability)
+// ============================================================================
+function drawBadge(ctx, x, y, text, bg = '#051120', border = '#38bdf8', textColor = '#ffffff') {
+  if (!text) return;
+  ctx.save();
+  ctx.font = '700 12px ' + CANVAS_FONT;
+  const w = ctx.measureText(text).width + 18;
+  const h = 25;
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, 6);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color = '#38bdf8', width = 2.6, label = '', showLbl = true) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 2) return;
+  const ang = Math.atan2(dy, dx);
+  const head = Math.min(11, len * 0.45);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - head * Math.cos(ang - 0.42), y2 - head * Math.sin(ang - 0.42));
+  ctx.lineTo(x2 - head * Math.cos(ang + 0.42), y2 - head * Math.sin(ang + 0.42));
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  if (label && showLbl) {
+    const lx = (x1 + x2) / 2 + (Math.abs(dy) > Math.abs(dx) ? 55 : 0);
+    const ly = (y1 + y2) / 2 + (Math.abs(dy) > Math.abs(dx) ? 0 : -18);
+    drawBadge(ctx, lx, ly, label, '#051120', color, '#ffffff');
+  }
+}
+
+function drawZigzagResistor(ctx, x1, y1, x2, y2, label = 'R', powerWatts = 0, showGlow = true, showLbl = true) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  const ang = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(x1, y1);
+  ctx.rotate(ang);
+
+  if (showGlow && powerWatts > 0.1) {
+    const alpha = Math.min(0.75, powerWatts / 24);
+    const grad = ctx.createRadialGradient(len / 2, 0, 4, len / 2, 0, 42);
+    grad.addColorStop(0, `rgba(251, 146, 60, ${alpha})`);
+    grad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(len / 2, 0, 42, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const zigStart = len * 0.2, zigEnd = len * 0.8;
+  const zigLen = zigEnd - zigStart;
+  const peaks = 6;
+  ctx.strokeStyle = powerWatts > 6 ? '#fb923c' : '#7dd3fc';
+  ctx.lineWidth = 3.0;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(zigStart, 0);
+  for (let i = 0; i < peaks; i++) {
+    const px = zigStart + ((i + 0.5) / peaks) * zigLen;
+    const py = (i % 2 === 0 ? -1 : 1) * 11;
+    ctx.lineTo(px, py);
+  }
+  ctx.lineTo(zigEnd, 0);
+  ctx.lineTo(len, 0);
+  ctx.stroke();
+  ctx.restore();
+
+  if (label && showLbl) {
+    const mx = (x1 + x2) / 2 + (Math.abs(dy) > Math.abs(dx) ? 62 : 0);
+    const my = (y1 + y2) / 2 + (Math.abs(dy) > Math.abs(dx) ? 0 : -24);
+    drawBadge(ctx, mx, my, label, '#061325', powerWatts > 6 ? '#fb923c' : '#38bdf8', '#ffffff');
+  }
+}
+
+function drawBulbComponent(ctx, x1, y1, x2, y2, label = 'Bulb', powerWatts = 0, showGlow = true, showLbl = true) {
+  const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+  ctx.save();
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(cx, cy); ctx.lineTo(x2, y2);
+  ctx.stroke();
+
+  // Glowing aura proportional to actual bulb power P
+  const brightness = Math.min(1, powerWatts / 12);
+  if (showGlow && powerWatts > 0.05) {
+    const rGlow = 24 + brightness * 34;
+    const g = ctx.createRadialGradient(cx, cy, 4, cx, cy, rGlow);
+    g.addColorStop(0, `rgba(254, 240, 138, ${0.35 + 0.6 * brightness})`);
+    g.addColorStop(0.5, `rgba(251, 191, 36, ${0.25 + 0.45 * brightness})`);
+    g.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx, cy, rGlow, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Bulb Glass Globe
+  ctx.fillStyle = powerWatts > 0.05 ? `rgba(253, 224, 71, ${0.25 + 0.65 * brightness})` : '#0f233c';
+  ctx.strokeStyle = powerWatts > 0.05 ? '#fde047' : '#94a3b8';
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 17, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Filament Loop inside Bulb
+  ctx.strokeStyle = powerWatts > 0.05 ? '#ffffff' : '#64748b';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx - 7, cy + 7);
+  ctx.lineTo(cx - 4, cy - 6);
+  ctx.lineTo(cx, cy + 2);
+  ctx.lineTo(cx + 4, cy - 6);
+  ctx.lineTo(cx + 7, cy + 7);
+  ctx.stroke();
+  ctx.restore();
+
+  if (label && showLbl) {
+    const isVert = Math.abs(y2 - y1) > Math.abs(x2 - x1);
+    drawBadge(ctx, cx + (isVert ? 68 : 0), cy + (isVert ? 0 : -30), label, '#061325', powerWatts > 0.1 ? '#fbbf24' : '#64748b', powerWatts > 0.1 ? '#fef08a' : '#cbd5e1');
+  }
+}
+
+function drawBattery(ctx, x, y, vertical = true, label = 'V', reverse = false, showLbl = true) {
+  ctx.save();
+  ctx.translate(x, y);
+  if (!vertical) ctx.rotate(-Math.PI / 2);
+  if (reverse) ctx.scale(1, -1);
+  ctx.strokeStyle = '#fbbf24';
+  ctx.lineWidth = 3.6;
+  ctx.beginPath();
+  ctx.moveTo(-18, -6);
+  ctx.lineTo(18, -6);
+  ctx.stroke();
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 5.5;
+  ctx.beginPath();
+  ctx.moveTo(-11, 7);
+  ctx.lineTo(11, 7);
+  ctx.stroke();
+  ctx.restore();
+
+  if (label && showLbl) {
+    drawBadge(ctx, x + (vertical ? -52 : 0), y + (vertical ? 0 : -26), label, '#061325', '#fbbf24', '#fef08a');
+  }
+}
+
+function drawGalvanometerDial(ctx, cx, cy, r, current_mA, label = 'G') {
+  ctx.save();
+  ctx.fillStyle = '#05101e';
+  ctx.strokeStyle = Math.abs(current_mA) < 0.8 ? '#34d399' : '#38bdf8';
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  for (let a = -60; a <= 60; a += 30) {
+    const rad = ((a - 90) * Math.PI) / 180;
+    ctx.strokeStyle = a === 0 ? '#34d399' : '#94a3b8';
+    ctx.lineWidth = a === 0 ? 2.2 : 1.3;
+    ctx.beginPath();
+    ctx.moveTo(cx + (r - 9) * Math.cos(rad), cy + (r - 9) * Math.sin(rad));
+    ctx.lineTo(cx + (r - 2) * Math.cos(rad), cy + (r - 2) * Math.sin(rad));
+    ctx.stroke();
+  }
+
+  const defl = Math.max(-65, Math.min(65, current_mA * 2.5));
+  const nRad = ((defl - 90) * Math.PI) / 180;
+  ctx.strokeStyle = Math.abs(current_mA) < 0.8 ? '#34d399' : '#fb7185';
+  ctx.lineWidth = 2.8;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 6);
+  ctx.lineTo(cx + (r - 7) * Math.cos(nRad), cy + (r - 7) * Math.sin(nRad));
+  ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '800 11.5px ' + CANVAS_FONT;
+  ctx.textAlign = 'center';
+  ctx.fillText(label, cx, cy + r - 6);
+  ctx.restore();
+}
+
+// ============================================================================
+// 6. MAIN SIMULATION RENDERING (All 9 Current Electricity Labs)
+// ============================================================================
+function renderSceneCanvas(data, dt) {
+  const canvas = $('sim-canvas');
+  const viewport = $('sim-stage-viewport') || canvas.parentElement;
+  const rect = viewport.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const targetW = Math.max(260, Math.floor(rect.width));
+  const targetH = Math.max(260, Math.floor(rect.height));
+  if (canvas.width !== Math.round(targetW * dpr) || canvas.height !== Math.round(targetH * dpr)) {
+    canvas.width = Math.round(targetW * dpr);
+    canvas.height = Math.round(targetH * dpr);
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, targetW, targetH);
+
+  // Reserve space above the bottom instruction pill when Hints are ON so bottom vectors/labels never clip
+  const hintVisible = !$('canvas-hint').hidden;
+  const W = targetW;
+  const H = Math.max(250, targetH - (hintVisible ? 36 : 8));
+
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.08)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < targetW; x += 36) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, targetH); ctx.stroke();
+  }
+  for (let y = 0; y < targetH; y += 36) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(targetW, y); ctx.stroke();
+  }
+
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(zoomLevel, zoomLevel);
+  ctx.translate(-W / 2, -H / 2);
+
+  const showVec = $('chk-vectors').checked;
+  const showElec = $('chk-electrons').checked;
+  const showLbl = $('chk-labels').checked;
+  const showGlow = $('chk-glow').checked;
+  const topicId = TOPICS[currentTopicIndex].id;
+
+  const WIRE_COLOR = '#cbd5e1'; // High-contrast crisp silver-white wire color
+
+  // LAB 01: DRIFT
+  if (topicId === 'drift') {
+    const cx = W / 2, cy = H / 2;
+    const wireW = Math.min(W * 0.76, 680);
+    const maxWireH = Math.max(90, H - 140);
+    const wireH = Math.min(maxWireH, 64 + params.A * 20);
+    const left = cx - wireW / 2, right = cx + wireW / 2;
+    const top = cy - wireH / 2, bot = cy + wireH / 2;
+
+    canvas._handles = [{ id: 'drift-area', x: cx, y: top, r: 18 }];
+
+    const cylGrad = ctx.createLinearGradient(0, top, 0, bot);
+    cylGrad.addColorStop(0, 'rgba(56, 189, 248, 0.32)');
+    cylGrad.addColorStop(0.5, 'rgba(12, 28, 48, 0.85)');
+    cylGrad.addColorStop(1, 'rgba(56, 189, 248, 0.32)');
+    ctx.fillStyle = cylGrad;
+    ctx.strokeStyle = '#7dd3fc';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.roundRect(left, top, wireW, wireH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, top, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (showLbl) {
+      drawBadge(ctx, cx, top - 22, `[Drag Area A = ${params.A.toFixed(1)} mm^2]`, '#061325', '#fbbf24', '#fef08a');
+    }
+
+    const rows = 3, cols = 8;
+    const vibAmp = (params.T / 300) * 3.8;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const ix = left + ((c + 0.5) / cols) * wireW + Math.sin(simTime * 16 + r * 3 + c * 5) * vibAmp;
+        const iy = top + ((r + 0.5) / rows) * wireH + Math.cos(simTime * 18 + r * 7 + c * 2) * vibAmp;
+        if (showGlow) {
+          ctx.fillStyle = 'rgba(251, 146, 60, 0.22)';
+          ctx.beginPath(); ctx.arc(ix, iy, 14, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.fillStyle = '#fb923c';
+        ctx.beginPath(); ctx.arc(ix, iy, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#04101c';
+        ctx.font = '800 11px ' + CANVAS_FONT;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('+', ix, iy);
+      }
+    }
+
+    const activeCount = Math.min(driftParticles.length, Math.round(params.n * 3));
+    for (let i = 0; i < activeCount; i++) {
+      const el = driftParticles[i];
+      if (isPlaying && dt > 0) {
+        const thermalSpeed = 0.28 * Math.sqrt(params.T / 300);
+        const driftVx = -0.012 * data.vd;
+        el.x += (el.vx * thermalSpeed + driftVx) * dt;
+        el.y += el.vy * thermalSpeed * dt;
+        if (Math.random() < dt * (3.5 / data.tau)) {
+          const ang = Math.random() * Math.PI * 2;
+          el.vx = Math.cos(ang);
+          el.vy = Math.sin(ang);
+        }
+        if (el.x < 0) { el.x += 1; el.trail = []; }
+        if (el.x > 1) { el.x -= 1; el.trail = []; }
+        if (el.y < -0.42) { el.y = -0.42; el.vy *= -1; }
+        if (el.y > 0.42) { el.y = 0.42; el.vy *= -1; }
+      }
+      const px = left + el.x * wireW;
+      const py = cy + el.y * wireH;
+      if (i === trackedElectronIdx) {
+        if (isPlaying) {
+          el.trail.push([px, py]);
+          if (el.trail.length > 55) el.trail.shift();
+        }
+        if (el.trail.length > 1) {
+          ctx.strokeStyle = '#34d399';
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          el.trail.forEach(([tx, ty], idx) => idx ? ctx.lineTo(tx, ty) : ctx.moveTo(tx, ty));
+          ctx.stroke();
+        }
+      }
+      if (showElec) {
+        ctx.fillStyle = i === trackedElectronIdx ? '#34d399' : '#38bdf8';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = i === trackedElectronIdx ? 1.5 : 0.6;
+        ctx.beginPath();
+        ctx.arc(px, py, i === trackedElectronIdx ? 7 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }
+
+    if (showVec) {
+      if (params.E > 0) {
+        drawArrow(ctx, left + 40, top - 42, left + 40 + params.E * 11, top - 42, '#38bdf8', 3.2, `Electric Field E (${params.E} V/m)`, showLbl);
+        drawArrow(ctx, right - 40, bot + 38, right - 40 - Math.min(220, data.vd * 4.5), bot + 38, '#34d399', 3.2, `Electron Drift vd (${data.vd.toFixed(1)} mm/s)`, showLbl);
+        drawArrow(ctx, left + 40, bot + 38, left + 40 + Math.min(220, data.I * 3.8), bot + 38, '#fbbf24', 3.2, `Conventional Current I (${data.I.toFixed(1)} A)`, showLbl);
+      } else if (showLbl) {
+        drawBadge(ctx, cx, bot + 38, 'E = 0 V/m -> Pure Thermal Motion (Zero Net Drift, I = 0 A)', '#061325', '#94a3b8');
+      }
+    }
+  }
+
+  // LAB 02: RESISTANCE & MATERIALS
+  else if (topicId === 'resistance') {
+    const cx = W / 2, cy = H / 2 - 34;
+    const maxW = Math.min(W * 0.72, 620);
+    const wireW = 110 + (params.L / 10) * (maxW - 110);
+    const maxWireH = Math.max(60, H - 210);
+    const wireH = Math.min(maxWireH, 32 + (params.A / 5) * 82);
+    const left = cx - wireW / 2, right = cx + wireW / 2;
+    const top = cy - wireH / 2, bot = cy + wireH / 2;
+
+    canvas._handles = [
+      { id: 'res-len', x: right, y: cy, r: 18 },
+      { id: 'res-area', x: cx, y: top, r: 18 }
+    ];
+
+    if (showGlow) {
+      const heatRatio = Math.min(1, (params.T / 300) * 0.7 + (data.P / 50) * 0.3);
+      const g = ctx.createRadialGradient(cx, cy, 20, cx, cy, wireW * 0.6);
+      g.addColorStop(0, `rgba(251, 113, 133, ${0.32 * heatRatio})`);
+      g.addColorStop(1, 'rgba(251, 113, 133, 0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(left - 40, top - 40, wireW + 80, wireH + 80);
+    }
+
+    const matColors = [
+      ['#fb923c', '#9a3412'],
+      ['#cbd5e1', '#475569'],
+      ['#c084fc', '#581c87']
+    ][params.mat];
+
+    const grad = ctx.createLinearGradient(0, top, 0, bot);
+    grad.addColorStop(0, matColors[0]);
+    grad.addColorStop(0.5, matColors[1]);
+    grad.addColorStop(1, matColors[0]);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.roundRect(left, top, wireW, wireH, 14);
+    ctx.fill();
+    ctx.stroke();
+
+    if (showElec) {
+      const count = params.mat === 2 ? Math.round(6 + 34 * Math.pow(params.T / 300, 2)) : 24;
+      for (let i = 0; i < count; i++) {
+        const u = ((i / count) + simTime * data.I * 0.03) % 1;
+        const px = right - u * wireW;
+        const py = top + 12 + ((i * 37) % Math.max(10, wireH - 24));
+        ctx.fillStyle = params.mat === 2 ? '#f0abfc' : '#7dd3fc';
+        ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    ctx.fillStyle = '#34d399'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(right, cy, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.arc(cx, top, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    if (showLbl) {
+      drawBadge(ctx, right, cy - 28, `[Drag L = ${params.L.toFixed(1)} m]`, '#062019', '#34d399', '#a7f3d0');
+      drawBadge(ctx, cx, top - 24, `[Drag A = ${params.A.toFixed(1)} mm^2]`, '#231908', '#fbbf24', '#fef08a');
+      drawBadge(ctx, cx, bot + 28, `${data.matName} | T = ${params.T} deg C | R = ${data.R.toFixed(3)} Ohm`, '#061325', '#38bdf8');
+    }
+
+    const loopY = bot + 75;
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(left, cy); ctx.lineTo(left - 35, cy); ctx.lineTo(left - 35, loopY); ctx.lineTo(cx - 20, loopY);
+    ctx.moveTo(cx + 20, loopY); ctx.lineTo(right + 35, loopY); ctx.lineTo(right + 35, cy); ctx.lineTo(right, cy);
+    ctx.stroke();
+    drawBattery(ctx, cx, loopY, false, `${params.V} V`, false, showLbl);
+  }
+
+  // LAB 03: OHM'S LAW & MULTIMETER PROBES
+  else if (topicId === 'circuit') {
+    const padX = W * 0.14, padY = H * 0.16;
+    const cw = W - padX * 2, ch = H - padY * 2;
+    const xL = padX, xR = padX + cw, yT = padY, yB = padY + ch;
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3.2;
+
+    if (params.mode === 0) {
+      ctx.strokeRect(xL, yT, cw, ch);
+      ctx.clearRect(xL - 12, (yT + yB) / 2 - 18, 24, 36);
+      drawBattery(ctx, xL, (yT + yB) / 2, true, `${params.V}V`, false, showLbl);
+      const sW = cw / 3;
+      ctx.clearRect(xL + 20, yT - 15, cw - 40, 30);
+      drawZigzagResistor(ctx, xL, yT, xL + sW, yT, `R1=${params.R1} Ohm (${data.V1.toFixed(1)}V)`, data.P1, showGlow, showLbl);
+      drawZigzagResistor(ctx, xL + sW, yT, xL + 2 * sW, yT, `R2=${params.R2} Ohm (${data.V2.toFixed(1)}V)`, data.P2, showGlow, showLbl);
+      drawZigzagResistor(ctx, xL + 2 * sW, yT, xR, yT, `R3=${params.R3} Ohm (${data.V3.toFixed(1)}V)`, data.P3, showGlow, showLbl);
+    } else if (params.mode === 1) {
+      const b1 = xL + cw * 0.35, b2 = xL + cw * 0.65, b3 = xR;
+      ctx.beginPath();
+      ctx.moveTo(xL, yT); ctx.lineTo(xR, yT);
+      ctx.moveTo(xL, yB); ctx.lineTo(xR, yB);
+      ctx.moveTo(xL, yT); ctx.lineTo(xL, yB);
+      ctx.stroke();
+      ctx.clearRect(xL - 12, (yT + yB) / 2 - 18, 24, 36);
+      drawBattery(ctx, xL, (yT + yB) / 2, true, `${params.V}V`, false, showLbl);
+      drawZigzagResistor(ctx, b1, yT, b1, yB, `R1=${params.R1} Ohm (${data.I1.toFixed(1)}A)`, data.P1, showGlow, showLbl);
+      drawZigzagResistor(ctx, b2, yT, b2, yB, `R2=${params.R2} Ohm (${data.I2.toFixed(1)}A)`, data.P2, showGlow, showLbl);
+      drawZigzagResistor(ctx, b3, yT, b3, yB, `R3=${params.R3} Ohm (${data.I3.toFixed(1)}A)`, data.P3, showGlow, showLbl);
+    } else {
+      const midX = xL + cw * 0.46;
+      const pMid = (yT + yB) * 0.52;
+      ctx.beginPath();
+      ctx.moveTo(xL, yB); ctx.lineTo(xR, yB);
+      ctx.moveTo(xL, yT); ctx.lineTo(xL, yB);
+      ctx.moveTo(xR, yT); ctx.lineTo(xR, yB);
+      ctx.moveTo(midX, yT); ctx.lineTo(midX, pMid);
+      ctx.stroke();
+      ctx.clearRect(xL - 12, (yT + yB) / 2 - 18, 24, 36);
+      drawBattery(ctx, xL, (yT + yB) / 2, true, `${params.V}V`, false, showLbl);
+      drawZigzagResistor(ctx, xL, yT, midX, yT, `R1=${params.R1} Ohm (${data.V1.toFixed(1)}V)`, data.P1, showGlow, showLbl);
+      drawZigzagResistor(ctx, midX, yT, xR, yT, `R2=${params.R2} Ohm (${data.I2.toFixed(2)}A)`, data.P2, showGlow, showLbl);
+      drawZigzagResistor(ctx, midX, pMid, xR, pMid, `R3=${params.R3} Ohm (${data.I3.toFixed(2)}A)`, data.P3, showGlow, showLbl);
+    }
+
+    if (showElec) {
+      circuitParticles.forEach((pt, idx) => {
+        if (isPlaying) pt.u = (pt.u + dt * 0.14 * Math.max(0.4, data.I_tot)) % 1;
+        const px = xL + pt.u * cw;
+        const py = idx % 2 === 0 ? yT : yB;
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+
+    drawMultimeterProbesOnNodes(ctx, canvas, data.nodes, W, H, showLbl);
+  }
+
+  // LAB 04: CELLS & INTERNAL RESISTANCE
+  else if (topicId === 'cell') {
+    const xL = W * 0.16, xR = W * 0.84, yT = H * 0.24, yB = H * 0.78;
+    ctx.save();
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.1)';
+    ctx.strokeStyle = '#fbbf24';
+    ctx.setLineDash([6, 5]);
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.roundRect(xL + 40, yT - 38, (xR - xL) * 0.55, 84, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3.2;
+    ctx.strokeRect(xL, yT, xR - xL, yB - yT);
+
+    const bx = xL + 105, rx = xL + 235;
+    ctx.clearRect(bx - 18, yT - 18, 36, 36);
+    drawBattery(ctx, bx, yT, false, `E_eq = ${data.Eeq.toFixed(1)}V`, false, showLbl);
+    ctx.clearRect(rx - 40, yT - 15, 80, 30);
+    drawZigzagResistor(ctx, rx - 45, yT, rx + 45, yT, `r_eq = ${data.req.toFixed(2)} Ohm (Drop: ${data.Vdrop.toFixed(2)}V)`, data.I * data.Vdrop, showGlow, showLbl);
+
+    const loadLeft = xL + 130, loadRight = xR - 130;
+    ctx.clearRect(loadLeft, yB - 16, loadRight - loadLeft, 32);
+    drawZigzagResistor(ctx, loadLeft, yB, loadRight, yB, `External Load R = ${params.R.toFixed(1)} Ohm  |  P_load = ${data.Pload.toFixed(2)} W`, data.Pload, showGlow, showLbl);
+
+    const sliderX = loadLeft + ((params.R - 0.2) / 19.8) * (loadRight - loadLeft);
+    canvas._handles = [{ id: 'cell-load', x: sliderX, y: yB - 18, r: 22, minX: loadLeft, maxX: loadRight }];
+    drawArrow(ctx, sliderX, yB - 36, sliderX, yB - 6, '#34d399', 3.5, '', false);
+    if (showLbl) {
+      drawBadge(ctx, sliderX, yB - 48, '[Drag Load R]', '#062019', '#34d399', '#a7f3d0');
+      drawBadge(ctx, (xL + xR) / 2, (yT + yB) / 2, `Terminal Voltage V = E_eq - I*r_eq = ${data.Vterm.toFixed(2)} V   |   Current I = ${data.I.toFixed(2)} A`, '#061325', '#38bdf8');
+    }
+  }
+
+  // LAB 05: KIRCHHOFF'S LAWS
+  else if (topicId === 'kirchhoff') {
+    const xL = W * 0.16, xM = W * 0.50, xR = W * 0.84;
+    const yT = H * 0.22, yB = H * 0.78, yMid = (yT + yB) / 2;
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3.2;
+    ctx.strokeRect(xL, yT, xR - xL, yB - yT);
+    ctx.beginPath(); ctx.moveTo(xM, yT); ctx.lineTo(xM, yB); ctx.stroke();
+
+    ctx.clearRect(xL - 14, yMid - 18, 28, 36);
+    drawBattery(ctx, xL, yMid, true, `E1=${params.E1}V`, false, showLbl);
+    ctx.clearRect(xR - 14, yMid - 18, 28, 36);
+    drawBattery(ctx, xR, yMid, true, `E2=${params.E2}V`, false, showLbl);
+
+    ctx.clearRect((xL + xM) / 2 - 45, yT - 14, 90, 28);
+    drawZigzagResistor(ctx, xL + 30, yT, xM - 30, yT, `R1=${params.R1} Ohm`, Math.abs(data.I1 * data.I1 * params.R1), showGlow, showLbl);
+    ctx.clearRect((xM + xR) / 2 - 45, yT - 14, 90, 28);
+    drawZigzagResistor(ctx, xM + 30, yT, xR - 30, yT, `R3=${params.R3} Ohm`, Math.abs(data.I3 * data.I3 * params.R3), showGlow, showLbl);
+    ctx.clearRect(xM - 15, yMid - 45, 30, 90);
+    drawZigzagResistor(ctx, xM, yT + 35, xM, yB - 35, `R2=${params.R2} Ohm`, Math.abs(data.I2 * data.I2 * params.R2), showGlow, showLbl);
+
+    if (showVec) {
+      drawArrow(ctx, xL + 40, yT + 26, xM - 40, yT + 26, '#38bdf8', 2.6, `I1 = ${data.I1.toFixed(2)} A`, showLbl);
+      drawArrow(ctx, xR - 40, yT + 26, xM + 40, yT + 26, '#c084fc', 2.6, `I3 = ${data.I3.toFixed(2)} A`, showLbl);
+      drawArrow(ctx, xM - 28, yT + 45, xM - 28, yB - 45, '#34d399', 2.6, `I2 = ${data.I2.toFixed(2)} A`, showLbl);
+    }
+
+    if (showLbl) {
+      drawBadge(ctx, xM, yT - 26, `Node B: VB = ${data.VB.toFixed(2)} V`, '#062019', '#34d399');
+      drawBadge(ctx, xM, yB + 26, `Reference Node E: VE = 0.00 V`, '#061325', '#94a3b8');
+    }
+
+    if (isPlaying) kvlWalkerProgress = (kvlWalkerProgress + dt * 0.14) % 1;
+    const loopPaths = [
+      [[xL, yB], [xL, yT], [xM, yT], [xM, yB], [xL, yB]],
+      [[xM, yB], [xM, yT], [xR, yT], [xR, yB], [xM, yB]],
+      [[xL, yB], [xL, yT], [xR, yT], [xR, yB], [xL, yB]]
+    ][params.loop];
+
+    const segIdx = Math.min(3, Math.floor(kvlWalkerProgress * 4));
+    const segT = (kvlWalkerProgress * 4) - segIdx;
+    const pA = loopPaths[segIdx], pB = loopPaths[segIdx + 1];
+    const wx = pA[0] + (pB[0] - pA[0]) * segT;
+    const wy = pA[1] + (pB[1] - pA[1]) * segT;
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(wx, wy, 9, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (showLbl) {
+      drawBadge(ctx, wx, wy - 22, 'KVL Probe', '#231908', '#fbbf24', '#fef08a');
+    }
+  }
+
+  // LAB 06: WHEATSTONE & METER BRIDGE
+  else if (topicId === 'wheatstone') {
+    if (params.view === 0) {
+      const cx = W / 2, cy = H / 2;
+      const dx = Math.min(W * 0.32, 260), dy = Math.min(H * 0.36, 155);
+      const A = [cx - dx, cy], B = [cx, cy - dy], C = [cx + dx, cy], D = [cx, cy + dy];
+
+      ctx.strokeStyle = WIRE_COLOR;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(B[0], B[1]); ctx.lineTo(D[0], D[1]);
+      ctx.stroke();
+
+      drawZigzagResistor(ctx, A[0], A[1], B[0], B[1], `P = ${params.P} Ohm`, 2, showGlow, showLbl);
+      drawZigzagResistor(ctx, B[0], B[1], C[0], C[1], `Q = ${params.Q} Ohm`, 2, showGlow, showLbl);
+      drawZigzagResistor(ctx, A[0], A[1], D[0], D[1], `R = ${params.R} Ohm`, 2, showGlow, showLbl);
+      drawZigzagResistor(ctx, D[0], D[1], C[0], C[1], `S = ${params.S} Ohm`, 2, showGlow, showLbl);
+
+      drawGalvanometerDial(ctx, cx, cy, 32, data.Ig * 1000, 'G');
+      if (showLbl) {
+        drawBadge(ctx, A[0] - 46, A[1], 'VA = 10V', '#061325', '#fbbf24');
+        drawBadge(ctx, C[0] + 46, C[1], 'VC = 0V', '#061325', '#94a3b8');
+        drawBadge(ctx, B[0], B[1] - 24, `VB = ${data.VB.toFixed(2)}V`, '#061325', '#38bdf8');
+        drawBadge(ctx, D[0], D[1] + 24, `VD = ${data.VD.toFixed(2)}V`, '#061325', '#38bdf8');
+      }
+      canvas._handles = [];
+    } else {
+      const xL = W * 0.12, xR = W * 0.88;
+      const wireY = H * 0.72, topY = H * 0.25;
+      const wireLen = xR - xL;
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 2;
+      ctx.fillRect(xL - 12, topY, 24, wireY - topY);
+      ctx.fillRect(xR - 12, topY, 24, wireY - topY);
+      ctx.fillRect(xL, topY - 10, wireLen * 0.22, 18);
+      ctx.fillRect(xL + wireLen * 0.38, topY - 10, wireLen * 0.24, 18);
+      ctx.fillRect(xL + wireLen * 0.78, topY - 10, wireLen * 0.22, 18);
+
+      drawZigzagResistor(ctx, xL + wireLen * 0.22, topY, xL + wireLen * 0.38, topY, `Box R = ${params.P} Ohm`, 2, showGlow, showLbl);
+      drawZigzagResistor(ctx, xL + wireLen * 0.62, topY, xL + wireLen * 0.78, topY, `Unknown X = ${params.R} Ohm`, 2, showGlow, showLbl);
+
+      // High-Contrast Meter Bridge Ruler Bar
+      ctx.fillStyle = '#173254';
+      ctx.strokeStyle = '#7dd3fc';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(xL, wireY + 8, wireLen, 28);
+      ctx.strokeRect(xL, wireY + 8, wireLen, 28);
+      for (let cm = 0; cm <= 100; cm += 10) {
+        const tx = xL + (cm / 100) * wireLen;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(tx, wireY + 8); ctx.lineTo(tx, wireY + 18); ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 10.5px ' + CANVAS_FONT;
+        ctx.textAlign = 'center';
+        ctx.fillText(cm + ' cm', tx, wireY + 30);
+      }
+
+      // Bright Golden Manganin Wire
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 4.5;
+      ctx.beginPath(); ctx.moveTo(xL, wireY); ctx.lineTo(xR, wireY); ctx.stroke();
+
+      const jx = xL + (params.jockey / 100) * wireLen;
+      const midTopX = (xL + xR) / 2;
+      ctx.strokeStyle = WIRE_COLOR;
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(midTopX, topY + 8);
+      ctx.lineTo(jx, wireY - 12);
+      ctx.stroke();
+
+      drawGalvanometerDial(ctx, (midTopX + jx) / 2, (topY + wireY) / 2 - 10, 30, data.Ig * 1000, 'G');
+
+      canvas._handles = [{ id: 'mb-jockey', x: jx, y: wireY, r: 22, minX: xL, maxX: xR }];
+      drawArrow(ctx, jx, wireY - 34, jx, wireY - 2, data.balanced ? '#34d399' : '#fbbf24', 3.5, '', false);
+      if (showLbl) {
+        drawBadge(ctx, jx, wireY - 46, `[Drag Jockey J: l1 = ${params.jockey.toFixed(1)} cm]`, data.balanced ? '#062019' : '#231908', data.balanced ? '#34d399' : '#fbbf24');
+      }
+    }
+  }
+
+  // LAB 07: POTENTIOMETER
+  else if (topicId === 'potentiometer') {
+    const xL = W * 0.12, xR = W * 0.88;
+    const wireLen = xR - xL;
+    const primaryY = H * 0.16, wireY = H * 0.45, secY = H * 0.77;
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(xL, wireY); ctx.lineTo(xL, primaryY); ctx.lineTo(xR, primaryY); ctx.lineTo(xR, wireY);
+    ctx.stroke();
+    const midX = (xL + xR) / 2;
+    ctx.clearRect(midX - 24, primaryY - 16, 48, 32);
+    drawBattery(ctx, midX, primaryY, false, `Driver V0 = ${params.V0}V (V_AB = ${data.V_AB.toFixed(2)}V)`, false, showLbl);
+
+    // High-contrast 400 cm Potentiometer Wire & Scale
+    ctx.fillStyle = '#173254';
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 3;
+    ctx.fillRect(xL, wireY - 7, wireLen, 14);
+    ctx.strokeRect(xL, wireY - 7, wireLen, 14);
+    for (let cm = 0; cm <= 400; cm += 50) {
+      const tx = xL + (cm / 400) * wireLen;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 10.5px ' + CANVAS_FONT;
+      ctx.textAlign = 'center';
+      ctx.fillText(cm + 'cm', tx, wireY + 24);
+    }
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(xL, wireY); ctx.lineTo(xL, secY); ctx.lineTo(xL + wireLen * 0.45, secY);
+    ctx.stroke();
+    ctx.clearRect(xL + wireLen * 0.22 - 20, secY - 16, 40, 32);
+    drawBattery(ctx, xL + wireLen * 0.22, secY, false, `${data.modeText}: ${data.V_target.toFixed(2)}V`, false, showLbl);
+
+    if (params.exp === 0) {
+      const shY = secY + 46;
+      ctx.strokeStyle = params.k2 === 1 ? '#34d399' : '#94a3b8';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash(params.k2 === 1 ? [] : [6, 5]);
+      ctx.beginPath();
+      ctx.moveTo(xL + wireLen * 0.08, secY); ctx.lineTo(xL + wireLen * 0.08, shY);
+      ctx.lineTo(xL + wireLen * 0.36, shY); ctx.lineTo(xL + wireLen * 0.36, secY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawBadge(ctx, xL + wireLen * 0.22, shY, `Shunt R=${params.Rsh} Ohm | Key K2: ${params.k2 ? 'CLOSED' : 'OPEN'} (Click)`, params.k2 ? '#062019' : '#061325', params.k2 ? '#34d399' : '#94a3b8');
+    }
+
+    const jx = xL + (params.Lpos / 400) * wireLen;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(xL + wireLen * 0.45, secY);
+    ctx.lineTo(jx, wireY + 7);
+    ctx.stroke();
+
+    drawGalvanometerDial(ctx, (xL + wireLen * 0.45 + jx) / 2, (secY + wireY) / 2 + 6, 28, data.Ig_mA, 'G');
+    canvas._handles = [
+      { id: 'pot-jockey', x: jx, y: wireY, r: 22, minX: xL, maxX: xR },
+      { id: 'pot-k2', x: xL + wireLen * 0.22, y: secY + 46, r: 28 }
+    ];
+
+    const isNull = Math.abs(data.Ig_mA) < 0.8;
+    drawArrow(ctx, jx, wireY - 34, jx, wireY - 7, isNull ? '#34d399' : '#fbbf24', 3.5, '', false);
+    if (showLbl) {
+      drawBadge(ctx, jx, wireY - 46, `[Drag Jockey l = ${params.Lpos.toFixed(0)} cm (${data.V_jockey.toFixed(2)}V)]`, isNull ? '#062019' : '#231908', isNull ? '#34d399' : '#fbbf24');
+    }
+  }
+
+  // LAB 08: RC CIRCUIT TRANSIENTS
+  else if (topicId === 'rc') {
+    const xL = W * 0.16, xM = W * 0.48, xR = W * 0.82;
+    const yT = H * 0.22, yB = H * 0.78, yMid = (yT + yB) / 2;
+
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.moveTo(xL, yB); ctx.lineTo(xL, yT); ctx.lineTo(xL + 75, yT);
+    ctx.moveTo(xM - 55, yT + 48); ctx.lineTo(xM - 55, yB);
+    ctx.moveTo(xM - 10, yT); ctx.lineTo(xR, yT); ctx.lineTo(xR, yB); ctx.lineTo(xL, yB);
+    ctx.stroke();
+
+    ctx.clearRect(xL - 15, yMid - 18, 30, 36);
+    drawBattery(ctx, xL, yMid, true, `V0 = ${params.V0}V`, false, showLbl);
+
+    const swPivot = [xM - 10, yT];
+    const termA = [xL + 75, yT];
+    const termB = [xM - 55, yT + 48];
+    const target = params.sw === 0 ? termA : termB;
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(swPivot[0], swPivot[1]);
+    ctx.lineTo(target[0], target[1]);
+    ctx.stroke();
+
+    canvas._handles = [{ id: 'rc-switch', x: (swPivot[0] + target[0]) / 2, y: (swPivot[1] + target[1]) / 2, r: 32 }];
+    if (showLbl) {
+      drawBadge(ctx, swPivot[0] - 25, yT - 26, `[Click Switch: ${params.sw === 0 ? 'A (Charging)' : 'B (Discharging)'}]`, '#062019', '#34d399');
+    }
+
+    ctx.clearRect((xM + xR) / 2 - 45, yT - 15, 90, 30);
+    drawZigzagResistor(ctx, xM + 20, yT, xR - 30, yT, `R = ${params.R} kOhm (I = ${data.I_mA.toFixed(2)} mA)`, Math.abs(data.I_mA * data.vr), showGlow, showLbl);
+
+    const capGap = 28;
+    ctx.clearRect(xR - 30, yMid - capGap / 2, 60, capGap);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(xR - 36, yMid - capGap / 2); ctx.lineTo(xR + 36, yMid - capGap / 2);
+    ctx.moveTo(xR - 36, yMid + capGap / 2); ctx.lineTo(xR + 36, yMid + capGap / 2);
+    ctx.stroke();
+
+    const chargeFrac = Math.min(1, Math.abs(data.vc) / Math.max(1, params.V0));
+    const numArrows = Math.round(chargeFrac * 5);
+    for (let i = 0; i < numArrows; i++) {
+      const ax = xR - 24 + i * 12;
+      drawArrow(ctx, ax, yMid - capGap / 2 + 3, ax, yMid + capGap / 2 - 3, '#38bdf8', 2, '', false);
+    }
+    if (showLbl) {
+      drawBadge(ctx, xR - 88, yMid, `VC = ${data.vc.toFixed(2)} V`, '#061325', '#38bdf8');
+    }
+  }
+
+  // LAB 09: INTERACTIVE CIRCUIT BUILDER SANDBOX MODE
+  else if (topicId === 'sandbox') {
+    const xL = W * 0.16, xMid = W * 0.44, xB2 = W * 0.62, xB3 = W * 0.80;
+    const yT = H * 0.22, yB = H * 0.80, yCenter = (yT + yB) / 2;
+
+    // Main rails
+    ctx.strokeStyle = WIRE_COLOR;
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.moveTo(xL, yB); ctx.lineTo(xL, yT);
+    ctx.moveTo(xL, yT); ctx.lineTo(xB3, yT);
+    ctx.moveTo(xL, yB); ctx.lineTo(xB3, yB);
+    ctx.stroke();
+
+    // Battery on Left Rail
+    ctx.clearRect(xL - 16, yCenter - 18, 32, 36);
+    drawBattery(ctx, xL, yCenter, true, `Vs = ${params.Vs}V`, false, showLbl);
+
+    // Helper to draw any customizable slot (0=Bulb, 1=Resistor, 2=Closed Wire, 3=Open Switch)
+    const drawSandboxSlot = (x1, y1, x2, y2, type, rVal, pWatts, slotTag) => {
+      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2;
+      ctx.clearRect(cx - 24, cy - 24, 48, 48);
+      if (type === 0) {
+        drawBulbComponent(ctx, x1, y1, x2, y2, `${slotTag}: Bulb (${rVal} Ohm, ${pWatts.toFixed(1)}W)`, pWatts, showGlow, showLbl);
+      } else if (type === 1) {
+        drawZigzagResistor(ctx, x1, y1, x2, y2, `${slotTag}: R=${rVal} Ohm (${pWatts.toFixed(1)}W)`, pWatts, showGlow, showLbl);
+      } else if (type === 2) {
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 4.5;
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        if (showLbl) drawBadge(ctx, cx, cy - 22, `${slotTag}: SHORT WIRE (0 Ohm)`, '#062019', '#34d399', '#a7f3d0');
+      } else {
+        // Open switch
+        ctx.strokeStyle = '#fb7185';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(cx - 14, cy);
+        ctx.moveTo(cx - 14, cy); ctx.lineTo(cx + 12, cy - 16);
+        ctx.moveTo(cx + 14, cy); ctx.lineTo(x2, y2);
+        ctx.stroke();
+        if (showLbl) drawBadge(ctx, cx, cy - 26, `${slotTag}: OPEN SWITCH (OFF)`, '#2c0b14', '#fb7185', '#fecdd3');
+      }
+      return { cx, cy };
+    };
+
+    const s1Pt = drawSandboxSlot(xL + 20, yT, xMid - 20, yT, params.s1, params.r1, data.P_s1, 'S1');
+    const s2Pt = drawSandboxSlot(xMid, yT, xMid, yB, params.s2, params.r2, data.P_s2, 'S2');
+    const s3Pt = drawSandboxSlot(xB2, yT, xB2, yB, params.s3, params.r3, data.P_s3, 'S3');
+    const s4Pt = drawSandboxSlot(xB3, yT, xB3, yB, params.s4, 6, data.P_s4, 'S4');
+
+    // Animated current carriers
+    if (showElec && data.I_main > 0.01) {
+      circuitParticles.forEach((pt, idx) => {
+        if (isPlaying) pt.u = (pt.u + dt * 0.14 * Math.min(4, data.I_main)) % 1;
+        const px = xL + pt.u * (xB3 - xL);
+        const py = idx % 2 === 0 ? yT : yB;
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+
+    drawMultimeterProbesOnNodes(ctx, canvas, data.nodes, W, H, showLbl);
+
+    // Add clickable slot handles so clicking S1, S2, S3, S4 cycles their component!
+    canvas._handles.push(
+      { id: 'sb-slot-s1', x: s1Pt.cx, y: s1Pt.cy, r: 28 },
+      { id: 'sb-slot-s2', x: s2Pt.cx, y: s2Pt.cy, r: 28 },
+      { id: 'sb-slot-s3', x: s3Pt.cx, y: s3Pt.cy, r: 28 },
+      { id: 'sb-slot-s4', x: s4Pt.cx, y: s4Pt.cy, r: 28 }
+    );
+  }
+
+  ctx.restore();
+}
+
+function drawMultimeterProbesOnNodes(ctx, canvas, nodes, W, H, showLbl) {
+  const nodeScreenPts = nodes.map((nd, idx) => ({
+    idx,
+    name: nd.name,
+    v: nd.v,
+    x: nd.x * W,
+    y: nd.y * H
+  }));
+
+  const rNode = nodeScreenPts[probePos.redNode] || nodeScreenPts[0];
+  const bNode = nodeScreenPts[probePos.blackNode] || nodeScreenPts[2];
+  const rx = probePos.redXY ? probePos.redXY[0] : rNode.x;
+  const ry = probePos.redXY ? probePos.redXY[1] : rNode.y;
+  const bx = probePos.blackXY ? probePos.blackXY[0] : bNode.x;
+  const by = probePos.blackXY ? probePos.blackXY[1] : bNode.y;
+
+  canvas._handles = [
+    { id: 'probe-red', x: rx, y: ry - 22, r: 24, nodes: nodeScreenPts },
+    { id: 'probe-black', x: bx, y: by - 22, r: 24, nodes: nodeScreenPts }
+  ];
+
+  nodeScreenPts.forEach(nd => {
+    ctx.fillStyle = '#38bdf8';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(nd.x, nd.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (showLbl) {
+      drawBadge(ctx, nd.x, nd.y + 24, `${nd.name}: ${nd.v.toFixed(1)}V`, '#051120', '#38bdf8', '#ffffff');
+    }
+  });
+
+  // High-Contrast Red V+ and Bright Ice-Cyan V- Probe Pins
+  const drawProbePin = (x, y, fill, border, tag) => {
+    ctx.save();
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 11, y - 26);
+    ctx.lineTo(x + 11, y - 26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    drawBadge(ctx, x, y - 40, tag, '#051120', border, '#ffffff');
+    ctx.restore();
+  };
+  drawProbePin(rx, ry, '#fb7185', '#fb7185', `V+ (${rNode.v.toFixed(1)}V)`);
+  drawProbePin(bx, by, '#38bdf8', '#7dd3fc', `V- (${bNode.v.toFixed(1)}V)`);
+}
+
+// ============================================================================
+// 7. DUAL GRAPH RENDERING (High-Contrast Live Scope + Main Quantitative Graph)
+// ============================================================================
+function renderGraphs(data) {
+  const topicId = TOPICS[currentTopicIndex].id;
+  const miniEl = $('mini-graph-canvas');
+  const miniW = miniEl && !miniEl.parentElement.hidden ? Math.max(210, Math.floor(miniEl.clientWidth || 255)) : 255;
+  const miniH = isFullscreen ? 250 : 215;
+  const canvases = [
+    { el: $('main-graph-canvas'), w: 560, h: 250 },
+    { el: miniEl, w: miniW, h: miniH }
+  ];
+
+  canvases.forEach(({ el, w, h }, isMini) => {
+    if (!el || (isMini && $('mini-graph-dock').hidden)) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (el.width !== Math.round(w * dpr) || el.height !== Math.round(h * dpr)) {
+      el.width = Math.round(w * dpr);
+      el.height = Math.round(h * dpr);
+    }
+    const ctx = el.getContext('2d');
+    ctx.save();
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const padL = 46, padR = 16, padT = 24, padB = 32;
+    const pw = w - padL - padR, ph = h - padT - padB;
+
+    ctx.strokeStyle = '#476b94';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padL, padT); ctx.lineTo(padL, padT + ph); ctx.lineTo(padL + pw, padT + ph);
+    ctx.stroke();
+
+    const plotCurve = (fn, xmin, xmax, ymin, ymax, color, markerX = null, markerY = null, xLabel = '', yLabel = '') => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      for (let i = 0; i <= 80; i++) {
+        const x = xmin + (xmax - xmin) * (i / 80);
+        const y = fn(x);
+        const sx = padL + ((x - xmin) / (xmax - xmin || 1)) * pw;
+        const sy = padT + ph - ((y - ymin) / (ymax - ymin || 1)) * ph;
+        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+
+      if (markerX !== null && markerY !== null) {
+        const mx = padL + ((markerX - xmin) / (xmax - xmin || 1)) * pw;
+        const my = padT + ph - ((markerY - ymin) / (ymax - ymin || 1)) * ph;
+        ctx.fillStyle = '#fbbf24';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(mx, my, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = '#f1f5f9';
+      ctx.font = '700 11px ' + CANVAS_FONT;
+      ctx.textAlign = 'center';
+      ctx.fillText(xLabel, padL + pw / 2, h - 8);
+      ctx.fillText(yLabel, padL + 54, 14);
+    };
+
+    if (topicId === 'drift') {
+      plotCurve(E => 1.76 * E * data.tau, 0, 20, 0, 90, '#38bdf8', params.E, data.vd, 'Electric Field E (V/m)', 'vd (mm/s)');
+      $('main-graph-heading').textContent = 'Drift Velocity vd vs Electric Field E (Slope = Mobility mu)';
+      $('mini-graph-title').textContent = 'vd vs E (Slope = mu)';
+    } else if (topicId === 'resistance') {
+      const fn = T => params.mat === 0 ? 1.68 * (1 + 0.0039 * (T - 20)) : params.mat === 1 ? 100 * (1 + 0.0004 * (T - 20)) : 60 * Math.exp(-0.014 * (T - 20));
+      const ymax = params.mat === 1 ? 130 : params.mat === 2 ? 90 : 4.5;
+      plotCurve(fn, 0, 300, 0, ymax, '#34d399', params.T, data.rho, 'Temperature T (deg C)', 'Resistivity rho(T)');
+      $('main-graph-heading').textContent = 'Resistivity rho(T) vs Temperature T';
+      $('mini-graph-title').textContent = 'rho(T) vs Temperature';
+    } else if (topicId === 'circuit') {
+      plotCurve(v => v / data.Req, 0, 24, 0, 12, '#38bdf8', params.V, data.I_tot, 'Supply Voltage V (Volts)', 'Total I (A)');
+      $('main-graph-heading').textContent = 'Ohm’s Law I-V Characteristic (Slope = 1 / Req)';
+      $('mini-graph-title').textContent = 'I vs V Characteristic';
+    } else if (topicId === 'cell') {
+      plotCurve(R => Math.pow(data.Eeq / (R + data.req), 2) * R, 0.1, 20, 0, data.Pmax * 1.15, '#fbbf24', params.R, data.Pload, 'Load Resistance R (Ohm)', 'Load Power P_L (W)');
+      $('main-graph-heading').textContent = 'Maximum Power Transfer Curve: P_load vs R (Peak at R = r_eq)';
+      $('mini-graph-title').textContent = 'P_load vs R (Peak at r_eq)';
+    } else if (topicId === 'kirchhoff') {
+      const pts = params.loop === 0 ? [0, params.E1, data.VB, 0, 0] : params.loop === 1 ? [0, data.VB, params.E2, 0, 0] : [0, params.E1, data.VB, params.E2, 0];
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 2.8;
+      ctx.beginPath();
+      pts.forEach((v, i) => {
+        const sx = padL + (i / 4) * pw;
+        const sy = padT + ph - ((v + 2) / 28) * ph;
+        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+      });
+      ctx.stroke();
+      const wx = padL + kvlWalkerProgress * pw;
+      ctx.strokeStyle = '#fbbf24';
+      ctx.beginPath(); ctx.moveTo(wx, padT); ctx.lineTo(wx, padT + ph); ctx.stroke();
+      $('main-graph-heading').textContent = 'KVL Potential Landscape Around Closed Loop (Returns to 0V)';
+      $('mini-graph-title').textContent = 'KVL Potential Profile V(x)';
+    } else if (topicId === 'wheatstone') {
+      plotCurve(x => {
+        const q = params.view === 1 ? x * 0.2 : params.Q;
+        const s = params.view === 1 ? (100 - x) * 0.2 : x;
+        const vb = 10 * q / (params.P + q), vd = 10 * s / (params.R + s);
+        return vb - vd;
+      }, 5, 95, -8, 8, '#38bdf8', params.view === 1 ? params.jockey : params.S, data.VB - data.VD, params.view === 1 ? 'Jockey Position l1 (cm)' : 'Arm S (Ohm)', 'VB - VD (V)');
+      $('main-graph-heading').textContent = 'Bridge Unbalance Voltage (VB - VD) & Null Point Crossing';
+      $('mini-graph-title').textContent = 'Bridge dV vs Position';
+    } else if (topicId === 'potentiometer') {
+      plotCurve(l => data.k * l - data.V_target, 0, 400, -4, 6, '#34d399', params.Lpos, data.V_jockey - data.V_target, 'Jockey Length l (cm)', 'dV = k*l - V_cell (V)');
+      $('main-graph-heading').textContent = 'Potentiometer Null Balance Curve: V_wire(l) - V_cell';
+      $('mini-graph-title').textContent = 'Null Balance (dV = 0)';
+    } else if (topicId === 'rc') {
+      const tmax = Math.max(2, data.tau * 5);
+      plotCurve(t => params.sw === 0 ? params.V0 * (1 - Math.exp(-t / data.tau)) : params.V0 * Math.exp(-t / data.tau), 0, tmax, 0, params.V0 * 1.1, '#38bdf8', Math.min(tmax, simTime), data.vc, 'Time t (s) [5*tau Window]', 'VC(t) (Volts)');
+      $('main-graph-heading').textContent = 'RC Transient Exponential Curve: VC(t) with Time Constant tau = RC';
+      $('mini-graph-title').textContent = 'Live Oscilloscope VC(t)';
+    } else if (topicId === 'sandbox') {
+      plotCurve(v => data.R_tot >= 1e8 ? 0 : (v * v) / data.R_tot, 0, 24, 0, 60, '#fbbf24', params.Vs, data.I_main * params.Vs, 'Battery Voltage Vs (V)', 'Total Power (W)');
+      $('main-graph-heading').textContent = 'Sandbox Circuit Total Power P vs Supply Voltage Vs';
+      $('mini-graph-title').textContent = 'Total Power vs Voltage';
+    }
+    ctx.restore();
+  });
+
+  const statsBox = $('mini-graph-stats');
+  if (statsBox && data && data.metrics) {
+    const m0 = data.metrics[0];
+    const m1 = data.metrics[1];
+    const m2 = data.metrics[2];
+    statsBox.innerHTML = `<div>● ${m0.label}: <strong>${m0.val} ${m0.unit}</strong></div>` +
+      (m1 ? `<div>● ${m1.label}: <strong>${m1.val} ${m1.unit}</strong></div>` : '') +
+      (m2 ? `<div>● ${m2.label}: <strong>${m2.val} ${m2.unit}</strong></div>` : '');
+  }
+}
+
+// ============================================================================
+// 8. UPDATE LOOP & LIVE MATH RENDERING
+// ============================================================================
+function renderLiveMathSteps(steps) {
+  const containers = [$('pedagogy-math-content'), $('stage-math-content')];
+  containers.forEach(box => {
+    if (!box) return;
+    box.replaceChildren();
+    (steps || []).forEach((line, idx) => {
+      const div = document.createElement('div');
+      div.className = 'math-step-line' + (idx === steps.length - 1 ? ' result' : '');
+      div.textContent = line;
+      box.appendChild(div);
+    });
+  });
+}
+
+function updateSimulation(dt) {
+  const topic = TOPICS[currentTopicIndex];
+  if (topic.id === 'rc' && isPlaying && dt > 0) {
+    const tau = Math.max(0.05, params.R * params.C * 0.001);
+    const targetV = params.sw === 0 ? params.V0 : 0;
+    rcState.vc += (targetV - rcState.vc) * (1 - Math.exp(-dt / tau));
+  }
+  const data = computePhysics(topic.id, params);
+
+  const ribbon = $('metrics-ribbon');
+  if (ribbon.children.length !== data.metrics.length) {
+    ribbon.replaceChildren();
+    data.metrics.forEach(() => {
+      const c = document.createElement('div');
+      c.className = 'ribbon-card';
+      c.innerHTML = `<span class="ribbon-label"></span><span class="ribbon-val"></span>`;
+      ribbon.appendChild(c);
+    });
+  }
+  data.metrics.forEach((m, idx) => {
+    const card = ribbon.children[idx];
+    card.children[0].textContent = m.label;
+    card.children[1].innerHTML = `${m.val}<small>${m.unit}</small>`;
+  });
+
+  renderLiveMathSteps(data.mathSteps);
+  $('sim-clock-readout').textContent = `t = ${simTime.toFixed(2)} s`;
+  renderSceneCanvas(data, dt);
+  renderGraphs(data);
+}
+
+const simCanvas = $('sim-canvas');
+let activeHandle = null;
+
+function canvasCoords(e) {
+  const r = simCanvas.getBoundingClientRect();
+  const rawX = e.clientX - r.left, rawY = e.clientY - r.top;
+  const hintVisible = !$('canvas-hint').hidden;
+  const effH = Math.max(250, r.height - (hintVisible ? 36 : 8));
+  const cx = r.width / 2, cy = effH / 2;
+  return [(rawX - cx) / zoomLevel + cx, (rawY - cy) / zoomLevel + cy];
+}
+
+simCanvas.addEventListener('pointerdown', e => {
+  const [mx, my] = canvasCoords(e);
+  const handles = simCanvas._handles || [];
+  for (const h of handles) {
+    if (Math.hypot(mx - h.x, my - h.y) <= (h.r || 20)) {
+      if (h.id === 'rc-switch') {
+        setParamValue('sw', params.sw === 0 ? 1 : 0);
+        showToast(params.sw === 0 ? 'Switched to Position A: Charging Capacitor' : 'Switched to Position B: Discharging Capacitor');
+        return;
+      }
+      if (h.id === 'pot-k2') {
+        setParamValue('k2', params.k2 === 0 ? 1 : 0);
+        showToast(params.k2 === 1 ? 'Shunt Key K2 CLOSED (Measuring Terminal Voltage V)' : 'Shunt Key K2 OPEN (Measuring EMF E1)');
+        return;
+      }
+      if (h.id.startsWith('sb-slot-')) {
+        const slotKey = h.id.replace('sb-slot-', '');
+        const nextVal = (params[slotKey] + 1) % 4;
+        setParamValue(slotKey, nextVal);
+        const names = ['Glowing Bulb', 'Resistor', 'Closed Short-Circuit Wire', 'Open Switch (OFF)'];
+        showToast(`${slotKey.toUpperCase()} changed to: ${names[nextVal]}`);
+        return;
+      }
+      activeHandle = h;
+      simCanvas.setPointerCapture(e.pointerId);
+      return;
+    }
+  }
+  if (TOPICS[currentTopicIndex].id === 'drift') {
+    trackedElectronIdx = (trackedElectronIdx + 1) % 12;
+    driftParticles[trackedElectronIdx].trail = [];
+    showToast('Tracking new electron path in green!');
+  }
+});
+
+simCanvas.addEventListener('pointermove', e => {
+  const [mx, my] = canvasCoords(e);
+  if (!activeHandle) {
+    const over = (simCanvas._handles || []).some(h => Math.hypot(mx - h.x, my - h.y) <= (h.r || 20));
+    simCanvas.style.cursor = over ? 'grab' : 'default';
+    return;
+  }
+  simCanvas.style.cursor = 'grabbing';
+  const r = simCanvas.getBoundingClientRect();
+  const cy = r.height / 2, cx = r.width / 2;
+
+  if (activeHandle.id === 'drift-area') {
+    const newA = Math.max(1.0, Math.min(6.0, ((cy - my) * 2 - 70) / 22));
+    setParamValue('A', Number(newA.toFixed(1)));
+  } else if (activeHandle.id === 'res-len') {
+    const maxW = Math.min(r.width * 0.72, 620);
+    const wireW = Math.max(110, Math.min(maxW, (mx - cx) * 2));
+    const newL = 1.0 + ((wireW - 110) / (maxW - 110)) * 9.0;
+    setParamValue('L', Number(newL.toFixed(1)));
+  } else if (activeHandle.id === 'res-area') {
+    const wireH = Math.max(34, Math.min(124, (cy - 15 - my) * 2));
+    const newA = 0.5 + ((wireH - 34) / 90) * 4.5;
+    setParamValue('A', Number(newA.toFixed(1)));
+  } else if (activeHandle.id === 'probe-red' || activeHandle.id === 'probe-black') {
+    const isRed = activeHandle.id === 'probe-red';
+    if (isRed) probePos.redXY = [mx, my]; else probePos.blackXY = [mx, my];
+    let bestIdx = isRed ? probePos.redNode : probePos.blackNode;
+    let bestDist = Infinity;
+    activeHandle.nodes.forEach(nd => {
+      const d = Math.hypot(mx - nd.x, my - nd.y);
+      if (d < bestDist) { bestDist = d; bestIdx = nd.idx; }
+    });
+    if (bestDist < 65) {
+      if (isRed) { probePos.redNode = bestIdx; probePos.redXY = null; }
+      else { probePos.blackNode = bestIdx; probePos.blackXY = null; }
+    }
+    updateSimulation(0);
+  } else if (activeHandle.id === 'cell-load') {
+    const frac = Math.max(0, Math.min(1, (mx - activeHandle.minX) / (activeHandle.maxX - activeHandle.minX)));
+    setParamValue('R', Number((0.2 + frac * 19.8).toFixed(1)));
+  } else if (activeHandle.id === 'mb-jockey') {
+    const frac = Math.max(0.05, Math.min(0.95, (mx - activeHandle.minX) / (activeHandle.maxX - activeHandle.minX)));
+    setParamValue('jockey', Number((frac * 100).toFixed(1)));
+  } else if (activeHandle.id === 'pot-jockey') {
+    const frac = Math.max(0.025, Math.min(0.975, (mx - activeHandle.minX) / (activeHandle.maxX - activeHandle.minX)));
+    setParamValue('Lpos', Math.round(frac * 400));
+  }
+});
+
+simCanvas.addEventListener('pointerup', () => { activeHandle = null; });
+simCanvas.addEventListener('pointercancel', () => { activeHandle = null; });
+
+// ============================================================================
+// 9. BUTTON LISTENERS & FULLSCREEN / CLEAN-VIEW CONTROLLERS
+// ============================================================================
+$('preset-select').addEventListener('change', e => {
+  const idx = Number(e.target.value);
+  const topic = TOPICS[currentTopicIndex];
+  if (e.target.value === '' || !topic.presets[idx]) return;
+  const pr = topic.presets[idx];
+  Object.entries(pr.values).forEach(([k, v]) => setParamValue(k, v));
+  $('preset-note').textContent = T(pr.note);
+  showToast(`Loaded Preset: ${T(pr.name)}`);
+});
+
+$('btn-quick-action').addEventListener('click', () => {
+  const id = TOPICS[currentTopicIndex].id;
+  if (id === 'drift') {
+    trackedElectronIdx = (trackedElectronIdx + 1) % 12;
+    driftParticles[trackedElectronIdx].trail = [];
+    showToast('Highlighted a new tracked electron!');
+  } else if (id === 'resistance') {
+    setParamValue('mat', (params.mat + 1) % 3);
+  } else if (id === 'circuit') {
+    setParamValue('mode', (params.mode + 1) % 3);
+  } else if (id === 'cell') {
+    const d = computePhysics('cell', params);
+    setParamValue('R', Number(d.req.toFixed(1)));
+    showToast(`Matched R = r_eq (${d.req.toFixed(1)} Ohm) for Maximum Power Transfer!`);
+  } else if (id === 'kirchhoff') {
+    setParamValue('loop', (params.loop + 1) % 3);
+  } else if (id === 'wheatstone') {
+    const d = computePhysics('wheatstone', params);
+    if (params.view === 1) setParamValue('jockey', Number(d.nullL1.toFixed(1)));
+    else setParamValue('S', Number(((params.Q * params.R) / params.P).toFixed(1)));
+    showToast('Bridge Auto-Balanced to Exact Null Point (Ig = 0)!');
+  } else if (id === 'potentiometer') {
+    const d = computePhysics('potentiometer', params);
+    if (d.possible) {
+      setParamValue('Lpos', Math.round(d.l_null));
+      showToast(`Jockey snapped to Null Point l = ${d.l_null.toFixed(1)} cm!`);
+    } else {
+      showToast('Null point exceeds 400 cm! Increase Driver Voltage V0.');
+    }
+  } else if (id === 'rc') {
+    setParamValue('sw', params.sw === 0 ? 1 : 0);
+  } else if (id === 'sandbox') {
+    // Load the Short-Circuit Demo preset!
+    const pr = TOPICS[currentTopicIndex].presets[2];
+    Object.entries(pr.values).forEach(([k, v]) => setParamValue(k, v));
+    $('preset-note').textContent = T(pr.note);
+    showToast('Loaded Short-Circuit Demo: Slot S4 is now a 0-Ohm Wire!');
+  }
+});
+
+$('btn-reset-params').addEventListener('click', () => loadTopic(currentTopicIndex));
+$('btn-defaults-side').addEventListener('click', () => loadTopic(currentTopicIndex));
+
+$('btn-play').addEventListener('click', () => {
+  isPlaying = !isPlaying;
+  const ui = UI_TEXT[currentLang];
+  $('btn-play').textContent = isPlaying ? ui.pause : ui.play;
+});
+$('btn-step').addEventListener('click', () => {
+  isPlaying = false;
+  $('btn-play').textContent = UI_TEXT[currentLang].play;
+  simTime += 0.08;
+  updateSimulation(0.08);
+});
+$('btn-restart-sim').addEventListener('click', () => {
+  simTime = 0;
+  if (TOPICS[currentTopicIndex].id === 'rc') rcState.vc = params.sw === 1 ? params.V0 : 0;
+  updateSimulation(0);
+});
+$('sim-speed').addEventListener('change', e => { simSpeed = Number(e.target.value); });
+
+$('btn-zoom-in').addEventListener('click', () => { zoomLevel = Math.min(2.2, zoomLevel * 1.15); updateSimulation(0); });
+$('btn-zoom-out').addEventListener('click', () => { zoomLevel = Math.max(0.6, zoomLevel / 1.15); updateSimulation(0); });
+$('btn-zoom-reset').addEventListener('click', () => { zoomLevel = 1.0; updateSimulation(0); });
+
+// Clean View Toggles: Labels ON/OFF, Hints ON/OFF, Live Math Overlay ON/OFF
+$('btn-toggle-labels').addEventListener('click', () => {
+  $('chk-labels').checked = !$('chk-labels').checked;
+  syncLanguageButtons();
+  updateSimulation(0);
+});
+$('chk-labels').addEventListener('change', () => {
+  syncLanguageButtons();
+  updateSimulation(0);
+});
+
+$('btn-toggle-hints').addEventListener('click', () => {
+  $('chk-hints').checked = !$('chk-hints').checked;
+  syncLanguageButtons();
+});
+$('chk-hints').addEventListener('change', () => {
+  syncLanguageButtons();
+});
+
+$('btn-toggle-math').addEventListener('click', () => {
+  showStageMath = !showStageMath;
+  $('chk-math-overlay').checked = showStageMath;
+  syncLanguageButtons();
+});
+$('btn-close-stage-math').addEventListener('click', () => {
+  showStageMath = false;
+  $('chk-math-overlay').checked = false;
+  syncLanguageButtons();
+});
+$('chk-math-overlay').addEventListener('change', () => {
+  showStageMath = $('chk-math-overlay').checked;
+  syncLanguageButtons();
+});
+
+$('btn-toggle-mini-graph').addEventListener('click', () => {
+  showMiniGraph = !showMiniGraph;
+  syncLanguageButtons();
+  updateSimulation(0);
+});
+$('btn-close-mini-graph').addEventListener('click', () => {
+  showMiniGraph = false;
+  syncLanguageButtons();
+  updateSimulation(0);
+});
+
+$('btn-lang-en').addEventListener('click', () => setLanguage('en'));
+$('btn-lang-hi').addEventListener('click', () => setLanguage('hi'));
+$('btn-lang-hinglish').addEventListener('click', () => setLanguage('hinglish'));
+
+function cycleLanguage() {
+  const order = ['en', 'hi', 'hinglish'];
+  const next = order[(order.indexOf(currentLang) + 1) % order.length];
+  setLanguage(next);
+  const names = { en: 'English', hi: 'हिंदी (Hindi)', hinglish: 'Hinglish' };
+  showToast(`Language switched to: ${names[next]}`);
+}
+$('lang-toggle').addEventListener('click', cycleLanguage);
+$('fs-lang-btn').addEventListener('click', cycleLanguage);
+
+['chk-vectors', 'chk-electrons', 'chk-glow'].forEach(id => {
+  $(id).addEventListener('change', () => updateSimulation(0));
+});
+
+function setFullscreenMode(active) {
+  isFullscreen = active;
+  document.body.classList.toggle('fullscreen-mode', isFullscreen);
+  if (!isFullscreen) {
+    fsControlsCollapsed = false;
+    document.body.classList.remove('fs-controls-collapsed');
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+  } else {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  }
+  syncLanguageButtons();
+  updateSimulation(0);
+  setTimeout(() => updateSimulation(0), 60);
+  setTimeout(() => updateSimulation(0), 220);
+}
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && isFullscreen) {
+    // Keep custom fullscreen-mode active if user only exited native browser lock, or sync layout
+    updateSimulation(0);
+  } else {
+    updateSimulation(0);
+  }
+});
+
+$('btn-download-html').addEventListener('click', () => {
+  const clone = document.documentElement.cloneNode(true);
+  const body = clone.querySelector('body');
+  if (body) body.className = '';
+  const toast = clone.querySelector('#toast-banner');
+  if (toast) toast.className = '';
+  const content = '<!DOCTYPE html>\n' + clone.outerHTML;
+  const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Current-Electricity-Master-Lab.html';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  showToast('Downloading Current-Electricity-Master-Lab.html...');
+});
+$('btn-fullscreen').addEventListener('click', () => setFullscreenMode(!isFullscreen));
+$('fs-exit-btn').addEventListener('click', () => setFullscreenMode(false));
+$('fs-topic-select').addEventListener('change', e => loadTopic(Number(e.target.value)));
+$('fs-collapse-controls').addEventListener('click', () => {
+  fsControlsCollapsed = !fsControlsCollapsed;
+  document.body.classList.toggle('fs-controls-collapsed', fsControlsCollapsed);
+  syncLanguageButtons();
+  updateSimulation(0);
+  setTimeout(() => updateSimulation(0), 50);
+});
+
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => updateSimulation(0));
+  const vp = $('sim-stage-viewport');
+  if (vp) ro.observe(vp);
+}
+
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'f' || e.key === 'F') setFullscreenMode(!isFullscreen);
+  if (e.key === 'Escape' && isFullscreen) setFullscreenMode(false);
+});
+window.addEventListener('resize', () => updateSimulation(0));
+
+let lastTS = performance.now();
+function animate(now) {
+  const dt = Math.min(0.05, (now - lastTS) / 1000) * simSpeed;
+  lastTS = now;
+  if (isPlaying) {
+    simTime += dt;
+    updateSimulation(dt);
+  }
+  requestAnimationFrame(animate);
+}
+
+window.addEventListener('load', () => {
+  loadTopic(0);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => updateSimulation(0));
+  }
+  requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>
