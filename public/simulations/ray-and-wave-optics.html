@@ -2271,6 +2271,11 @@ function buildTopicNav() {
 
 function loadTopic(idx, customValues = null) {
   currentTopicIndex = idx;
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('topic', idx);
+    window.history.replaceState(null, '', url.toString());
+  } catch(e) {}
   const topic = TOPICS[idx];
   params = {};
   topic.params.forEach(p => {
@@ -4995,7 +5000,20 @@ window.addEventListener('load', () => {
   if (window.innerWidth <= 680) {
     showMiniGraph = false;
   }
-  loadTopic(0);
+  const urlParams = new URLSearchParams(window.location.search);
+  const hashTopic = window.location.hash ? window.location.hash.replace('#', '') : null;
+  const paramTopic = urlParams.get('topic') || hashTopic;
+  let initialTopic = 0;
+  if (paramTopic !== null && paramTopic !== '') {
+    const topicNum = parseInt(paramTopic, 10);
+    if (!isNaN(topicNum) && topicNum >= 0 && topicNum < TOPICS.length) {
+      initialTopic = topicNum;
+    } else {
+      const foundIdx = TOPICS.findIndex(t => t.id && t.id.toLowerCase() === paramTopic.toLowerCase());
+      if (foundIdx !== -1) initialTopic = foundIdx;
+    }
+  }
+  loadTopic(initialTopic);
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(() => updateSimulation(0));
   }

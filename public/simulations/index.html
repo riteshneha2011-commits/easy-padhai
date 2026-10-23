@@ -236,8 +236,8 @@
     /* Cards Grid */
     .labs-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 28px;
     }
     @media (max-width: 480px) {
       .labs-grid {
@@ -314,20 +314,64 @@
       color: var(--muted);
       line-height: 1.55;
     }
+    .topics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(46, 83, 125, 0.35);
+    }
+    .topics-header-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .topics-header-hint {
+      font-size: 10.5px;
+      color: var(--subtle);
+    }
     .topics-wrap {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-top: auto;
-      padding-top: 6px;
+      gap: 7px;
     }
     .topic-chip {
       background: var(--panel-2);
       border: 1px solid rgba(46, 83, 125, 0.8);
       color: #e2e8f0;
       font-size: 11px;
-      padding: 4px 9px;
-      border-radius: 6px;
+      padding: 6px 11px;
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .topic-chip:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: var(--cyan);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+    }
+    .topic-chip .topic-num {
+      color: var(--cyan);
+      font-weight: 800;
+      font-size: 10px;
+    }
+    .topic-chip .topic-arrow {
+      color: var(--subtle);
+      font-size: 10px;
+      transition: all 0.2s ease;
+    }
+    .topic-chip:hover .topic-arrow {
+      color: var(--cyan);
+      transform: translate(1px, -1px);
     }
     .features-list {
       display: flex;
@@ -335,7 +379,6 @@
       font-size: 11.5px;
       color: var(--subtle);
       padding: 4px 0;
-      border-top: 1px solid rgba(46, 83, 125, 0.35);
       flex-wrap: wrap;
     }
     .features-list span {
@@ -358,7 +401,7 @@
       color: #ffffff;
       font-size: 14px;
       font-weight: 700;
-      padding: 11px 18px;
+      padding: 12px 18px;
       border-radius: 10px;
       border: none;
       cursor: pointer;
@@ -435,7 +478,7 @@
     <section class="hero">
       <div class="hero-eyebrow">🔬 Visual Physics Simulations Hub</div>
       <h1>Make Physics Visual with <span>Interactive Master Labs</span></h1>
-      <p>ड्रैग करें, वैल्यूज बदलें, लाइव ग्राफ़्स देखें और कॉन्सेप्ट्स को गहराई से समझें। सीबीएसई बोर्ड, जेईई और नीट की तैयारी के लिए डिज़ाइन किए गए सुपर-फास्ट ऑफलाइन लैब्स।</p>
+      <p>ड्रैग करें, वैल्यूज बदलें, लाइव ग्राफ़्स देखें और कॉन्सेप्ट्स को गहराई से समझें। सीधे किसी भी एक्सपेरिमेंट पर क्लिक करके उसे 1-क्लिक में शुरू करें।</p>
     </section>
 
     <!-- Filter & Search Toolbar -->
@@ -465,9 +508,8 @@
   <script>
     /**
      * MASTER LABS CATALOG
-     * To add a new lab in the future:
-     * 1. Place the HTML file inside 'public/simulations/'
-     * 2. Append an object to the array below!
+     * Each lab and its topics are 100% deep-linkable.
+     * Absolute paths (/simulations/...) prevent 404s!
      */
     const MASTER_LABS = [
       {
@@ -478,17 +520,17 @@
         title: "Current Electricity Master Lab",
         subtitle: "9 Interactive Labs + Circuit Sandbox + Live Math Substitution",
         description: "इलेक्ट्रॉन ड्रिफ्ट वेलोसिटी, ओह्म्स लॉ V-I कर्व, सीरीज़-पैरेलल कॉम्बिनेशन, सेल इंटरनल रेजिस्टेंस, किरचॉफ के नियम, मीटर ब्रिज, पोटेंशियोमीटर, आरसी चार्जिंग सर्किट और फ्री सर्किट सैंडबॉक्स।",
-        file: "current-electricity.html",
+        file: "/simulations/current-electricity.html",
         topics: [
-          "Electron Drift & Mobility",
-          "Ohm's Law & V-I Curve",
-          "Series & Parallel Resistors",
-          "Cell Emf & Internal Resistance",
-          "Kirchhoff's Junction & Loop Rules",
-          "Meter Bridge Unknown Resistance",
-          "Potentiometer Emf Comparison",
-          "RC Charging & Discharging",
-          "Circuit Builder Sandbox"
+          { name: "Electron Drift & Mobility", id: "drift" },
+          { name: "Ohm's Law & V-I Curve", id: "resistance" },
+          { name: "Series & Parallel Resistors", id: "circuit" },
+          { name: "Cell Emf & Internal Resistance", id: "cell" },
+          { name: "Kirchhoff's Junction & Loop Rules", id: "kirchhoff" },
+          { name: "Meter Bridge Unknown Resistance", id: "wheatstone" },
+          { name: "Potentiometer Emf Comparison", id: "potentiometer" },
+          { name: "RC Charging & Discharging", id: "rc" },
+          { name: "Circuit Builder Sandbox", id: "sandbox" }
         ],
         features: ["🌐 English · हिंदी · Hinglish", "📺 Smartboard Fullscreen", "📐 Live Math Steps"]
       },
@@ -500,18 +542,18 @@
         title: "Ray Optics & Wave Optics Master Lab",
         subtitle: "10 Interactive Labs + Optical Bench Sandbox + Live Math",
         description: "गोलीय दर्पण (Ray Tracing), स्नेल का अपवर्तन नियम, प्रिज़्म डिस्पर्शन, लेंस मेकर्स फॉर्मूला, कम्पाउंड माइक्रोस्कोप और टेलिस्कोप, हाइगेंस तरंग सिद्धांत, यंग का डबल स्लिट एक्सपेरिमेंट (YDSE), डिफ्रैक्शन और पोलराइजेशन।",
-        file: "ray-and-wave-optics.html",
+        file: "/simulations/ray-and-wave-optics.html",
         topics: [
-          "Spherical Mirrors & Ray Tracing",
-          "Snell's Law & Refraction Index",
-          "TIR & Prism Dispersion",
-          "Thin Lenses & Lens Maker's",
-          "Microscope & Astronomical Telescope",
-          "Huygens' Principle & Wavefronts",
-          "Young's Double Slit (YDSE)",
-          "Single Slit Diffraction",
-          "Malus's Law & Polarization",
-          "Optical Bench Sandbox"
+          { name: "Spherical Mirrors & Ray Tracing", id: "mirror" },
+          { name: "Total Internal Reflection & TIR", id: "tir" },
+          { name: "Lens Maker's Formula & Curvature", id: "lensmaker" },
+          { name: "Thin Lenses & Lens Combination", id: "thinlens" },
+          { name: "Prism Dispersion & Minimum Deviation", id: "prism" },
+          { name: "Microscope & Astronomical Telescope", id: "instruments" },
+          { name: "Young's Double Slit (YDSE)", id: "ydse" },
+          { name: "Single Slit Diffraction Pattern", id: "diffraction" },
+          { name: "Polarization of Light & Malus's Law", id: "polarization" },
+          { name: "Optical Bench Sandbox", id: "sandbox" }
         ],
         features: ["🌐 English · हिंदी · Hinglish", "📱 Mobile Responsive", "📊 Live Characteristic Curves"]
       }
@@ -537,7 +579,7 @@
           <div class="card-top">
             <div class="card-badges">
               <span class="card-badge badge-ch">Class ${lab.classLevel} · ${lab.chapter}</span>
-              <span class="card-badge badge-count">${lab.topics.length} Labs + Sandbox</span>
+              <span class="card-badge badge-count">${lab.topics.length} Interactive Labs</span>
             </div>
             <div class="card-icon">${lab.icon}</div>
           </div>
@@ -547,13 +589,25 @@
             <div class="features-list">
               ${lab.features.map(f => `<span>${f}</span>`).join("")}
             </div>
+
+            <div class="topics-header">
+              <span class="topics-header-title">Direct Experiment Launch:</span>
+              <span class="topics-header-hint">Click any experiment to open ↗</span>
+            </div>
+
             <div class="topics-wrap">
-              ${lab.topics.map(t => `<span class="topic-chip">${t}</span>`).join("")}
+              ${lab.topics.map((t, idx) => `
+                <a href="${lab.file}?topic=${idx}" class="topic-chip" title="Directly launch: ${t.name}">
+                  <span class="topic-num">${(idx + 1).toString().padStart(2, '0')}</span>
+                  <span>${t.name}</span>
+                  <span class="topic-arrow">↗</span>
+                </a>
+              `).join("")}
             </div>
           </div>
           <div class="card-footer">
             <a href="${lab.file}" class="btn-launch">
-              <span>Launch Master Lab</span>
+              <span>Launch Master Lab (Full Suite)</span>
               <span>↗</span>
             </a>
           </div>
@@ -581,7 +635,7 @@
 
         const inTitle = lab.title.toLowerCase().includes(q);
         const inDesc = lab.description.toLowerCase().includes(q);
-        const inTopics = lab.topics.some(t => t.toLowerCase().includes(q));
+        const inTopics = lab.topics.some(t => t.name.toLowerCase().includes(q));
         const inChapter = lab.chapter.toLowerCase().includes(q);
         return inTitle || inDesc || inTopics || inChapter;
       });
