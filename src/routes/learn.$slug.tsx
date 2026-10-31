@@ -31,7 +31,14 @@ import {
   Calendar,
   Loader2,
   Edit3,
+  Share2,
 } from "lucide-react";
+import { ShareLectureDialog } from "@/components/share-lecture-dialog";
+import {
+  canGuestPlaySharedLesson,
+  recordGuestSharedLesson,
+  getGuestSharedQuota,
+} from "@/lib/guest-shared";
 import { formatScheduleDate, isScheduleInFuture } from "@/lib/schedule";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -90,6 +97,8 @@ export const Route = createFileRoute("/learn/$slug")({
   validateSearch: (search: Record<string, unknown>) => ({
     lesson: (search.lesson as string) || undefined,
     autoplay: search.autoplay === "true" || search.autoplay === true ? "true" : undefined,
+    shared: search.shared === "1" || search.shared === "true" || search.shared === true ? "1" : undefined,
+    ref: (search.ref as string) || undefined,
   }),
   loader: async ({ params }) => {
     const data = await getChapter({ data: { slug: params.slug } });
@@ -106,12 +115,19 @@ export const Route = createFileRoute("/learn/$slug")({
     const description =
       loaderData.chapter.description ??
       `Audio, video, summary, notes and a test for ${loaderData.chapter.title}.`;
+    const ogImage = "https://ep.studytube.co.in/easy-padhai-mark.png";
     return {
       meta: [
         { title },
         { name: "description", content: description },
         { property: "og:title", content: title },
         { property: "og:description", content: description },
+        { property: "og:image", content: ogImage },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+        { name: "twitter:title", content: title },
+        { name: "twitter:description", content: description },
+        { name: "twitter:image", content: ogImage },
       ],
     };
   },
@@ -1039,6 +1055,7 @@ function ChapterPage() {
                 autoPlay={isAutoplay || playbackContinuation}
                 isPodcastMode={isPodcastMode}
                 onTogglePodcastMode={handleTogglePodcastMode}
+                referralCode={profile?.referral_code}
               />
             </Card>
           )}
@@ -1246,6 +1263,7 @@ function LessonPanel({
   autoPlay,
   isPodcastMode,
   onTogglePodcastMode,
+  referralCode,
 }: {
   lesson: Lesson;
   isAlreadyUnlocked: boolean;
@@ -1270,6 +1288,7 @@ function LessonPanel({
   autoPlay?: boolean;
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
+  referralCode?: string | null;
 }) {
   const queryClient = useQueryClient();
   const [watching, setWatching] = useState(false);
@@ -1277,6 +1296,14 @@ function LessonPanel({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [offlinePromptOpen, setOfflinePromptOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const isSharedUrl =
+    typeof window !== "undefined" &&
+    (new URLSearchParams(window.location.search).get("shared") === "1" ||
+      new URLSearchParams(window.location.search).get("shared") === "true");
+  const isGuestEligible = !userId && isSharedUrl && canGuestPlaySharedLesson(lesson.id);
+  const [guestQuota, setGuestQuota] = useState(() => getGuestSharedQuota());
 
   const onActiveChange = useCallback((value: boolean) => setWatching(value), []);
 
@@ -1291,11 +1318,18 @@ function LessonPanel({
   }, [lesson.id]);
 
   const accessQuery = useQuery({
-    queryKey: ["lesson-access", lesson.id, userId],
-    queryFn: () =>
-      userId
-        ? getLessonAccess({ data: { lessonId: lesson.id } })
-        : getPublicLessonAccess({ data: { lessonId: lesson.id } }),
+    queryKey: ["lesson-access", lesson.id, userId, isGuestEligible],
+    queryFn: async () => {
+      if (userId) {
+        return getLessonAccess({ data: { lessonId: lesson.id } });
+      }
+      if (isGuestEligible) {
+        recordGuestSharedLesson(lesson.id);
+        setGuestQuota(getGuestSharedQuota());
+        return getPublicLessonAccess({ data: { lessonId: lesson.id, isShared: true } });
+      }
+      return getPublicLessonAccess({ data: { lessonId: lesson.id, isShared: false } });
+    },
     staleTime: 1000 * 60 * 60, // Keep access & media URL stable for 1 hour
     gcTime: 1000 * 60 * 60,
     refetchOnWindowFocus: false,
@@ -1341,8 +1375,8 @@ function LessonPanel({
   const isStaffPreview = Boolean(access?.isStaffPreview || isStaff);
 
   // Unlocked & Locked evaluation:
-  // If staff, already known unlocked, or lecture 1, locked is false from frame 1
-  const isKnownUnlocked = Boolean(isStaff) || (!isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree));
+  // If staff, already known unlocked, lecture 1, or guest free shared lecture, locked is false from frame 1
+  const isKnownUnlocked = Boolean(isStaff) || (!isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree || isGuestEligible));
   const locked = isStaff
     ? false
     : isScheduled && !isStaffPreview
@@ -1449,7 +1483,7 @@ function LessonPanel({
         setDownloadProgress(25);
         const freshAccess = userId
           ? await getLessonAccess({ data: { lessonId: lesson.id } })
-          : await getPublicLessonAccess({ data: { lessonId: lesson.id } });
+          : await getPublicLessonAccess({ data: { lessonId: lesson.id, isShared: isGuestEligible } });
         audioToDownload = freshAccess?.media?.audio ?? null;
         pdfToDownload = freshAccess?.media?.pdf ?? null;
       }
@@ -1625,6 +1659,7 @@ function LessonPanel({
             isPodcastMode={isPodcastMode}
             onTogglePodcastMode={onTogglePodcastMode}
             userCredits={currentBalance}
+            onShare={() => setShareOpen(true)}
           />
         );
       },
@@ -1692,6 +1727,7 @@ function LessonPanel({
             lessonId={lesson.id}
             onActiveChange={onActiveChange}
             onVerified={() => handleVerified("video")}
+            onShare={() => setShareOpen(true)}
           />
         );
       },
@@ -2134,6 +2170,18 @@ function LessonPanel({
             <span>{isBookmarked ? "Saved" : "Save for Revision"}</span>
           </Button>
 
+          {/* Share Audio Lecture Button */}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShareOpen(true)}
+            className="rounded-full text-xs font-bold h-8 gap-1.5 border-primary/50 text-primary hover:bg-primary/10 transition-all active:scale-95 shadow-2xs"
+            title="Share this lecture / दोस्तों के साथ शेयर करें"
+          >
+            <Share2 className="size-3.5" />
+            <span>Share</span>
+          </Button>
+
           <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-secondary-foreground">
             ~{lesson.duration_minutes ?? 10} min
           </span>
@@ -2181,6 +2229,31 @@ function LessonPanel({
             </div>
           )}
 
+          {/* Guest Shared Welcome Banner (Free Lecture 1 or 2) */}
+          {!userId && isGuestEligible && (
+            <div className="rounded-2xl border border-emerald-500/35 bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent p-3.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="grid size-10 place-items-center rounded-2xl bg-emerald-500 text-white shrink-0 shadow-xs">
+                  <Gift className="size-5" />
+                </div>
+                <div className="min-w-0 text-center sm:text-left">
+                  <p className="text-xs sm:text-sm font-bold text-foreground flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
+                    <span>🎉 Welcome to Easy Padhai!</span>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                      Free Shared Lecture {Math.min(2, guestQuota.used || 1)} of 2
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                    पूरा ऑडियो लेक्चर बिना किसी साइन-अप के मुफ़्त सुनें। ऐसे 500+ लेक्चर्स के लिए तुरंत फ्री में जुड़ें!
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="sm" className="rounded-full font-bold text-xs shrink-0 shadow-xs px-4 h-8 bg-emerald-600 hover:bg-emerald-700 text-white">
+                <Link to="/auth">Sign In Free →</Link>
+              </Button>
+            </div>
+          )}
+
           {tabs.length > 1 && (
             <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 rounded-2xl bg-secondary/60 p-1.5 w-full min-w-0">
               {tabs.map((tab) => (
@@ -2208,10 +2281,14 @@ function LessonPanel({
                 <Lock className="size-5 sm:size-6" />
               </span>
               <h3 className="mt-3 font-display text-base sm:text-lg font-bold">
-                Unlock this lecture for {access?.cost ?? 10} credits
+                {isSharedUrl && !isGuestEligible
+                  ? "2 Free Shared Lectures Completed"
+                  : `Unlock this lecture for ${access?.cost ?? 10} credits`}
               </h3>
               <p className="mx-auto mt-1 max-w-md text-xs sm:text-sm text-muted-foreground">
-                100% Free learning — zero real money charged! Lecture 1 of every chapter is completely free. Unlocking this lecture unlocks everything: Audio, Video, Full Notes, Summary, and Quick Quiz!
+                {isSharedUrl && !isGuestEligible
+                  ? "आपने 2 मुफ़्त शेयर्ड लेक्चर्स एन्जॉय किए! Easy Padhai के सभी 500+ लेक्चर्स, टेस्ट्स और नोट्स को 100% मुफ़्त एक्सेस करने के लिए तुरंत 1-क्लिक में साइन-इन करें।"
+                  : "100% Free learning — zero real money charged! Lecture 1 of every chapter is completely free. Unlocking this lecture unlocks everything: Audio, Video, Full Notes, Summary, and Quick Quiz!"}
               </p>
               {signedIn ? (
                 <div className="mt-4 flex flex-col items-center gap-2 w-full">
@@ -2252,6 +2329,26 @@ function LessonPanel({
                 No media has been added to this lesson yet.
               </p>
             )
+          )}
+
+          {/* Join Easy Padhai Free Call-to-action for Guests */}
+          {!userId && !locked && (
+            <div className="rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-background to-secondary/30 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 shadow-xs">
+              <div className="space-y-1 text-center sm:text-left">
+                <h4 className="text-sm sm:text-base font-bold text-foreground flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
+                  <span>🎧 Loved this Audio Lecture?</span>
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30">
+                    100% Free Always
+                  </span>
+                </h4>
+                <p className="text-xs text-muted-foreground max-w-lg leading-relaxed">
+                  Easy Padhai पर क्लास 9-12 के सभी विषयों के 500+ ऑडियो लेक्चर्स, शॉर्ट नोट्स और इंटरैक्टिव क्विज़ मुफ़्त में उपलब्ध हैं।
+                </p>
+              </div>
+              <Button asChild size="default" className="rounded-full font-bold text-xs sm:text-sm px-6 shadow-md shadow-primary/25 shrink-0 h-10">
+                <Link to="/auth">Join Easy Padhai Free →</Link>
+              </Button>
+            </div>
           )}
         </>
       )}
@@ -2438,6 +2535,17 @@ function LessonPanel({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Share Lecture Modal */}
+      <ShareLectureDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        lessonTitle={lesson.title}
+        chapterTitle={chapterTitle || ""}
+        subjectName={subjectName}
+        shareUrl={typeof window !== "undefined" ? window.location.href : ""}
+        referralCode={referralCode}
+      />
     </div>
   );
 }

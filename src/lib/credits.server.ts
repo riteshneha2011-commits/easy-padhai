@@ -97,6 +97,7 @@ export type LessonAccess = {
   isScheduled?: boolean;
   scheduledAt?: string | null;
   isStaffPreview?: boolean;
+  isSharedFree?: boolean;
   media: {
     audio: string | null;
     video: string | null;
@@ -136,6 +137,7 @@ export async function getChapterUnlocksFor(
 export async function getLessonAccessFor(
   userId: string | null,
   lessonId: string,
+  isShared?: boolean,
 ): Promise<LessonAccess> {
   const { data: lesson } = await supabaseAdmin
     .from("lessons")
@@ -184,13 +186,14 @@ export async function getLessonAccessFor(
       isScheduled: true,
       scheduledAt: sched.scheduledAt,
       isStaffPreview: false,
+      isSharedFree: false,
       media: null,
     };
   }
 
   // Registered students get free access to all live curriculum lectures.
-  // Guests can experience the 1st lecture of any chapter before signing in.
-  const isAccessible = !sched.isScheduled && Boolean(userId || isFirst || isUnlocked);
+  // Guests can experience the 1st lecture of any chapter, or up to 2 shared lectures completely free.
+  const isAccessible = !sched.isScheduled && Boolean(userId || isFirst || isUnlocked || isShared);
   const locked = !isAccessible;
 
   const testObj = testObjRes?.data ?? null;
@@ -225,13 +228,14 @@ export async function getLessonAccessFor(
   return {
     lessonId,
     locked,
-    free: isFirst && !sched.isScheduled,
+    free: (isFirst || Boolean(isShared)) && !sched.isScheduled,
     cost,
     balance,
     quizPassed,
     isScheduled: sched.isScheduled,
     scheduledAt: sched.scheduledAt,
     isStaffPreview: sched.isScheduled && staff,
+    isSharedFree: Boolean(!userId && isShared),
     media: {
       audio,
       video: videoRes?.video ?? null,

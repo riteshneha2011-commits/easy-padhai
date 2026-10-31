@@ -15,6 +15,7 @@ import {
   Timer,
   SkipBack,
   SkipForward,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ type Props = {
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
   userCredits?: number;
+  onShare?: () => void;
 };
 
 
@@ -127,6 +129,7 @@ function CustomAudioPlayer({
   onTogglePodcastMode,
   userCredits = 0,
   isLoadingUrl = false,
+  onShare,
 }: {
   src: string;
   title: string;
@@ -147,6 +150,7 @@ function CustomAudioPlayer({
   onTogglePodcastMode?: (enabled: boolean) => void;
   userCredits?: number;
   isLoadingUrl?: boolean;
+  onShare?: () => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -755,8 +759,19 @@ function CustomAudioPlayer({
           </div>
         </div>
 
-        {/* Podcast Mode Pill Toggle & Info Trigger */}
-        <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto">
+        {/* Podcast Mode Pill Toggle & Info Trigger + Share */}
+        <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-auto flex-wrap">
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              title="Share this audio lecture / शेयर करें"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-2xs select-none active:scale-95 border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+            >
+              <Share2 className="size-3.5" />
+              <span>Share</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={togglePodcastMode}
@@ -912,6 +927,7 @@ function CustomAudioPlayer({
         onOpenChange={setShowPodcastDialog}
         onSelectMode={handleSelectPodcastMode}
         userCredits={userCredits}
+        onShare={onShare}
       />
     </div>
   );
@@ -936,6 +952,7 @@ function SingleMediaPlayer({
   isPodcastMode,
   onTogglePodcastMode,
   userCredits,
+  onShare,
 }: {
   value: string;
   title: string;
@@ -954,6 +971,7 @@ function SingleMediaPlayer({
   isPodcastMode?: boolean;
   onTogglePodcastMode?: (enabled: boolean) => void;
   userCredits?: number;
+  onShare?: () => void;
 }) {
   const stored = isStorageRef(value);
   const [url, setUrl] = useState<string | null>(stored ? null : value);
@@ -1131,6 +1149,7 @@ function SingleMediaPlayer({
         isPodcastMode={isPodcastMode}
         onTogglePodcastMode={onTogglePodcastMode}
         userCredits={userCredits}
+        onShare={onShare}
       />
     );
   }
@@ -1358,6 +1377,7 @@ export function MediaPlayer({
   isPodcastMode,
   onTogglePodcastMode,
   userCredits,
+  onShare,
 }: Props) {
   const effectiveKind: "audio" | "video" | "pdf" =
     rawKind || (videoUrl ? "video" : audioUrl ? "audio" : pdfUrl ? "pdf" : "video");
@@ -1486,6 +1506,7 @@ export function MediaPlayer({
       isPodcastMode={isPodcastMode}
       onTogglePodcastMode={onTogglePodcastMode}
       userCredits={userCredits}
+      onShare={onShare}
     />
   );
 }

@@ -29,12 +29,12 @@ export const getLessonAccess = createServerFn({ method: "POST" })
     return getLessonAccessFor(context.userId, data.lessonId);
   });
 
-/** Public: only ever returns media for a free lesson. */
+/** Public: returns media for free or verified shared guest lessons. */
 export const getPublicLessonAccess = createServerFn({ method: "POST" })
-  .inputValidator((data: { lessonId: string }) => data)
+  .inputValidator((data: { lessonId: string; isShared?: boolean }) => data)
   .handler(async ({ data }) => {
     const { getLessonAccessFor } = await import("./credits.server");
-    return getLessonAccessFor(null, data.lessonId);
+    return getLessonAccessFor(null, data.lessonId, data.isShared);
   });
 
 export const unlockLesson = createServerFn({ method: "POST" })
