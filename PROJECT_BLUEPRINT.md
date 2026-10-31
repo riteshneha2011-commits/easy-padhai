@@ -64,6 +64,15 @@
 - **Atomic Commits**: Create small, well-described commits with semantic prefixes (`fix:`, `feat:`, `refactor:`, `perf:`, `ci:`).
 - **No Secret Leaks**: Never put plaintext secret tokens in commit logs or markdown files.
 
+### 2.5 Universal Responsive Design & Cross-Device Compatibility Protocol (MANDATORY)
+- **Zero Viewport Breakage**: Every feature, modal, sheet, drawer, button, and table MUST be verified across all screen widths (specifically mobile 320px–420px, tablet 768px, and desktop 1024px+). No horizontal overflow or cut-off text is permitted.
+- **Modal & Dialog Standards**:
+  - Primary action buttons (e.g. WhatsApp Share, Submit, Confirm) must **never** be pushed below the mobile viewport fold.
+  - Modals with significant content must use `max-h-[90dvh]` with `flex flex-col` and place primary action buttons in a pinned sticky footer (`shrink-0 border-t bg-card/95 backdrop-blur-xs p-3 sm:p-4`).
+  - Scrollable content must reside in an inner `flex-1 min-h-0 overflow-y-auto overscroll-contain` container.
+  - Apply `min-w-0` to all flex/grid children and `truncate` or wrap labels properly to avoid pushing adjacent columns outside the viewport.
+  - Header close buttons (`X`) must have reserved safety padding (`pr-11` or `pr-12`) so titles or status badges never collide with them.
+
 ---
 
 ## 3. Database Architecture & Critical Performance Safeguards
@@ -159,6 +168,7 @@ Easy Padhai/
 │   │   │   ├── teach-quiz-builder-tab.tsx  # Tab 2: AI Quiz Builder, Formulas & Manual Form
 │   │   │   └── teach-quiz-bank-tab.tsx     # Tab 3: All Quizzes Bank Table & Question Editor Modal
 │   │   ├── media-player.tsx    # Audio/Video player with Podcast mode & MediaSession
+│   │   ├── share-lecture-dialog.tsx # Mobile-first Audio Social Share modal (8 tones + WhatsApp/Telegram)
 │   │   ├── site-header.tsx     # Global navigation, class switcher, user profile
 │   │   ├── notification-bell.tsx # Realtime student notification drawer
 │   │   ├── podcast-mode-dialog.tsx # Dedicated audio immersion modal
@@ -172,6 +182,8 @@ Easy Padhai/
 │   │   ├── admin.server.ts     # Staff assertions, catalog fetch, upsert logic
 │   │   ├── admin.functions.ts  # TanStack Start server function wrappers
 │   │   ├── content.server.ts   # Public curriculum fetch & aggregation
+│   │   ├── credits.server.ts   # Student credits & guest shared lecture access
+│   │   ├── guest-shared.ts     # Client localStorage engine for 2 free shared lectures
 │   │   ├── notifications.server.ts # Notification dispatch, schedule parser
 │   │   ├── schedule.ts         # IST date conversion & scheduled release tags
 │   │   ├── r2.server.ts        # Cloudflare R2 S3 presigned upload handler
@@ -202,6 +214,8 @@ Easy Padhai/
 | **DEC-006** | Supabase Free Tier auto-pause after 7 days | Inactive projects on Supabase free tier pause if no queries occur. | Created `.github/workflows/supabase-keep-alive.yml` to ping database every 3 days. |
 | **DEC-007** | Hidden Physics Lab simulations on `/simulations` | Must remain completely hidden from UI and Google indexing while accessible via direct URL. | Placed isolated zero-conflict standalone app in `public/simulations/` with `rewrites` in `vercel.json`, `noindex` meta, `robots.txt` disallow, and a subtle "← Back to Easy Padhai" header link. |
 | **DEC-008** | Easy Padhai 2.0 UI/UX Makeover & Payment Readiness | User friction from 12-field mandatory onboarding, infinite redirect loops, clunky cascading `<select>` dropdowns on `/learn`, paywall blockades, and mobile floating bar collisions. | 1. Simplified onboarding into a 5-sec 2-step chip selector with dismissable guest mode. 2. Made phone number optional on server. 3. Overhauled `/learn` into a modern horizontal subject carousel + instant search + rich chapter cards. 4. Replaced paywalls with welcoming free access messages. 5. Future-proofed payment architecture in `payment.server.ts` connected to `credit_events`. 6. Elevated mobile floating bar to `bottom-20` to prevent collision with mobile bottom nav. |
+| **DEC-009** | Audio Lecture Social Sharing with 8 Tones & 2 Free Guest Lectures Engine | Students wanted to share favorite lectures on WhatsApp/social media, while non-logged-in friends faced access barriers. | 1. Built `share-lecture-dialog.tsx` featuring 8 curated tones (Topper Secret, Mind-Blowing, Last Minute, Study Group, Challenge, Chill Study, Backbencher, Clean & Simple) with live editable preview, WhatsApp, Telegram, Copy, and Native Share. 2. Created client quota engine `guest-shared.ts` allowing recipient guests to play their first 1–2 shared lectures completely free (`localStorage`). 3. Linked automatic referral code attachment (`&ref=CODE`) to reward both students upon registration. 4. Enforced strict mobile-first architecture: `max-h-[90dvh]` flex container with pinned sticky action footer so WhatsApp Share and Copy buttons are always 100% visible and accessible without being pushed below the mobile viewport. |
+| **DEC-010** | Physics Master Labs Overhaul & Isolated Simulation Deep-Linking | User provided new, superior interactive physics simulations in `Simulations/Final Simulations` (Ray & Wave Optics + Physics Master Lab) to replace old sub-par simulations on hidden `/simulations` route. Early build encountered relative path 404s. | 1. Migrated all standalone files into `public/simulations/` with absolute path references (`/simulations/ray-and-wave-optics.html` and `/simulations/physics-master-lab.html`). 2. Wired experiment chip buttons with `?topic=` URL parameter navigation so students can directly click and launch any individual experiment (e.g. Young's Double Slit, Lens Maker's, Kirchhoff's Rules, Potentiometer). 3. Maintained strict `robots.txt` disallow and `noindex` directives to keep master lab hidden from general navigation and search indexing. |
 
 ---
 
