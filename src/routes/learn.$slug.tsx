@@ -558,7 +558,7 @@ function ChapterPage() {
     const isDone = done.has(lesson.id);
     const isActive = active?.id === lesson.id;
     const isLessonScheduled = !isStaff && Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
-    const isUnlocked = Boolean(isStaff) || (!isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id)));
+    const isUnlocked = Boolean(isStaff || user) || (!isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id)));
 
     return (
       <button
@@ -814,7 +814,7 @@ function ChapterPage() {
               const isDone = done.has(lesson.id);
               const isActive = active?.id === lesson.id;
               const isLessonScheduled = !isStaff && Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
-              const isUnlocked = Boolean(isStaff) || (!isLessonScheduled && (lesson.isFree || idx === 0 || unlockedLessonIds.has(lesson.id)));
+              const isUnlocked = Boolean(isStaff || user) || (!isLessonScheduled && (lesson.isFree || idx === 0 || unlockedLessonIds.has(lesson.id)));
               const meta = KIND_META[lesson.kind] ?? KIND_META.summary;
 
               return (
@@ -892,7 +892,7 @@ function ChapterPage() {
                   const isDone = done.has(lesson.id);
                   const isActive = active?.id === lesson.id;
                   const isLessonScheduled = Boolean(lesson.scheduled_at && isScheduleInFuture(lesson.scheduled_at));
-                  const isUnlocked = !isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id));
+                  const isUnlocked = Boolean(isStaff || user) || (!isLessonScheduled && (lesson.isFree || index === 0 || unlockedLessonIds.has(lesson.id)));
 
                   return (
                     <button
@@ -1375,8 +1375,8 @@ function LessonPanel({
   const isStaffPreview = Boolean(access?.isStaffPreview || isStaff);
 
   // Unlocked & Locked evaluation:
-  // If staff, already known unlocked, lecture 1, or guest free shared lecture, locked is false from frame 1
-  const isKnownUnlocked = Boolean(isStaff) || (!isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree || isGuestEligible));
+  // If staff, signed in student, already known unlocked, lecture 1, or guest free shared lecture, locked is false from frame 1
+  const isKnownUnlocked = Boolean(isStaff || signedIn) || (!isScheduled && (isFirstLesson || isAlreadyUnlocked || lesson.isFree || isGuestEligible));
   const locked = isStaff
     ? false
     : isScheduled && !isStaffPreview
@@ -2100,7 +2100,7 @@ function LessonPanel({
               onClick={() => {
                 if (locked) {
                   setTabKey("quiz");
-                  toast.info("Please unlock this lecture (10 credits) to take the quiz.");
+                  toast.info("Please sign in or create a free account to take the quiz.");
                   return;
                 }
                 userId

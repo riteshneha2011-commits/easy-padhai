@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { awardXp, grantBadge, touchStreak } from "./gamify.server";
 import { applyStreakLadderFor, awardCredits, qualifyReferralFor } from "./credits.server";
 import { CREDIT_REWARDS } from "./credits";
+import { parseLessonSchedule } from "./schedule";
 
 export async function completeLessonFor(userId: string, lessonId: string) {
   const [existingRes, lessonRes] = await Promise.all([
@@ -13,7 +14,7 @@ export async function completeLessonFor(userId: string, lessonId: string) {
       .maybeSingle(),
     supabaseAdmin
       .from("lessons")
-      .select("id, chapter_id, duration_minutes, order_index")
+      .select("id, chapter_id, duration_minutes, order_index, summary, published")
       .eq("id", lessonId)
       .maybeSingle(),
   ]);
@@ -21,28 +22,12 @@ export async function completeLessonFor(userId: string, lessonId: string) {
   if (existingRes.data) return { alreadyDone: true, xp: 0, credits: 0 };
 
   const lesson = lessonRes.data;
-  if (!lesson) throw new Error("Lesson not found");
+  if (!lesson || !lesson.published) throw new Error("Lesson not found");
 
-  // Verify access: Lesson 1 of chapter is free; Lesson 2 onwards must be unlocked
-  const [{ data: firstLesson }, { data: unlocked }] = await Promise.all([
-    supabaseAdmin
-      .from("lessons")
-      .select("id")
-      .eq("chapter_id", lesson.chapter_id)
-      .eq("published", true)
-      .order("order_index")
-      .limit(1),
-    supabaseAdmin
-      .from("lesson_unlocks")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("lesson_id", lessonId)
-      .maybeSingle(),
-  ]);
-
-  const isFirst = (firstLesson ?? [])[0]?.id === lesson.id;
-  if (!isFirst && !unlocked) {
-    throw new Error("Please unlock this lecture (10 credits) before marking it complete.");
+  // Scheduled lecture check: prevent early completion before live release
+  const sched = parseLessonSchedule(lesson.summary);
+  if (sched.isScheduled) {
+    throw new Error("This lecture is scheduled for release soon.");
   }
 
   // Record progress
